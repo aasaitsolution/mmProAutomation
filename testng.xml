@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<suite name="Suite" parallel="false">
+    <test name="Test">
+        <classes>
+            <class name="Home.homepage"/>
+            <class name="MLOwner.mlownerhome"/>
+            <class name="MLOwner.mlownersingin"/>
+<!--            <class name="MLOwner.DispatchloadTesting"/>-->
+            <class name="PoliceOfficer.policeofficersignin"/>
+            <class name="PoliceOfficer.validnumber"/>
+            <class name="PoliceOfficer.invalidnumber"/>
+        </classes>
+    </test>
+</suite>

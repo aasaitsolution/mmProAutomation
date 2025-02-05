@@ -9,8 +9,13 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <aspectj.version>1.9.19</aspectj.version>
+        <allure.version>2.25.0</allure.version>
+        <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+        <allure.report.directory>${project.build.directory}/allure-report</allure.report.directory>
     </properties>
 
     <dependencies>
@@ -37,7 +42,125 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Remove allure-junit5 as we're using TestNG -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-testng</artifactId>
+            <version>${allure.version}</version>
+        </dependency>
 
+        <!-- Add AspectJ Weaver dependency -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>${aspectj.version}</version>
+        </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+
+            <!-- Clean plugin - preserves history -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${allure.results.directory}</directory>
+                            <excludes>
+                                <exclude>history/**</exclude>
+                            </excludes>
+                        </fileset>
+                        <fileset>
+                            <directory>${allure.report.directory}</directory>
+                            <excludes>
+                                <exclude>history/**</exclude>
+                            </excludes>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+
+            <!-- Compiler plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>testng.xml</suiteXmlFile>
+                    </suiteXmlFiles>
+                    <argLine>
+                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
+                    </argLine>
+                    <systemProperties>
+                        <property>
+                            <name>allure.results.directory</name>
+                            <value>${project.build.directory}/allure-results</value>
+                        </property>
+                    </systemProperties>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjweaver</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <!-- Antrun plugin for history management -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>prepare-allure-results</id>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <target>
+                                <!-- Create directories -->
+                                <mkdir dir="${allure.results.directory}/history"/>
+                                <mkdir dir="${allure.report.directory}/history"/>
+
+                                <!-- Copy history from report to results -->
+                                <copy todir="${allure.results.directory}/history" failonerror="false">
+                                    <fileset dir="${allure.report.directory}/history"/>
+                                </copy>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Allure plugin -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>2.10.0</version>
+                <configuration>
+                    <reportVersion>${allure.version}</reportVersion>
+                    <resultsDirectory>${allure.results.directory}</resultsDirectory>
+                    <reportDirectory>${allure.report.directory}</reportDirectory>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
 </project>
