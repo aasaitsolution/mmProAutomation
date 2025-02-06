@@ -7,9 +7,11 @@
             <class name="MLOwner.mlownerhome"/>
             <class name="MLOwner.mlownersingin"/>
 <!--            <class name="MLOwner.DispatchloadTesting"/>-->
-            <class name="PoliceOfficer.policeofficersignin"/>
-            <class name="PoliceOfficer.validnumber"/>
-            <class name="PoliceOfficer.invalidnumber"/>
+<!--            <class name="PoliceOfficer.policeofficersignin"/>-->
+<!--            <class name="PoliceOfficer.validnumber"/>-->
+<!--            <class name="PoliceOfficer.invalidnumber"/>-->
+<!--            <class name="GSMBOfficer.AddMiningLicense"></class>-->
+            <class name="GSMBOfficer.GsmbOfficerSignin"></class>
         </classes>
     </test>
 </suite>
