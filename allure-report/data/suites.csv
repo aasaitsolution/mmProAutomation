@@ -1,0 +1,7 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"This test verifies if a valid license plate number allows navigation to the correct page","5477","testValidLicensePlate","Default Suite","Thu Feb 06 12:34:16 IST 2025","failed","Thu Feb 06 12:34:21 IST 2025","PoliceOfficer.policeofficersignin","mmProAutomation","PoliceOfficer.policeofficersignin","testValidLicensePlate"
+"","108443","testAddMiningLicense","Default Suite","Wed Feb 05 23:00:10 IST 2025","broken","Wed Feb 05 23:01:58 IST 2025","GSMBOfficer.AddMiningLicense","mmProAutomation","GSMBOfficer.AddMiningLicense","testAddMiningLicense"
+"","19780","gsmbSignin","Default Suite","Wed Feb 05 22:30:26 IST 2025","passed","Wed Feb 05 22:30:46 IST 2025","GSMBOfficer.GsmbOfficerSignin","mmProAutomation","GSMBOfficer.GsmbOfficerSignin","gsmbSignin"
+"","3647","testNavigationFlow","Default Suite","Tue Feb 04 20:23:04 IST 2025","passed","Tue Feb 04 20:23:07 IST 2025","PoliceOfficer.policeofficersingin","mmProAutomation","PoliceOfficer.policeofficersingin","testNavigationFlow"
+"","4897","enterInvalidLicense","Default Suite","Thu Feb 06 12:42:59 IST 2025","failed","Thu Feb 06 12:43:04 IST 2025","PoliceOfficer.invalidnumber","mmProAutomation","PoliceOfficer.invalidnumber","enterInvalidLicense"
+"","5804","testValidLicensePlate","Default Suite","Mon Feb 03 17:10:04 IST 2025","passed","Mon Feb 03 17:10:10 IST 2025","PoliceOfficer.validnumber","mmProAutomation","PoliceOfficer.validnumber","testValidLicensePlate"

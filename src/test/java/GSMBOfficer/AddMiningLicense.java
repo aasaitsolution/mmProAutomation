@@ -44,7 +44,7 @@ public class AddMiningLicense {
             WebElement licenseNumberField = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.xpath("//*[@id='licenseNumber']")
             ));
-            licenseNumberField.sendKeys("LLL/100/111");
+            licenseNumberField.sendKeys("LA4560");
 
             // Verify license number is entered correctly
             Assert.assertEquals(licenseNumberField.getAttribute("value"), "LLL/100/111",
@@ -60,7 +60,7 @@ public class AddMiningLicense {
                     By.xpath("//*[@id='validityStart']")
             ));
             validityStartField.clear();
-            validityStartField.sendKeys("30/01/2025");
+            validityStartField.sendKeys("08/02/2025");
 
             WebElement validityEndField = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//*[@id='endDate']")
