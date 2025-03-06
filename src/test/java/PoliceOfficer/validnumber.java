@@ -48,7 +48,7 @@ public class validnumber {
 
             // Get the check button and verify it's enabled
             WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/main/button")
+                    By.xpath("//*[@id=\"root\"]/div/main/div/main/div/button")
             ));
             Assert.assertTrue(checkButton.isEnabled(), "Check button is not enabled");
 
