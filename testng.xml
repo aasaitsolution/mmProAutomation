@@ -3,20 +3,20 @@
 <suite name="Suite" parallel="false">
     <test name="Test">
         <classes>
-<!--            <class name="Home.homepage"/>-->
-<!--            <class name="MLOwner.mlownerhome"/>-->
-<!--            <class name="MLOwner.mlownersingin"/>-->
-<!--            <class name="MLOwner.DispatchloadTesting"/>-->
-<!--            <class name="GSMBOfficer.GsmbOfficerSignin"/>-->
-<!--            <class name="GSMBOfficer.AddMiningLicense"/>-->
+            <class name="Home.homepage"/>
+            <class name="MLOwner.mlownerhome"/>
+            <class name="MLOwner.mlownersingin"/>
+            <class name="MLOwner.DispatchloadTesting"/>
+            <class name="GSMBOfficer.GsmbOfficerSignin"/>
+            <class name="GSMBOfficer.AddMiningLicense"/>
             <class name="GSMBOfficer.AddLicenseOwner"/>
-<!--            <class name="GSMBOfficer.GSMBmlTab"/>-->
-<!--            <class name="PoliceOfficer.policeofficersignin"/>-->
-<!--            <class name="PoliceOfficer.validnumber"/>-->
-<!--            <class name="PoliceOfficer.invalidnumber"/>-->
-<!--            <class name="GeneralPublic.GeneralPublicDashboard"/>-->
-<!--            <class name="GeneralPublic.InvalidNumber"/>-->
-<!--            <class name="GeneralPublic.ValidNumber"/>-->
+            <class name="GSMBOfficer.GSMBmlTab"/>
+            <class name="PoliceOfficer.policeofficersignin"/>
+            <class name="PoliceOfficer.validnumber"/>
+            <class name="PoliceOfficer.invalidnumber"/>
+            <class name="GeneralPublic.GeneralPublicDashboard"/>
+            <class name="GeneralPublic.InvalidNumber"/>
+            <class name="GeneralPublic.ValidNumber"/>
         </classes>
     </test>
 </suite>
