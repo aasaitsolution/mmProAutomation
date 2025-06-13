@@ -1,7 +1,9 @@
 package GSMBOfficer;
 
+import io.opentelemetry.sdk.metrics.internal.state.PooledHashMap;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
@@ -17,7 +19,10 @@ public class AddMiningLicense {
 
     @BeforeMethod
     public void setup() {
-        driver = new ChromeDriver();
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--incognito");
+
+        driver = new ChromeDriver(options);
         driver.manage().window().maximize();
         wait = new WebDriverWait(driver, Duration.ofSeconds(100)); // Increased timeout
     }
@@ -34,17 +39,9 @@ public class AddMiningLicense {
             // Add a small delay to ensure page is fully loaded
             Thread.sleep(200);
 
-            // Navigate to ML Owner tab (using most reliable method)
-            WebElement mlOwnerTab = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id='rc-tabs-1-tab-MLOWNER']")));
-            mlOwnerTab.click();
-
-            // Add a small wait after clicking tab
-            Thread.sleep(500);
-
             // Find and click the "+" button in the ML Owner table
             WebElement addButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/div/div/div/div/table/tbody/tr[1]/td[8]/a/button")));
+                    By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/div/div/div/div/table/tbody/tr[1]/td[7]/div/a/button/span")));
             addButton.click();
 
             // Wait for form to load
@@ -69,35 +66,150 @@ public class AddMiningLicense {
 
     private void fillLicenseForm() {
         // Wait for license number field and enter value
+        WebElement explorationlicenseField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@id=\"exploration_nb\"]")
+        ));
+        explorationlicenseField.clear();
+        explorationlicenseField.sendKeys("ABC1234");
+
+        WebElement landNameField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@id=\"land_name\"]")
+        ));
+        landNameField.clear();
+        landNameField.sendKeys("No 23/1" + System.currentTimeMillis() % 10000);
+
+        WebElement googleLocationField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@id=\"land_google\"]")
+        ));
+        googleLocationField.clear();
+        googleLocationField.sendKeys("http://maps.google.com/?q=No+23/1+Netolpitiya,+Tangalle,+Sri+Lanka");
+
+        WebElement landOwnerNameField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@id=\"land_owner_name\"]")
+        ));
+        landOwnerNameField.clear();
+        landOwnerNameField.sendKeys("Kasun Perera");
+
+        WebElement villageNameField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@id=\"village_name\"]")
+        ));
+        villageNameField.clear();
+        villageNameField.sendKeys("Netolpitiya");
+
+        WebElement gramaNiladhariField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@id=\"grama_niladari\"]")
+        ));
+        gramaNiladhariField.clear();
+        gramaNiladhariField.sendKeys("Netolpitiya" );
+
+// Click on the district dropdown to open it
+        WebElement districtDropdown = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//div[contains(@class, 'ant-select-selector') and .//input[@id='district']]")
+        ));
+        districtDropdown.click();
+
+// Wait for dropdown options to appear and select one
+        WebElement districtOption = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//div[contains(@class, 'ant-select-item') and contains(text(), 'Hambantota')]")
+        ));
+        districtOption.click();
+
+// Click on the district dropdown to open it
+        WebElement divishionalSecretaryDropdown = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//div[contains(@class, 'ant-select-selector') and .//input[@id='divisional_secretary_division']]")
+        ));
+        divishionalSecretaryDropdown.click();
+
+// Wait for dropdown options to appear and select one
+        WebElement divishionalSecretaryOption = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//div[contains(@class, 'ant-select-item') and contains(text(), 'Tangalle')]")
+        ));
+        divishionalSecretaryOption.click();
+
         WebElement licenseNumberField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[@id='licenseNumber']")
+                By.xpath("//*[@id=\"mining_license_number\"]")
         ));
         licenseNumberField.clear();
-        licenseNumberField.sendKeys("LA" + System.currentTimeMillis() % 10000);
+        licenseNumberField.sendKeys("PQR1234");
+
+
+// Click on the date picker input field to open calendar
+        WebElement datePickerInput = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//input[@id='start_date']")
+        ));
+        datePickerInput.click();
+
+// Wait for the calendar panel to appear
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[contains(@class, 'ant-picker-panel')]")
+        ));
+
+        WebElement startDateInput = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//input[@id='start_date']")
+        ));
+        startDateInput.clear();
+        startDateInput.sendKeys("30/07/2024");
+        startDateInput.sendKeys(Keys.ENTER);
+
+        String inputValue = startDateInput.getAttribute("value");
+
+        // Click on the date picker input field to open calendar
+        WebElement datePickeInput = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//input[@id='due_date']")
+        ));
+        datePickeInput.click();
+
+// Wait for the calendar panel to appear
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[contains(@class, 'ant-picker-panel')]")
+        ));
+
+        WebElement dueDateInput = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//input[@id='due_date']")
+        ));
+        startDateInput.clear();
+        startDateInput.sendKeys("15/07/2024");
+        startDateInput.sendKeys(Keys.ENTER);
+
+//        String inputValue = startDateInput.getAttribute("value");
+
+// Verify the selected date appears in the input field
+        WebElement selectedDate = driver.findElement(By.id("start_date"));
+        String selectedValue = selectedDate.getAttribute("value");
+        Assert.assertNotNull(selectedValue);
+        Assert.assertFalse(selectedValue.isEmpty());
+
+
+
+
+
+
+
+        WebElement validityStartField = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/form/div[8]/div[1]/div/div/div[2]/div/div/div")
+        ));
+        validityStartField.clear();
+        validityStartField.sendKeys("30/07/2025");
+
+        WebElement validityEndField = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//*[@id=\"endDate\"]")
+        ));
+        validityEndField.clear();
+        validityEndField.sendKeys("31/10/2025");
 
         WebElement capacityField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[@id='capacity']")
+                By.xpath("//*[@id=\"capacity\"]")
         ));
         capacityField.clear();
         capacityField.sendKeys("1000");
 
         WebElement locationField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[@id='location']")
+                By.xpath("//*[@id=\"location\"]")
         ));
         locationField.clear();
-        locationField.sendKeys("Madampe");
+        locationField.sendKeys("No 23/1, Netolpitiya");
 
-        WebElement validityStartField = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id='validityStart']")
-        ));
-        validityStartField.clear();
-        validityStartField.sendKeys("06/03/2025");
 
-        WebElement validityEndField = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id='endDate']")
-        ));
-        validityEndField.clear();
-        validityEndField.sendKeys("31/03/2025");
     }
 
     private void clickCreateButton() {
@@ -176,7 +288,7 @@ public class AddMiningLicense {
     @AfterMethod
     public void tearDown() {
         if (driver != null) {
-            driver.quit();
+//            driver.quit();
         }
     }
 }
