@@ -27,7 +27,7 @@ public class ValidNumber {
 
         // Constants
         final String BASE_URL = "http://localhost:5173";
-        final String VALID_LICENSE = "LA4565";
+        final String VALID_LICENSE = "XYZ1234";
 
         try {
             // Navigate to the base URL

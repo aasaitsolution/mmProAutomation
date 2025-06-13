@@ -26,7 +26,7 @@ public class AddLicenseOwner {
     @Test
     public void testAddLicenseOwner() throws InterruptedException {
         try {
-            // Login
+            // Logina
             performLogin();
 
             // Wait for dashboard to load completely
