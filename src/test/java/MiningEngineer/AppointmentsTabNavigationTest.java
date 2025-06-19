@@ -27,7 +27,7 @@ public class AppointmentsTabNavigationTest extends AppointmentsTestBase {
 }
 /*
     @Test
-    public void testSwitchToScheduledTab() {
+    public void testSwitchToScheduledTab()s {
         WebElement scheduledTab = driver.findElement(By.xpath("//div[contains(@class, 'ant-tabs-tab') and contains(., 'Scheduled')]"));
         scheduledTab.click();
 
