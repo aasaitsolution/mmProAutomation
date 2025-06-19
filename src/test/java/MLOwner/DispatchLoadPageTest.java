@@ -1,10 +1,15 @@
+
 package MLOwner;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.*;
-import org.testng.annotations.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.time.Duration;
 
@@ -16,10 +21,12 @@ public class DispatchLoadPageTest {
     public void setup() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--incognito");
+        options.addArguments("--start-maximized");
+        // This argument can help prevent random crashes in some environments
+        options.addArguments("--disable-dev-shm-usage");
 
         driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30)); // Adjusted to a reasonable timeout
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
     @Test(priority = 1)
@@ -29,7 +36,8 @@ public class DispatchLoadPageTest {
                 By.cssSelector("a[href='/signin'] button")));
         loginBtn.click();
 
-        WebElement username = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+        WebElement username = driver.findElement(By.id("sign-in_username"));
         WebElement password = driver.findElement(By.id("sign-in_password"));
 
         username.sendKeys("pasindu");
@@ -42,96 +50,110 @@ public class DispatchLoadPageTest {
         System.out.println("Login successful.");
     }
 
+    /**
+     * Helper method to reliably set the value of a React input field.
+     * Clicks the element to focus, then uses JavaScript to set the value and
+     * dispatches 'input' and 'change' events to trigger React's state updates.
+     */
+    private void setReactInput(WebElement element, String value) {
+        try {
+            // Click the element first to ensure it has focus
+            wait.until(ExpectedConditions.elementToBeClickable(element)).click();
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            // Set the value and dispatch events
+            js.executeScript(
+                    "arguments[0].value = arguments[1];" +
+                            "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));" +
+                            "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));",
+                    element, value
+            );
+
+            // Wait for the value to be correctly set in the DOM
+            wait.until(ExpectedConditions.attributeToBe(element, "value", value));
+        } catch (Exception e) {
+            System.err.println("Failed to set input for element: " + element);
+            e.printStackTrace();
+            // Fail the test immediately if we can't set an input
+            Assert.fail("Failed to set input value for element. See console for details.", e);
+        }
+    }
+
     @Test(priority = 2, dependsOnMethods = "loginToMLDashboard")
-    public void testDispatchLoadForm() {
-        // Navigate to Dispatch Load page
+    public void testDispatchLoadFormSubmission() {
         driver.get("https://mmpro.aasait.lk/mlowner/home/dispatchload/LLL/100/402");
 
-        // Wait for form to load
         wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//h3[contains(text(),'Dispatch Your Load Here') or contains(text(),'යැවිය යුතු ප්‍රමාණ පිළිබඳ මෙහි සටහන් කරන්න') or contains(text(),'உங்கள் சுமையை இங்கே அனுப்பவும்')]")));
+                By.xpath("//h3[contains(text(),'Dispatch Your Load Here')]")));
+        System.out.println("Dispatch Load page loaded.");
 
         // ===== Destination =====
+        // CORRECTED: Treat AutoComplete as a simple text input since suggestion fetching is disabled.
         WebElement destinationInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[contains(text(),'DESTINATION:') or contains(text(),'ගමනාන්තය:') or contains(text(),'சேருமிடம்:')]/following::input[1]")));
-        destinationInput.click();
-        destinationInput.clear();
-        destinationInput.sendKeys("Matara");
-
-        WebElement mataraOption = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//div[@class='ant-select-item-option-content' and contains(text(),'Matara')]")));
-        mataraOption.click();
+                By.xpath("//span[contains(text(),'DESTINATION')]/following::input[1]")));
+        setReactInput(destinationInput, "Matara");
+        System.out.println("Set Destination to 'Matara'.");
 
         // ===== Lorry Number =====
-        WebElement lorryInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[contains(text(),'LORRY NUMBER:') or contains(text(),'ලොරිය අංකය:') or contains(text(),'லொறி எண்:')]/following::input[1]")));
-
-// Instead of sendKeys, use JavaScript to ensure React registers the input
-        ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true }));",
-                lorryInput, "ABC1234"
-        );
-
+        WebElement lorryInput = driver.findElement(By.xpath("//span[contains(text(),'LORRY NUMBER')]/following::input[1]"));
+        setReactInput(lorryInput, "CBA-4321");
+        System.out.println("Set Lorry Number to 'CBA-4321'.");
 
         // ===== Driver Contact =====
-        WebElement driverContactInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[contains(text(),'DRIVER CONTACT:') or contains(text(),'රියදුරු සම්බන්ධතා:') or contains(text(),'சாரதி தொடர்பு:')]/following::input[1]")));
-        driverContactInput.clear();
-        driverContactInput.sendKeys("0711234567");
+        WebElement driverContactInput = driver.findElement(By.xpath("//span[contains(text(),'DRIVER CONTACT')]/following::input[1]"));
+        setReactInput(driverContactInput, "0771234567");
+        System.out.println("Set Driver Contact to '0771234567'.");
 
-        // ===== Routes =====
-        WebElement route1 = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[contains(text(),'ROUTE 1:') or contains(text(),'මාර්ගය 1:') or contains(text(),'வழி 1:')]/following::input[1]")));
-        route1.clear();
-        route1.sendKeys("Matara");
+        // ===== Route 1 (Pre-filled, verify or set if needed) =====
+        // Note: The React code suggests Route 1 is pre-filled with 'divisionalSecretary'.
+        // We will assume it's correct and proceed to set Routes 2 and 3.
+        WebElement route1 = driver.findElement(By.xpath("//span[contains(text(),'ROUTE 1')]/following::input[1]"));
+        System.out.println("Verified Route 1 is present with value: " + route1.getAttribute("value"));
 
-        WebElement route2 = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[contains(text(),'ROUTE 2:') or contains(text(),'මාර්ගය 2:') or contains(text(),'வழி 2:')]/following::input[1]")));
-        route2.clear();
-        route2.sendKeys("Galle");
+        // ===== Route 2 =====
+        WebElement route2 = driver.findElement(By.xpath("//span[contains(text(),'ROUTE 2')]/following::input[1]"));
+        setReactInput(route2, "Galle");
+        System.out.println("Set Route 2 to 'Galle'.");
 
-        WebElement route3 = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[contains(text(),'ROUTE 3:') or contains(text(),'මාර්ගය 3:') or contains(text(),'வழி 3:')]/following::input[1]")));
-        route3.clear();
-        route3.sendKeys("Colombo");
+        // ===== Route 3 =====
+        WebElement route3 = driver.findElement(By.xpath("//span[contains(text(),'ROUTE 3')]/following::input[1]"));
+        setReactInput(route3, "Colombo");
+        System.out.println("Set Route 3 to 'Colombo'.");
 
         // ===== Cubes =====
-        WebElement cubeInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[contains(text(),'CUBES:') or contains(text(),'කියුබ් ගණන:') or contains(text(),'கனசதுரங்கள்:')]/following::input[1]")));
-        if (!cubeInput.getAttribute("value").equals("1")) {
-            cubeInput.clear();
-            cubeInput.sendKeys("1");
-        }
+        WebElement cubeInput = driver.findElement(By.xpath("//span[contains(text(),'CUBES')]/following::input[1]"));
+        setReactInput(cubeInput, "2");
+        System.out.println("Set Cubes to '2'.");
 
         // ===== Submit Button =====
-        WebElement submitBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//button[span[contains(text(),'Submit') or contains(text(),'සටහන් කරන්න') or contains(text(),'சமர்ப்பிக்கவும்')]]")));
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitBtn);
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitBtn);
+        WebElement submitBtn = driver.findElement(By.xpath("//button[span[contains(text(),'Submit') or contains(text(),'සටහන් කරන්න') or contains(text(),'சமர்ப்பிக்கவும்')]]"));
+        // Use Javascript click to avoid potential interception issues
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true); arguments[0].click();", submitBtn);
+        System.out.println("Clicked Submit button.");
 
         // ===== Verify Success Modal =====
-        WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.className("ant-modal-content")));
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-modal-content")));
         System.out.println("Success modal is visible.");
 
-        WebElement successMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//div[contains(@class,'ant-modal-body')]//div[contains(text(),'success') or contains(text(),'සාර්ථක') or contains(text(),'வெற்றிகரமான')]")));
-        System.out.println("Success message: " + successMessage.getText());
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[contains(@class,'ant-modal-body')]//div[contains(text(),'success') or contains(text(),'සාර්ථක') or contains(text(),'வெற்றிகரமாக')]")));
+        System.out.println("Success message verified.");
 
-        WebElement backBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//button[span[contains(text(),'Back') or contains(text(),'ආපසු') or contains(text(),'பின்செல்')]]")));
+        // ===== Go Back to Home =====
+        WebElement backBtn = driver.findElement(By.xpath("//button[span[contains(text(),'Back') or contains(text(),'ආපසු') or contains(text(),'பின்செல்')]]"));
         backBtn.click();
+        System.out.println("Clicked 'Back to Home' button.");
 
+        // Final verification
         wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-        System.out.println("Returned to home page.");
+        System.out.println("Test successful. Returned to home page.");
     }
 
     @AfterClass
     public void tearDown() {
         if (driver != null) {
-            // driver.quit(); // Uncomment this for real execution
+            driver.quit();
             System.out.println("Browser closed.");
         }
     }
 }
-

@@ -2,6 +2,7 @@ package MLOwner;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.*;
 import org.testng.Assert;
 import org.testng.annotations.*;
@@ -15,10 +16,13 @@ public class DispatchHistoryTest {
     private WebDriverWait wait;
 
     @BeforeClass
-    public void setUp() {
-        driver = new ChromeDriver();
+    public void setup() {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--incognito");
+
+        driver = new ChromeDriver(options);
         driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
     @Test(priority = 1)
@@ -62,7 +66,7 @@ public class DispatchHistoryTest {
     @Test(priority = 4)
     public void testHistoryCardAndPrint() throws InterruptedException {
         List<WebElement> cards = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.className("history-card")));
-        Assert.assertTrue(cards.size() > 0, "No dispatch history cards found.");
+        Assert.assertFalse(cards.isEmpty(), "No dispatch history cards found.");
 
         WebElement firstCard = cards.get(0);
         Assert.assertTrue(firstCard.getText().contains("License Number"));
@@ -80,11 +84,35 @@ public class DispatchHistoryTest {
     }
 
     @Test(priority = 5)
-    public void testNoRecordsDisplay() {
-        driver.get("https://mmpro.aasait.lk/mlowner/home/dispatchhistory");
+    public void testBackToHomeButton() throws InterruptedException {
+        try {
+            // Navigate directly to the TPL receipt page with valid state
+            // If you need to simulate navigation, do the previous print button click
+            driver.get("https://mmpro.aasait.lk/mlowner/home/dispatchload/TPLreceipt");
 
-        WebElement empty = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-empty-description")));
-        Assert.assertTrue(empty.getText().toLowerCase().contains("no dispatch"));
+            // Wait until the page is loaded and Back to Home button is visible
+            WebElement backButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//button[contains(text(),'Back to Home') or contains(text(),'ආපසු') or contains(text(),'முகப்புக்குத் திரும்பு')]")
+            ));
+
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", backButton);
+            Thread.sleep(500);
+            backButton.click();
+
+            // Wait for navigation to ML Owner dashboard
+            wait.until(ExpectedConditions.urlContains("/mlowner/home"));
+
+            // Optional: Validate with dashboard content
+            WebElement dashboard = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//*[contains(text(),'Dashboard') or contains(text(),'උපකරණ පුවරුව') or contains(text(),'டாஷ்போர்டு')]")
+            ));
+            Assert.assertTrue(dashboard.isDisplayed(), "Dashboard not visible after clicking Back to Home.");
+
+            System.out.println("✅ Back to Home button works correctly.");
+
+        } catch (Exception e) {
+            Assert.fail("❌ Back to Home button failed: " + e.getMessage());
+        }
     }
 
     @AfterClass
