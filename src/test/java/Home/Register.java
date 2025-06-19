@@ -18,7 +18,7 @@ public class Register {
     public void register() {
         WebDriver driver = new ChromeDriver();
         driver.manage().window().maximize(); // Maximize window for better visibility
-        driver.get("http://localhost:5173/");
+        driver.get("https://mmpro.aasait.lk/");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20)); // Increased timeout
 
         try {
