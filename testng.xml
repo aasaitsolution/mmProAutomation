@@ -17,6 +17,11 @@
 <!--            <class name="GeneralPublic.GeneralPublicDashboard"/>-->
 <!--            <class name="GeneralPublic.InvalidNumber"/>-->
 <!--            <class name="GeneralPublic.ValidNumber"/>-->
-        </classes>
-    </test>
-</suite>
+<!--            <class name="MiningEngineer.MiningEngineerSignIn/>"-->
+<!--            <class name="MiningEngineer.AppointmentsTabNavigationTest"/> -->
+<!--            <class name="MiningEngineer.AppointmentsViewDetailsTest"/> -->
+<!--            <class name="MiningEngineer.AppointmentsSetDateTest"/> -->
+
+                    </classes>
+                </test>
+            </suite>
