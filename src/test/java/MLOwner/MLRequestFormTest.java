@@ -59,19 +59,33 @@ public class MLRequestFormTest {
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("grama_niladari"))).sendKeys("Grama Niladhari Colombo 05");
         System.out.println("📝 Filled all text fields.");
 
-        // --- Select District (Robust method) ---
-        // Click the dropdown to open it
-        wait.until(ExpectedConditions.elementToBeClickable(By.id("district"))).click();
-        // Wait for the specific option to be clickable and then click it
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@class='ant-select-item-option-content' and text()='Colombo']"))).click();
+        // --- Select District (Colombo) ---
+        WebElement districtDropdown = wait.until(ExpectedConditions.elementToBeClickable(By.id("district")));
+        districtDropdown.click();
+
+// Ant Design renders options in a popup div attached to <body>, so we use this:
+        WebElement districtOption = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[role='option'] .ant-select-item-option-content")));
+        districtOption.findElement(By.xpath(".[text()='Colombo']")).click();
         System.out.println("📍 Selected District: Colombo");
 
-
-        // --- Select Division (Robust method, no Thread.sleep) ---
+// --- Select Division (Dehiwala) ---
         WebElement divisionDropdown = wait.until(ExpectedConditions.elementToBeClickable(By.id("divisional_secretary_division")));
         divisionDropdown.click();
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@class='ant-select-item-option-content' and text()='Dehiwala']"))).click();
+
+// Wait and click the correct division
+        WebElement divisionOption = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[role='option'] .ant-select-item-option-content")));
+        divisionOption.findElement(By.xpath(".[text()='Dehiwala']")).click();
         System.out.println("📍 Selected Division: Dehiwala");
+
+
+// Wait until the new division options are loaded and select
+//        WebElement divisionOption = wait.until(ExpectedConditions.elementToBeClickable(
+//                By.xpath("//div[@class='ant-select-item-option-content' and text()='Dehiwala']")));
+//        divisionOption.click();
+//        System.out.println("📍 Selected Division: Dehiwala");
+
 
         // --- Upload files using the corrected helper method ---
         // Create dummy files if they don't exist for the test to run
@@ -84,6 +98,8 @@ public class MLRequestFormTest {
         uploadFile("detailed_mine_plan", "test-files/detailed-plan.pdf");
         uploadFile("economic_viability_report", "test-files/economic-report.pdf");
         uploadFile("license_boundary_survey", "test-files/survey-plan.pdf");
+
+//        String nicFrontPath = projectPath + "/src/test/resources/test_images/nic_front.jpg";
 
         // --- Submit form ---
         WebElement submitButton = driver.findElement(By.cssSelector("button[type='submit']"));
