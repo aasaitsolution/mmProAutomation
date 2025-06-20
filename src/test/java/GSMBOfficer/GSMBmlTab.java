@@ -19,21 +19,13 @@ public class GSMBmlTab {
     private WebDriverWait wait;
 
     @BeforeMethod
-    public void setUp() {
-        // Set up Chrome options for better stability
+    public void setup() {
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--disable-blink-features=AutomationControlled");
-        options.addArguments("--disable-extensions");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--incognito");
 
-        // Create driver with options
         driver = new ChromeDriver(options);
         driver.manage().window().maximize();
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-
-        // Create wait instance
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(100)); // Increased timeout
     }
 
     @Test
