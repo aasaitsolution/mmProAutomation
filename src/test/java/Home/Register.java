@@ -17,8 +17,10 @@ public class Register {
     @Test
     public void register() {
         WebDriver driver = new ChromeDriver();
-        driver.manage().window().maximize(); 
-        driver.get("http://localhost:5173/");
+
+        driver.manage().window().maximize(); // Maximize window for better visibility
+        driver.get("https://mmpro.aasait.lk/");
+
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20)); // Increased timeout
 
         String[] roles = {"GSMB Officer", "Police", "Mining License Owner", "Mining Engineer"};
