@@ -19,6 +19,7 @@ public class AppointmentsTabNavigationTest extends AppointmentsTestBase {
         );
     }
 
+
     @Test
     public void testSwitchToScheduledTab() {
         switchAndVerifyTab(
