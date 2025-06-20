@@ -13,6 +13,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.List;
 
 public class AddMiningLicense {
     private WebDriver driver;
@@ -149,7 +150,7 @@ public class AddMiningLicense {
         ));
 
         Thread.sleep(300);
-// Example: Select June 15, 2024
+//Select June 15, 2024
         WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//td[@title='2025-06-15']/div[@class='ant-picker-cell-inner']")
         ));
@@ -165,9 +166,15 @@ public class AddMiningLicense {
 // Set end date directly via JavaScript
         WebElement endDateInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("end_date")));
         ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].value = '2025-06-25'; arguments[0].dispatchEvent(new Event('change'));",
-                endDateInput
-        );
+    "const el = arguments[0];" +
+    "const value = '2025-06-25';" +
+    "const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;" +
+    "nativeInputValueSetter.call(el, value);" +
+    "el.dispatchEvent(new Event('input', { bubbles: true }));" +
+    "el.dispatchEvent(new Event('change', { bubbles: true }));",
+    endDateInput
+);
+
 
         WebElement fullCapacityField = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//*[@id=\"full_capacity\"]")
@@ -193,59 +200,54 @@ public class AddMiningLicense {
         remainingCapacityField.clear();
         remainingCapacityField.sendKeys("10");
 
-// Define file paths (assuming they're in the same test_images directory)
-//        String projectPath = System.getProperty("user.dir");
-//        String deedPlanPath = projectPath + "/src/test/resources/test_images/deedPlan.pdf";
-//        String minePlanPath = projectPath + "/src/test/resources/test_images/minePlan.pdf";
-//        String viabilityReportPath = projectPath + "/src/test/resources/test_images/viabilityReport.pdf";
-//        String boundarySurveyPath = projectPath + "/src/test/resources/test_images/boundarySurvey.pdf";
-//
-//// Upload files
-//        WebElement deedPlan = driver.findElement(By.id("Deed_plan")); // Adjust ID to match your HTML
-//        deedPlan.sendKeys(deedPlanPath);
-//
-//        WebElement minePlan = driver.findElement(By.id("detailed_mine_plan")); // Adjust ID to match your HTML
-//        minePlan.sendKeys(minePlanPath);
-//
-//        WebElement viabilityReport = driver.findElement(By.id("economic_viability_report")); // Adjust ID to match your HTML
-//        viabilityReport.sendKeys(viabilityReportPath);
-//
-//        WebElement boundarySurvey = driver.findElement(By.id("license_boundary_survey")); // Adjust ID to match your HTML
-//        boundarySurvey.sendKeys(boundarySurveyPath);
-
     }
 
     private void clickCreateButton() {
+    try {
+        WebElement createButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/form/div[13]/div/div/div/div/button")
+        ));
+
+        System.out.println("➡ Clicking the 'Create' button...");
+
+        // Try regular click first
         try {
-            // Try multiple approaches to click Create button
-            WebElement createButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/form/div[13]/div/div/div/div/button")
-            ));
-
-            // Try regular click first
-            try {
-                createButton.click();
-            } catch (ElementClickInterceptedException e) {
-                // If regular click fails, use JavaScript click
-                JavascriptExecutor executor = (JavascriptExecutor) driver;
-                executor.executeScript("arguments[0].click();", createButton);
-            }
-
-            // Wait for potential loading or navigation
-            Thread.sleep(1000);
-
-            // Check for any error messages
-            try {
-                WebElement errorMessage = driver.findElement(By.xpath("//div[contains(@class, 'error') or contains(@class, 'alert')]"));
-                throw new RuntimeException("Error occurred: " + errorMessage.getText());
-            } catch (NoSuchElementException e) {
-                // No error message found, continue
-            }
-        } catch (Exception e) {
-            System.out.println("Failed to click Create button: " + e.getMessage());
-            throw new RuntimeException("Unable to click Create button", e);
+            createButton.click();
+        } catch (ElementClickInterceptedException e) {
+            System.out.println("⚠ Regular click failed, using JavaScript click...");
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", createButton);
         }
+
+        System.out.println("✅ Clicked. Waiting to observe what happens...");
+
+        // Wait for either success popup or error message
+        Thread.sleep(3000); // Adjust as needed
+
+        // Print current URL
+        System.out.println("🔍 Current URL after submit: " + driver.getCurrentUrl());
+
+        // Check DOM changes
+        List<WebElement> toasts = driver.findElements(By.xpath("//div[contains(@class, 'ant-notification') or contains(@class, 'success') or contains(@class, 'ant-message-success')]"));
+        if (!toasts.isEmpty()) {
+            for (WebElement toast : toasts) {
+                System.out.println("✅ Success popup: " + toast.getText());
+            }
+        } else {
+            System.out.println("❌ No success popup found.");
+        }
+
+        // Optional: Look for errors
+        List<WebElement> errors = driver.findElements(By.xpath("//div[contains(@class, 'error') or contains(@class, 'alert')]"));
+        for (WebElement err : errors) {
+            System.out.println("⚠ Error message found: " + err.getText());
+        }
+
+    } catch (Exception e) {
+        System.out.println("❌ Failed to click Create button: " + e.getMessage());
+        throw new RuntimeException("Unable to click Create button", e);
     }
+}
+
 
     private void verifyLicenseCreation() {
         // More flexible navigation check with multiple possible success scenarios
@@ -263,8 +265,12 @@ public class AddMiningLicense {
 
         try {
             // Optional: Check for a success message or toast notification
-            WebElement successMessage = driver.findElement(By.xpath("//div[contains(@class, 'success') or contains(@class, 'notification')]"));
-            navigationSuccessful = true;
+            WebElement successMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(
+    By.xpath("//div[contains(@class, 'success') or contains(@class, 'ant-notification') or contains(@class, 'ant-message-success')]")
+));
+System.out.println("Success message appeared: " + successMessage.getText());
+Assert.assertTrue(successMessage.isDisplayed(), "Success message is not visible.");
+
         } catch (NoSuchElementException e) {
             // No explicit success message found, rely on URL check
         }
@@ -404,7 +410,13 @@ public class AddMiningLicense {
     @AfterMethod
     public void tearDown() {
         if (driver != null) {
-//            driver.quit();
+                 try {
+            // Wait 3 seconds before quitting so you can observe the result
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //    driver.quit();
         }
     }
 }

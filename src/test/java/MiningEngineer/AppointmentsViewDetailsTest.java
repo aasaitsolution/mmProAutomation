@@ -103,20 +103,27 @@ public class AppointmentsViewDetailsTest extends AppointmentsTestBase {
                 "Status should be Pending");
     }
 */
-    private void closeDetailsModal() {
-        // Find and click the close button with multiple locator options
-        By closeButton = By.xpath(
-                "//button[contains(@class, 'ant-modal-close')] | " +
-                        "//button[@aria-label='Close'] | " +
-                        "//button[contains(@class, 'close-button')]");
+private void closeDetailsModal() {
+    // Try these alternative locators
+    By closeButton = By.xpath(
+            "//button[contains(@class, 'ant-modal-close')] | " +
+                    "//button[contains(@aria-label, 'Close')] | " +
+                    "//button[contains(@class, 'ant-btn') and contains(., 'Close')]");
 
-        WebElement button = wait.until(ExpectedConditions.elementToBeClickable(closeButton));
+    // Add explicit wait for button to be clickable
+    WebElement button = wait.until(ExpectedConditions.elementToBeClickable(closeButton));
+
+    // Click using JavaScript as a fallback
+    try {
         button.click();
-
-        // Verify modal is closed
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(
-                By.xpath("//div[contains(@class, 'ant-modal')]")));
+    } catch (Exception e) {
+        ((JavascriptExecutor)driver).executeScript("arguments[0].click();", button);
     }
+
+    // Alternative wait condition for modal disappearance
+    wait.until(ExpectedConditions.invisibilityOfElementLocated(
+            By.xpath("//div[contains(@class, 'ant-modal-root') and contains(@class, 'ant-modal-wrap')]")));
+}
 
     private boolean waitForElement(By locator) {
         try {
