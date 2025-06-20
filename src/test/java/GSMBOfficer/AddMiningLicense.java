@@ -150,7 +150,7 @@ public class AddMiningLicense {
         ));
 
         Thread.sleep(300);
-// Example: Select June 15, 2024
+//Select June 15, 2024
         WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//td[@title='2025-06-15']/div[@class='ant-picker-cell-inner']")
         ));
