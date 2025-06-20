@@ -4,6 +4,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
@@ -19,11 +20,13 @@ public class invalidnumber {
     private WebDriver driver;
     private WebDriverWait wait;
     private static final String BASE_URL = "http://localhost:5173";
-    private static final String INVALID_LICENSE = "LA4550";
+    private static final String INVALID_LICENSE = "ABP1234";
 
     @BeforeMethod
     public void setup() {
-        driver = new ChromeDriver();
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--incognito");
+        driver = new ChromeDriver(options);  // Only create driver once with options
         driver.manage().window().maximize();
         wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         log.info("Browser initialized");
@@ -46,11 +49,14 @@ public class invalidnumber {
             ));
             numberInput.clear();
             numberInput.sendKeys(INVALID_LICENSE);
+            Thread.sleep(500); 
             log.info("Entered invalid license: " + INVALID_LICENSE);
 
             // Verify input value
-            Assert.assertEquals(numberInput.getAttribute("value"), INVALID_LICENSE,
-                    "License plate number was not entered correctly");
+            String inputValue = numberInput.getAttribute("value");
+            log.info("Input value after sendKeys: '" + inputValue + "'");
+            Assert.assertEquals(inputValue, INVALID_LICENSE, "License plate number was not entered correctly");
+
 
             // Get the check button and verify it's enabled
             WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
@@ -172,10 +178,10 @@ public class invalidnumber {
             log.info("Navigated to login page");
 
             WebElement username = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_username")));
-            username.sendKeys("police");
+            username.sendKeys("saman");
 
             WebElement password = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_password")));
-            password.sendKeys("1234abcd");
+            password.sendKeys("12345678");
             log.info("Entered credentials");
 
             WebElement signinButton = wait.until(ExpectedConditions.elementToBeClickable(
