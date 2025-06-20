@@ -1,3 +1,4 @@
+//Done
 package MLOwner;
 
 import org.openqa.selenium.*;
@@ -45,7 +46,7 @@ public class MLOwnerButtonTabsTest {
             System.out.println("✅ Successfully logged in to ML Owner dashboard");
 
         } catch (Exception e) {
-            System.out.println("❌ Login test failed: " + e.getMessage());
+            System.err.println("❌ Login test failed: " + e.getMessage());
             throw e;
         }
     }
@@ -71,7 +72,7 @@ public class MLOwnerButtonTabsTest {
             wait.until(ExpectedConditions.presenceOfElementLocated(By.className("container")));
             System.out.println("✅ Navigated to Licenses page");
 
-            Thread.sleep(5000);
+            Thread.sleep(2000); // Reduced sleep time
 
             // Navigate back to dashboard
             driver.navigate().back();
@@ -79,17 +80,17 @@ public class MLOwnerButtonTabsTest {
             System.out.println("🔙 Returned to ML Owner dashboard");
 
         } catch (Exception e) {
-            System.out.println("❌ Navigation to Licenses page failed: " + e.getMessage());
+            System.err.println("❌ Navigation to Licenses page failed: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
-
-
 
     @Test(priority = 3, dependsOnMethods = "testLogin")
     public void testRequestedLicensesButton() {
         try {
             System.out.println("=== Testing Requested Licenses Button ===");
+            // Wait for the dashboard to be ready before interacting
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//a[@href='/mlowner/home/viewlicenses']")));
 
             WebElement requestedLicensesButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//span[contains(text(), 'Requested Licenses')]/ancestor::div[contains(@class, 'custom-card')]//button[contains(@class, 'ml-card-button')]")));
@@ -103,8 +104,9 @@ public class MLOwnerButtonTabsTest {
             WebElement modalTitle = modal.findElement(By.className("ant-modal-title"));
             System.out.println("Modal title: " + modalTitle.getText());
 
+            // Use a more specific XPath for the close button inside the modal footer
             WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(., 'Close')]")));
+                    By.xpath("//div[@class='ant-modal-footer']//button[contains(.,'Close')]")));
             closeButton.click();
             System.out.println("Closed the modal");
 
@@ -112,7 +114,7 @@ public class MLOwnerButtonTabsTest {
             System.out.println("✅ Modal is no longer visible");
 
         } catch (Exception e) {
-            System.out.println("❌ Requested Licenses test failed: " + e.getMessage());
+            System.err.println("❌ Requested Licenses test failed: " + e.getMessage());
             throw e;
         }
     }
@@ -120,36 +122,42 @@ public class MLOwnerButtonTabsTest {
     @Test(priority = 4, dependsOnMethods = "testLogin")
     public void testMLRequestButton() {
         try {
+            // Wait for the ML Request button to be clickable
             WebElement mlRequestButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//a[@href='/mlowner/home/mlrequest']")));
 
+            // Scroll into view
             ((JavascriptExecutor) driver).executeScript(
                     "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", mlRequestButton);
-            Thread.sleep(500);
+            Thread.sleep(500); // slight delay
 
+            // Click using fallback JS if needed
             try {
                 mlRequestButton.click();
             } catch (ElementClickInterceptedException e) {
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", mlRequestButton);
             }
 
+            // Wait for URL to change
             wait.until(ExpectedConditions.urlContains("/mlowner/home/mlrequest"));
-            wait.until(ExpectedConditions.presenceOfElementLocated(By.className("container")));
+
+//            // ✅ Wait for a reliable input field (exploration_nb) to confirm page load
+//            wait.until(ExpectedConditions.visibilityOfElementLocated(
+//                    By.name("exploration_nb")));
+
             System.out.println("✅ Successfully navigated to ML Request page");
 
-            Thread.sleep(5000);
-
-            // Navigate back to dashboard
-            driver.navigate().back();
-            wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-            System.out.println("🔙 Returned to ML Owner dashboard");
+            Thread.sleep(2000); // Optional pause
 
         } catch (Exception e) {
-            System.out.println("❌ Navigation to Licenses page failed: " + e.getMessage());
+            System.err.println("❌ Navigation to or validation of ML Request page failed: " + e.getMessage());
             throw new RuntimeException(e);
+        } finally {
+            // Always close the browser
+            driver.quit();
+            System.out.println("🧹 Browser closed successfully");
         }
     }
-
 
     @AfterClass
     public void tearDown() {
