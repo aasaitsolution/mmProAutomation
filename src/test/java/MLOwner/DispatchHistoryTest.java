@@ -55,16 +55,25 @@ public class DispatchHistoryTest {
     }
 
     @Test(priority = 3)
-    public void testDatePickerInteraction() {
-        WebElement datePicker = wait.until(ExpectedConditions.elementToBeClickable(By.className("history-datepicker")));
-        datePicker.click();
+    public void testDatePickerInteraction() throws InterruptedException {
+        // Wait for the date picker input field to be clickable
+        WebElement datePickerInput = wait.until(ExpectedConditions.elementToBeClickable(By.className("history-datepicker")));
 
-        WebElement today = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".ant-picker-cell-today")));
-        today.click();
+        // Clear any existing text and enter your desired date
+        datePickerInput.clear();
+        datePickerInput.sendKeys("2025-06-19");
+
+        // Press Enter to close the calendar and confirm the date
+        datePickerInput.sendKeys(Keys.ENTER);
+
+        System.out.println("✅ Date 2025-06-19 entered successfully.");
     }
 
+
+
     @Test(priority = 4)
-    public void testHistoryCardAndPrint() throws InterruptedException {
+    public void testHistoryCardPrintAndBackToHome() throws InterruptedException {
+        // --- Part 1: Find card and click Print ---
         List<WebElement> cards = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.className("history-card")));
         Assert.assertFalse(cards.isEmpty(), "No dispatch history cards found.");
 
@@ -73,50 +82,36 @@ public class DispatchHistoryTest {
 
         WebElement printButton = firstCard.findElement(By.tagName("button"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", printButton);
-        Thread.sleep(500);
+        Thread.sleep(500); // Small pause for scroll
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", printButton);
 
+        // --- Part 2: Verify navigation to receipt and click Back to Home ---
         wait.until(ExpectedConditions.urlContains("/mlowner/home/dispatchload/TPLreceipt"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("TPLreceipt"));
+        Assert.assertTrue(driver.getCurrentUrl().contains("TPLreceipt"), "Did not navigate to the TPL receipt page.");
+        System.out.println("✅ Navigated to TPL receipt page.");
 
-        driver.navigate().back();
-        wait.until(ExpectedConditions.urlContains("/mlowner/home/dispatchhistory"));
-    }
+        // Now, on the receipt page, find and click the "Back to Home" button
+        WebElement backButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[contains(.,'Back to Home') or contains(.,'ආපසු') or contains(.,'முகப்புக்குத் திரும்பு')]")
+        ));
 
-    @Test(priority = 5)
-    public void testBackToHomeButton() throws InterruptedException {
-        try {
-            // Navigate directly to the TPL receipt page with valid state
-            // If you need to simulate navigation, do the previous print button click
-            driver.get("https://mmpro.aasait.lk/mlowner/home/dispatchload/TPLreceipt");
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", backButton);
+        Thread.sleep(500);
+        backButton.click();
 
-            // Wait until the page is loaded and Back to Home button is visible
-            WebElement backButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(text(),'Back to Home') or contains(text(),'ආපසු') or contains(text(),'முகப்புக்குத் திரும்பு')]")
-            ));
-
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", backButton);
-            Thread.sleep(500);
-            backButton.click();
-
-            // Wait for navigation to ML Owner dashboard
-            wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-
-            // Optional: Validate with dashboard content
-            WebElement dashboard = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//*[contains(text(),'Dashboard') or contains(text(),'උපකරණ පුවරුව') or contains(text(),'டாஷ்போர்டு')]")
-            ));
-            Assert.assertTrue(dashboard.isDisplayed(), "Dashboard not visible after clicking Back to Home.");
-
-            System.out.println("✅ Back to Home button works correctly.");
-
-        } catch (Exception e) {
-            Assert.fail("❌ Back to Home button failed: " + e.getMessage());
-        }
+        // --- Part 3: Verify navigation back to the main dashboard ---
+        wait.until(ExpectedConditions.urlContains("/mlowner/home"));
+        WebElement dashboard = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[contains(text(),'Dashboard') or contains(text(),'උපකරණ පුවරුව') or contains(text(),'டாஷ்போர்டு')]")
+        ));
+        Assert.assertTrue(dashboard.isDisplayed(), "Dashboard not visible after clicking Back to Home.");
+        System.out.println("✅ Back to Home button works correctly and returned to the dashboard.");
     }
 
     @AfterClass
     public void tearDown() {
-        driver.quit();
+        if (driver != null) {
+            driver.quit();
+        }
     }
 }
