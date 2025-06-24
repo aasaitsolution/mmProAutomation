@@ -31,6 +31,7 @@ public class DispatchHistoryTest {
         WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("a[href='/signin'] button")));
         loginBtn.click();
+        waitForPageLoadComplete();
 
         WebElement username = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
         WebElement password = driver.findElement(By.id("sign-in_password"));
@@ -40,12 +41,14 @@ public class DispatchHistoryTest {
 
         WebElement signIn = driver.findElement(By.cssSelector("button[type='submit']"));
         signIn.click();
+        waitForPageLoadComplete();
 
         wait.until(ExpectedConditions.urlContains("/mlowner/home"));
         System.out.println("Login successful.");
 
         // Navigate to dispatch history after login
         driver.get("https://mmpro.aasait.lk/mlowner/history?licenseNumber=LLL/100/402");
+        waitForPageLoadComplete();
     }
 
     @Test(priority = 2)
@@ -56,19 +59,25 @@ public class DispatchHistoryTest {
 
     @Test(priority = 3)
     public void testDatePickerInteraction() throws InterruptedException {
-        WebElement datePicker = wait.until(ExpectedConditions.elementToBeClickable(By.className("history-datepicker")));
-        datePicker.click();
+    WebElement dateInput = wait.until(ExpectedConditions.elementToBeClickable(By.className("history-datepicker")));
 
-        // FIX: Add a small static wait to allow for the calendar panel's animation to complete.
-        // This makes the element finding much more reliable.
-        Thread.sleep(500);
+    // Click input to open date picker popup
+    dateInput.click();
 
-        String dayToSelect = "19";
-        WebElement dateCell = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//div[contains(@class, 'ant-picker-cell-in-view') and .//div[text()='" + dayToSelect + "']]")
-        ));
-        dateCell.click();
-        System.out.println("✅ Date " + dayToSelect + " selected successfully.");
+    // Wait for calendar popup to appear - adjust locator based on your actual calendar popup DOM
+    // Example: if calendar days have a class like "ant-picker-cell"
+    WebElement calendarPopup = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-dropdown")));
+
+    // Now, find the date cell for 19th June 2025 (adjust your selector based on your calendar's markup)
+    // Here is an example for Ant Design date picker cells, you might need to adjust it.
+    WebElement dateCell = calendarPopup.findElement(By.xpath("//td[@title='2025-06-19']"));
+    waitUntilClickable(dateCell);
+    dateCell.click();
+
+    // Wait a bit to see the effect
+    Thread.sleep(1000);
+
+    System.out.println("✅ Date selected visually by clicking calendar.");
     }
 
     @Test(priority = 4)
@@ -82,9 +91,11 @@ public class DispatchHistoryTest {
 
         WebElement printButton = firstCard.findElement(By.tagName("button"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", printButton);
+        waitUntilClickable(printButton);
         Thread.sleep(500); // Small pause for scroll
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", printButton);
-
+        printButton.click();
+        waitForPageLoadComplete();
+        
         // --- Part 2: Verify navigation to receipt and click Back to Home ---
         wait.until(ExpectedConditions.urlContains("/mlowner/home/dispatchload/TPLreceipt"));
         Assert.assertTrue(driver.getCurrentUrl().contains("TPLreceipt"), "Did not navigate to the TPL receipt page.");
@@ -96,16 +107,49 @@ public class DispatchHistoryTest {
         ));
 
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", backButton);
+        waitUntilClickable(backButton);
         Thread.sleep(500);
         backButton.click();
+        waitForPageLoadComplete();
 
         // --- Part 3: Verify navigation back to the main dashboard ---
         wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-        WebElement dashboard = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[contains(text(),'Dashboard') or contains(text(),'උපකරණ පුවරුව') or contains(text(),'டாஷ்போர்டு')]")
+        System.out.println("Current URL after clicking Back to Home: " + driver.getCurrentUrl());
+        System.out.println("Page title after clicking Back to Home: " + driver.getTitle());
+
+        WebElement cardTitle = wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//span[contains(@class, 'card-title-text') and " +
+                    "(contains(text(), 'View All Licenses') or " +
+                    "contains(text(), 'Request a Mining License') or " +
+                    "contains(text(), 'View Requested Licenses'))]")
         ));
-        Assert.assertTrue(dashboard.isDisplayed(), "Dashboard not visible after clicking Back to Home.");
-        System.out.println("✅ Back to Home button works correctly and returned to the dashboard.");
+
+        Assert.assertTrue(cardTitle.isDisplayed(), "Expected dashboard card title not visible after clicking Back to Home.");
+        System.out.println("✅ Back to Home button works correctly and dashboard cards are visible.");
+    }
+
+     // Utility method to set input value via JS and dispatch events
+    private void setInputValueViaJS(WebElement inputElement, String value) {
+        ((JavascriptExecutor) driver).executeScript(
+            "const el = arguments[0];" +
+            "const value = arguments[1];" +
+            "el.value = value;" +  // <-- set value directly here
+            "el.dispatchEvent(new Event('input', { bubbles: true }));" +
+            "el.dispatchEvent(new Event('change', { bubbles: true }));",
+            inputElement, value
+        );
+
+    }
+
+    // Utility wait for document ready state = complete
+    private void waitForPageLoadComplete() {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(
+            webDriver -> ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
+    }
+
+    // Utility wait until element is clickable
+    private void waitUntilClickable(WebElement element) {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(ExpectedConditions.elementToBeClickable(element));
     }
 
     @AfterClass
