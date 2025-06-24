@@ -71,35 +71,26 @@ public class InvalidNumber {
             takeScreenshot(driver, "before-check-click");
 
             // Find and click check button with multiple approaches
-            try {
-                // Approach 1: Specific XPath
-                WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
-                        By.xpath("//*[@id=\"root\"]/div/main/div/main/button")
-                ));
-                checkButton.click();
-                System.out.println("Clicked check button using approach 1");
-            } catch (Exception e1) {
-                try {
-                    // Approach 2: Find by text content
-                    WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
-                            By.xpath("//*[@id=\"root\"]/div/main/div/main/button")
-                    ));
-                    checkButton.click();
-                    System.out.println("Clicked check button using approach 2");
-                } catch (Exception e2) {
-                    try {
-                        // Approach 3: JavaScript click
-                        WebElement checkButton = driver.findElement(
-                                By.xpath("//*[@id=\"root\"]/div/main/div/main/button")
-                        );
-                        executor.executeScript("arguments[0].click();", checkButton);
-                        System.out.println("Clicked check button using approach 3 (JavaScript)");
-                    } catch (Exception e3) {
-                        System.out.println("All attempts to click check button failed.");
-                        throw new RuntimeException("Unable to click check button after multiple attempts");
-                    }
-                }
-            }
+           try {
+    WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button.check-button")));
+checkButton.click();
+
+    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", checkButton);
+    Thread.sleep(300);
+    checkButton.click();
+    System.out.println("Clicked check button");
+} catch (Exception e) {
+    try {
+        WebElement checkButton = driver.findElement(
+                By.xpath("//*[@id=\"root\"]/div/main/div/main/button")
+        );
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", checkButton);
+        System.out.println("Clicked check button with JS click");
+    } catch (Exception ex) {
+        System.out.println("Failed to click check button");
+        throw new RuntimeException("Unable to click check button after multiple attempts");
+    }
+}
 
             // Take screenshot after clicking check button
             takeScreenshot(driver, "after-check-click");

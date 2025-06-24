@@ -17,11 +17,19 @@ public class Register {
     @Test
     public void register() {
         WebDriver driver = new ChromeDriver();
+
         driver.manage().window().maximize(); // Maximize window for better visibility
-        driver.get("http://localhost:5173/");
+        driver.get("https://mmpro.aasait.lk/");
+
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20)); // Increased timeout
 
+        String[] roles = {"GSMB Officer", "Police", "Mining License Owner", "Mining Engineer"};
+
+
         try {
+            for (int i = 0; i < roles.length; i++) {
+                System.out.println("Attempting to register as: " + roles[i]);
+
             // Navigate to sign-in
             WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector("a[href='/signin'] button")
@@ -35,10 +43,24 @@ public class Register {
             signInButton.click();
 
             // Select actor type
-            WebElement actorButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("body > div:nth-child(4) > div > div.ant-modal-wrap.ant-modal-centered > div > div:nth-child(1) > div > div.ant-modal-body > div > button:nth-child(1)")
+            // WebElement actorButton = wait.until(ExpectedConditions.elementToBeClickable(
+            //         By.cssSelector("body > div:nth-child(4) > div > div.ant-modal-wrap.ant-modal-centered > div > div:nth-child(1) > div > div.ant-modal-body > div > button:nth-child(1)")
+            // ));
+            // actorButton.click();
+            // Wait for actor type modal
+
+            List<WebElement> actorButtons = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(
+                    By.cssSelector(".ant-modal-body > div > button")
             ));
-            actorButton.click();
+
+            if (i >= actorButtons.size()) {
+                System.out.println("No actor button found for role index: " + i);
+                continue;
+            }
+
+            actorButtons.get(i).click();
+
+
 
             // Wait for form and ensure it's interactive
             WebElement form = wait.until(ExpectedConditions.visibilityOfElementLocated(
@@ -49,39 +71,64 @@ public class Register {
             Thread.sleep(1000);
 
             // Fill form with explicit waits for each field
-            fillField(driver, wait, "firstName", "John");
-            fillField(driver, wait, "lastName", "Doe");
-            fillField(driver, wait, "username", "johndoe" + System.currentTimeMillis());
-            fillField(driver, wait, "email", "john.doe" + System.currentTimeMillis() + "@example.com");
-            fillField(driver, wait, "nic", "123456789V");
-            fillField(driver, wait, "mobile", "0712345678");
-            fillField(driver, wait, "designation", "Software Engineer");
-            fillField(driver, wait, "password", "Password@123");
-            fillField(driver, wait, "confirmPassword", "Password@123");
+            fillFieldIfPresent(driver, wait, "firstName", "John");
+            fillFieldIfPresent(driver, wait, "lastName", "Doe");
+            fillFieldIfPresent(driver, wait, "username", "johndoe" + System.currentTimeMillis());
+            fillFieldIfPresent(driver, wait, "email", "john.doe" + System.currentTimeMillis() + "@example.com");
+            fillFieldIfPresent(driver, wait, "nic", "123456789V");
+            fillFieldIfPresent(driver, wait, "mobile", "0712345678");
+            fillFieldIfPresent(driver, wait, "password", "Password@123");
+            fillFieldIfPresent(driver, wait, "confirmPassword", "Password@123");
+
+            // Fill designation ONLY if NOT Mining License Owner (index 2)
+            if (i != 2) {
+                    fillFieldIfPresent(driver, wait, "designation", roles[i] + " Tester");
+                } else {
+                    System.out.println("Skipping designation for role: " + roles[i]);
+                }
+
+                // Handle file uploads ONLY if NOT Mining License Owner (index 2)
+                if (i != 2) {
+                    System.out.println("File upload fields present for role: " + roles[i]);
 
             // Handle file uploads - use actual file paths
-            String projectPath = System.getProperty("user.dir");
-            String nicFrontPath = projectPath + "/src/test/resources/test_images/nic_front.jpg";
-            String nicBackPath = projectPath + "/src/test/resources/test_images/nic_back.jpg";
-            String workIdPath = projectPath + "/src/test/resources/test_images/work_id.jpg";
+                String projectPath = System.getProperty("user.dir");
+                String nicFrontPath = projectPath + "/src/test/resources/test_images/nic_front.jpg";
+                String nicBackPath = projectPath + "/src/test/resources/test_images/nic_back.jpg";
+                String workIdPath = projectPath + "/src/test/resources/test_images/work_id.jpg";
 
-            WebElement nicFront = driver.findElement(By.id("nicFront"));
-            nicFront.sendKeys(nicFrontPath);
+                try {
+                        WebElement nicFront = driver.findElement(By.id("nicFront"));
+                        nicFront.sendKeys(nicFrontPath);
+                    } catch (NoSuchElementException e) {
+                        System.out.println("NIC Front upload field not found");
+                    }
 
-            WebElement nicBack = driver.findElement(By.id("nicBack"));
-            nicBack.sendKeys(nicBackPath);
+                    try {
+                        WebElement nicBack = driver.findElement(By.id("nicBack"));
+                        nicBack.sendKeys(nicBackPath);
+                    } catch (NoSuchElementException e) {
+                        System.out.println("NIC Back upload field not found");
+                    }
 
-            WebElement workId = driver.findElement(By.id("workId"));
-            workId.sendKeys(workIdPath);
+                    try {
+                        WebElement workId = driver.findElement(By.id("workId"));
+                        workId.sendKeys(workIdPath);
+                    } catch (NoSuchElementException e) {
+                        System.out.println("Work ID upload field not found");
+                    }
+                } else {
+                    System.out.println("Skipping file uploads for role: " + roles[i]);
+                }
 
 //            // Create dummy files if they don't exist (for testing)
 //            createDummyFileIfNotExists(nicFrontPath);
 //            createDummyFileIfNotExists(nicBackPath);
 //            createDummyFileIfNotExists(workIdPath);
 //
-//            fillField(driver, wait, "nicFront", nicFrontPath);
-//            fillField(driver, wait, "nicBack", nicBackPath);
-//            fillField(driver, wait, "workId", workIdPath);
+//            fillFieldIfPresent(driver, wait, "nicFront", nicFrontPath);
+//            fillFieldIfPresent(driver, wait, "nicBack", nicBackPath);
+//            fillFieldIfPresent(driver, wait, "workId", workIdPath);
 
             // Scroll to submit button and click
             WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(
@@ -97,35 +144,40 @@ public class Register {
                         ExpectedConditions.urlContains("success"),
                         ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".ant-notification-notice-success"))
                 ));
-                System.out.println("Registration successful!");
+                System.out.println("Registration successful for role: " + roles[i]);
             } catch (Exception e) {
                 // Check for validation errors
                 List<WebElement> errors = driver.findElements(By.cssSelector(".ant-form-item-explain-error"));
                 if (!errors.isEmpty()) {
-                    System.out.println("Validation errors found:");
-                    errors.forEach(error -> System.out.println(error.getText()));
+                    System.out.println("Validation errors for " + roles + ":");
+                    for (WebElement error : errors) {
+                            System.out.println("- " + error.getText());
+                        }
                 } else {
-                    System.out.println("Unknown registration issue");
-                }
+                    System.out.println("Unknown error occurred for role: " + roles[i]);
+                
                 // Take screenshot for debugging
                 File screenshot = ((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
-                FileUtils.copyFile(screenshot, new File("registration_error.png"));
+                FileUtils.copyFile(screenshot, new File("registration_error_" + roles[i] + ".png"));
+            }
+        }
+        // Optionally, navigate back or refresh page to start next role registration cleanly
+                driver.get("http://localhost:5173/");
+                Thread.sleep(2000); // small wait before next iteration
             }
 
         } catch (Exception e) {
-            System.out.println("Error occurred: " + e.getMessage());
+            System.out.println("Exception during registration: " + e.getMessage());
             e.printStackTrace();
-        } finally {
+          } finally {
             try {
                 Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            } catch (InterruptedException ignored) {}
             driver.quit();
         }
-    }
+}
 
-    private void fillField(WebDriver driver, WebDriverWait wait, String id, String value) {
+    private void fillFieldIfPresent(WebDriver driver, WebDriverWait wait, String id, String value) {
         WebElement element = wait.until(ExpectedConditions.elementToBeClickable(By.id(id)));
         element.clear();
         element.sendKeys(value);

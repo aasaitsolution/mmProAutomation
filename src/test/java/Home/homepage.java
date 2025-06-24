@@ -3,161 +3,151 @@ package Home;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.Test;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.testng.Assert;
+import org.testng.annotations.*;
+
+import java.time.Duration;
+
+
 
 public class homepage {
     private static final Log log = LogFactory.getLog(homepage.class);
     WebDriver driver;
+    WebDriverWait wait;
 
-    @Test
-    public void openHomePage() {
+    @BeforeClass
+    public void setUp() {
         driver = new ChromeDriver();
         driver.manage().window().maximize();
-        // Open the URL
         driver.get("http://localhost:5173/");
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+    }
+
+    private void clickElement(By locator) {
+        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        scrollIntoView(element);
+        try {
+            wait.until(ExpectedConditions.elementToBeClickable(element)).click();
+        } catch (ElementClickInterceptedException e) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
+        }
+        slowDown(800);
+    }
+
+    private void scrollIntoView(WebElement element) {
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException ignored) {}
+    }
+
+     private void slowDown(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException ignored) {}
+    }
+
+    @Test(priority = 1)
+    public void testTamilVersion() {
+        By tamilBtn = By.xpath("//button[.//span[contains(text(),'தமிழ்')]]");
+        clickElement(tamilBtn);
+
+        WebElement bodyText = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[contains(text(), 'வரவேற்பு') or contains(text(), 'mmPro')]")
+        ));
+        Assert.assertTrue(bodyText.isDisplayed(), "Tamil version not loaded.");
+        System.out.println("✅ Successfully switched to the Tamil version.");
+    }
+
+    @Test(priority = 2)
+    public void testSinhalaVersion() {
+        By sinhalaBtn = By.xpath("//span[text()='සිංහල']/..");
+        clickElement(sinhalaBtn);
+
+        WebElement bodyText = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[contains(text(), 'සාදරයෙන් පිළිගනිමු') or contains(text(), 'mmPro')]")
+        ));
+        Assert.assertTrue(bodyText.isDisplayed(), "Sinhala version not loaded.");
+        System.out.println("✅ Successfully switched to the Sinhala version.");
+    }
+
+    @Test(priority = 3)
+    public void testServiceSection() {
+        WebElement serviceHeading = wait.until(ExpectedConditions.elementToBeClickable(
+            By.xpath("//h4[contains(text(), 'SERVICE') or contains(text(), 'සේවාව') or contains(text(), 'சேவை')]")
+        ));
+        serviceHeading.click();
+
+        WebElement serviceSection = wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//*[@id='service']")
+        ));
+
+        Assert.assertTrue(serviceSection.isDisplayed(), "Service section not displayed.");
+        System.out.println("✅ Successfully scrolled to the Service section.");
+    }
+
+    @Test(priority = 4)
+    public void testAboutSection() {
+        By aboutLocator = By.xpath("//a[contains(@href, '#about')]");
+        clickElement(aboutLocator);
+
+        WebElement aboutSection = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("about")));
+        Assert.assertTrue(aboutSection.isDisplayed(), "About section not displayed.");
+        System.out.println("✅ Successfully scrolled to the About section.");
+    }
+
+    @Test(priority = 5)
+    public void testContactSection() {
+        By contactLocator = By.xpath("//a[contains(@href, '/contact')]");
+        clickElement(contactLocator);
+
+        // Debug
+        System.out.println("Current URL after clicking Contact: " + driver.getCurrentUrl());
+
+        By contactInfoLocator = By.cssSelector(".left-section.contact-info");
+        WebElement contactInfo = wait.until(ExpectedConditions.presenceOfElementLocated(contactInfoLocator));
+        Assert.assertTrue(contactInfo.isDisplayed(), "Contact info section is not displayed.");
 
     }
 
-    @Test
-    public void testServiceSection() throws InterruptedException{
+    @Test(priority = 6)
+    public void testLoginButton() {
+        // Correct XPath using multiple OR conditions properly
+        By loginBtn = By.xpath("//a/button[.//span[contains(text(),'Login') or contains(text(),'உள்நுழைய') or contains(text(),'පිවිසුම')]]");
 
+        clickElement(loginBtn);
 
-        Thread.sleep(2000);
-        WebElement serviceButton = driver.findElement(By.xpath("/html/body/div/div/header/div/div[2]/ul/li[2]"));
-        WebElement serviceButton1 = serviceButton;
-        serviceButton1.click();
+        wait.until(ExpectedConditions.urlContains("/signin"));
+        Assert.assertTrue(driver.getCurrentUrl().contains("/signin"), "Login navigation failed.");
+        System.out.println("✅ Navigated to Login page successfully.");
 
-        // Verify if the page scrolled to the "Service" section (replace 'service-section' with the correct ID or locator)
-        WebElement serviceSection = driver.findElement(By.xpath("/html/body/div/div/div[2]/div[1]"));
-
-        // Perform a check (optional) to verify that the section is visible
-        if (serviceSection.isDisplayed()) {
-            System.out.println("Successfully scrolled to the Service section.");
-        }
-        else {
-            System.out.println("Failed to scroll to the Service section.");
-        }
-
-        // Pause for demonstration purposes (optional)
-        Thread.sleep(2000);
-
-
+        driver.navigate().back(); // Return to homepage
     }
 
-    @Test
-    public void testAboutSection() throws InterruptedException{
-        Thread.sleep(2000);
-        WebElement aboutButton = driver.findElement(By.xpath("/html/body/div/div/header/div/div[2]/ul/li[3]"));
-        WebElement aboutButton1 = aboutButton;
-        aboutButton1.click();
-
-        // Verify if the page scrolled to the "Service" section (replace 'about-section' with the correct ID or locator)
-        WebElement aboutSection = driver.findElement(By.xpath("//*[@id=\"about\"]"));
-
-        // Perform a check (optional) to verify that the section is visible
-        if (aboutSection.isDisplayed()) {
-            System.out.println("Successfully scrolled to the About section.");
-        }
-        else {
-            System.out.println("Failed to scroll to the About section.");
-        }
-
-        // Pause for demonstration purposes (optional)
-        Thread.sleep(2000);
+    
 
 
-    }
-
-    @Test
-    public void testContactSection() throws InterruptedException {
-        Thread.sleep(2000);
-        WebElement contactButton = driver.findElement(By.xpath("/html/body/div/div/header/div/div[2]/ul/li[4]"));
-        WebElement contactButton1 = contactButton;
-        contactButton1.click();
-
-        // Verify if the page scrolled to the "Service" section (replace 'about-section' with the correct ID or locator)
-        WebElement contactSection = driver.findElement(By.xpath("/html/body/div/div/footer"));
-
-        // Perform a check (optional) to verify that the section is visible
-        if (contactSection.isDisplayed()) {
-            System.out.println("Successfully scrolled to the contact section.");
-        } else {
-            System.out.println("Failed to scroll to the contact section.");
-        }
-
-        // Pause for demonstration purposes (optional)
-        Thread.sleep(2000);
-
-
-    }
-    @Test
-    public void testTamilVersion() throws InterruptedException {
-        // Click the Tamil button
-        WebElement tamilButton = driver.findElement(By.xpath("/html/body/div/div/header/div/div[3]/button[1]")); // Update the XPath for your Tamil button
-        tamilButton.click();
-
-        // Verify the Tamil version by checking a specific element or text in Tamil
-        WebElement tamilHeader = driver.findElement(By.xpath("/html/body/div/div")); // Update with a Tamil-specific element
-        if (tamilHeader.isDisplayed()) {
-            System.out.println("Successfully switched to the Tamil version.");
-        } else {
-            System.out.println("Failed to switch to the Tamil version.");
-        }
-
-        Thread.sleep(2000);
-    }
-
-    @Test
-    public void testSinhalaVersion() throws InterruptedException {
-        // Click the Sinhala button
-        WebElement sinhalaButton = driver.findElement(By.xpath("/html/body/div/div/header/div/div[3]/button[2]")); // Update the XPath for your Sinhala button
-        sinhalaButton.click();
-
-        // Verify the Sinhala version by checking a specific element or text in Sinhala
-        WebElement sinhalaHeader = driver.findElement(By.xpath("/html/body/div/div")); // Update with a Sinhala-specific element
-        if (sinhalaHeader.isDisplayed()) {
-            System.out.println("Successfully switched to the Sinhala version.");
-        } else {
-            System.out.println("Failed to switch to the Sinhala version.");
-        }
-
-        Thread.sleep(2000);
-    }
-
-
-
-
-    @Test
-    public void testLoginButton() throws InterruptedException{
-        WebElement loginButton = driver.findElement(By.xpath("/html/body/div/div/header/div/div[3]/a/button"));
-        loginButton.click();
-
-        driver.get("http://localhost:5173/signin");
-
-        Thread.sleep(2000);
-        driver.navigate().back();
-
-
-    }
-
-    @AfterTest
+    @AfterClass
     public void tearDown() {
-        // Close the browser
         if (driver != null) {
             driver.quit();
         }
     }
-
-
-
-
-
-
 }
+
+
+
+
+
+
+
 
 
 

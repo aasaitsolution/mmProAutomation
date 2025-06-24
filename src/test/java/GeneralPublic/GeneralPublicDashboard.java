@@ -25,6 +25,29 @@ public class GeneralPublicDashboard {
             // Wait and click on the 'check validity' button
             WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id=\"root\"]/div/main/h1/button")));
             loginButton.click();
+        
+        WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("input[type='text']")));
+            inputField.sendKeys("ABX1234");  // Replace with test case value
+
+            // WebDriverWait waitJava = new WebDriverWait(driver, Duration.ofSeconds(10));
+            WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button.check-button")));
+            checkButton.click();
+
+            System.out.println("Submitted vehicle number");
+
+            // Step 4: Handle modal
+            WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.className("modal-content")));
+            String modalText = modal.getText();
+            System.out.println("Modal appeared with text: " + modalText);
+
+            if (modalText.toLowerCase().contains("invalid")) {
+                System.out.println("Vehicle number marked as invalid as expected.");
+            } else {
+                System.out.println("Unexpected modal message.");
+            }
+
 
 
         } catch (Exception e) {
