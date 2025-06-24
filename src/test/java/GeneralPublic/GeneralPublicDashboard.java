@@ -1,68 +1,90 @@
 package GeneralPublic;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
+import org.testng.Assert;
+import org.openqa.selenium.*;
 
 import java.time.Duration;
+
 public class GeneralPublicDashboard {
-    @Test
-    public void publicsignin() {
-        // Create a new instance of the Chrome driver
-        WebDriver driver = new ChromeDriver();
+    private WebDriver driver;
+    private WebDriverWait wait;
 
-        // Open the URL
+     @BeforeClass
+    public void setup() {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--incognito");
+        driver = new ChromeDriver(options);  // Only create driver once with options
+        driver.manage().window().maximize();
+        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        System.out.println("✅ Browser launched");
+    }
+
+    @Test(priority = 1)
+    public void openWebsite() {
         driver.get("http://localhost:5173/");
+        System.out.println("🌐 Opened public site");
+        Assert.assertTrue(driver.getTitle() != null, "Page did not load properly");
+    }
 
-        // Optionally, add a wait to let the page load before interacting
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    @Test(priority = 2, dependsOnMethods = {"openWebsite"})
+    public void clickCheckValidityButton() {
+        WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
+            By.xpath("//*[@id=\"root\"]/div/main/h1/button")));
+        loginButton.click();
+        System.out.println("🟢 Clicked 'Check Validity' button");
+    }
 
-        try {
-            // Wait and click on the 'check validity' button
-            WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id=\"root\"]/div/main/h1/button")));
-            loginButton.click();
-        
+    @Test(priority = 3, dependsOnMethods = {"clickCheckValidityButton"})
+    public void enterAndSubmitVehicleNumber() {
         WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("input[type='text']")));
-            inputField.sendKeys("ABX1234");  // Replace with test case value
+            By.cssSelector("input[type='text']")));
+        inputField.sendKeys("ABX1234");
+        System.out.println("✍️ Entered vehicle number: ABX1234");
 
-            // WebDriverWait waitJava = new WebDriverWait(driver, Duration.ofSeconds(10));
-            WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button.check-button")));
-            checkButton.click();
+        WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
+            By.cssSelector("button.check-button")));
+        checkButton.click();
+        System.out.println("✅ Clicked check button");
+    }
 
-            System.out.println("Submitted vehicle number");
-
-            // Step 4: Handle modal
+    @Test(priority = 4, dependsOnMethods = {"enterAndSubmitVehicleNumber"})
+    public void verifyModalResponse() {
+        try {
             WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.className("modal-content")));
-            String modalText = modal.getText();
-            System.out.println("Modal appeared with text: " + modalText);
+                By.className("gp-modal-body")));
+             WebElement input = modal.findElement(By.cssSelector("input.valid-message"));
+    String modalValue = input.getAttribute("value");  // Correct way to read <input value="...">
+    System.out.println("📩 Modal appeared with value: " + modalValue);
 
-            if (modalText.toLowerCase().contains("invalid")) {
-                System.out.println("Vehicle number marked as invalid as expected.");
+
+            if (modalValue.toLowerCase().contains("valid")) {
+                System.out.println("✅ Vehicle number marked as Valid");
             } else {
-                System.out.println("Unexpected modal message.");
+                System.out.println("⚠️ Unexpected modal message");
             }
+        } catch (TimeoutException e) {
+            System.out.println("❌ Modal did not appear");
+            Assert.fail("Modal not found after checking license number");
+        }
+    }
 
-
-
-        } catch (Exception e) {
+    @AfterClass
+    public void tearDown() {
+        try {
+            Thread.sleep(3000); // Let user see result
+        } catch (InterruptedException e) {
             e.printStackTrace();
-        } finally {
-            // Optionally, close the browser after a few seconds to observe the language change
-            try {
-                Thread.sleep(5000);  // Wait for 5 seconds to let the language change process complete
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            // Close the browser after the test
+        }
+        if (driver != null) {
             driver.quit();
-
+            System.out.println("🛑 Browser closed");
         }
     }
 }
