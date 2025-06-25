@@ -8,6 +8,8 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.testng.Assert;
+
 
 import java.io.File;
 import java.time.Duration;
@@ -26,6 +28,15 @@ public class MLRequestFormTest {
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
+    private void waitABit() {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+
     @Test(priority = 1)
     public void loginToDashboard() {
         driver.get("https://mmpro.aasait.lk/");
@@ -40,104 +51,101 @@ public class MLRequestFormTest {
         System.out.println("✅ Logged into ML Owner Dashboard.");
     }
 
-    // --- CORRECTED TEST METHOD ---
     @Test(priority = 2, dependsOnMethods = "loginToDashboard")
-    public void fillAndSubmitMLRequestForm()  throws InterruptedException {
+    public void openMLRequestFormPage() {
         driver.get("https://mmpro.aasait.lk/mlowner/home/mlrequest");
-
-        // ✅ Ensure full page load
-        wait.until(driver -> ((JavascriptExecutor) driver)
-        .executeScript("return document.readyState").equals("complete"));
-
-        // Wait for a specific, required field to be visible before proceeding. This is more reliable.
+        wait.until(driver -> ((JavascriptExecutor) driver).executeScript("return document.readyState").equals("complete"));
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("land_name")));
+        waitABit();
         System.out.println("✅ ML Request form is loaded.");
+    }
 
-        // --- Fill text fields using By.id and explicit waits ---
-        // Ant Design uses the 'name' prop to generate the 'id' of the input field.
+    @Test(priority = 3, dependsOnMethods = "openMLRequestFormPage")
+    public void fillMLRequestFormFields() {
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("exploration_nb"))).sendKeys("EXP-2025-001");
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("land_name"))).sendKeys("Green Hills Estate");
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("land_google"))).sendKeys("https://maps.app.goo.gl/examplelocation");
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("land_owner_name"))).sendKeys("Mr. Silva");
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("village_name"))).sendKeys("Kalubowila");
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("grama_niladari"))).sendKeys("Grama Niladhari Colombo 05");
+        waitABit();
+        driver.findElement(By.id("land_name")).sendKeys("Green Hills Estate");
+        waitABit();
+        driver.findElement(By.id("land_google")).sendKeys("https://maps.app.goo.gl/examplelocation");
+        waitABit();
+        driver.findElement(By.id("land_owner_name")).sendKeys("Mr. Silva");
+        waitABit();
+        driver.findElement(By.id("village_name")).sendKeys("Kalubowila");
+        waitABit();
+        driver.findElement(By.id("grama_niladari")).sendKeys("Grama Niladhari Colombo 05");
+        waitABit();
         System.out.println("📝 Filled all text fields.");
+    }
 
-        // Step 1: Click the District dropdown
-        WebElement dropdown = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("//input[@id='district']/ancestor::div[contains(@class,'ant-select')]")));
-        dropdown.click();
-        System.out.println("📍 Opened District dropdown");
-
-        // Step 2: Wait for any dropdown container (don’t match bottomLeft)
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-            By.cssSelector("div.ant-select-dropdown")));
-
-        // Step 3: Wait for and click the "Colombo" option
-        WebElement colomboOption = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("//div[@class='ant-select-item-option-content' and normalize-space(text())='Colombo']")));
+    @Test(priority = 4, dependsOnMethods = "fillMLRequestFormFields")
+    public void selectDistrictAndDivision() {
+        WebElement districtDropdown = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//input[@id='district']/ancestor::div[contains(@class,'ant-select')]")));
+        districtDropdown.click();
+        waitABit();
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("div.ant-select-dropdown")));
+        WebElement colomboOption = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@class='ant-select-item-option-content' and normalize-space(text())='Colombo']")));
         colomboOption.click();
+        waitABit();
         System.out.println("✅ Selected 'Colombo' from district list");
 
-
-        // Step 1: Open the Division dropdown by clicking its ancestor container
-        WebElement divisionDropdown = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("//input[@id='divisional_secretary_division']/ancestor::div[contains(@class,'ant-select')]")));
+        WebElement divisionDropdown = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//input[@id='divisional_secretary_division']/ancestor::div[contains(@class,'ant-select')]")));
         divisionDropdown.click();
-        System.out.println("📍 Opened Division dropdown");
-
-        // Step 2: Wait for the dynamic dropdown container to appear
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-            By.cssSelector("div.ant-select-dropdown")));
-
-        // Step 3: Click the "Dehiwala" option
-        WebElement dehiwalaOption = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("//div[@class='ant-select-item-option-content' and normalize-space(text())='Dehiwala']")));
+        waitABit();
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("div.ant-select-dropdown")));
+        WebElement dehiwalaOption = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@class='ant-select-item-option-content' and normalize-space(text())='Dehiwala']")));
         dehiwalaOption.click();
+        waitABit();
         System.out.println("✅ Selected 'Dehiwala' from division list");
+    }
 
-
-
-        // --- Upload files using the corrected helper method ---
-        // Create dummy files if they don't exist for the test to run
+    @Test(priority = 5, dependsOnMethods = "selectDistrictAndDivision")
+    public void uploadRequiredFiles() {
         createDummyFile("test-files/deed-plan.pdf");
         createDummyFile("test-files/detailed-plan.pdf");
         createDummyFile("test-files/economic-report.pdf");
         createDummyFile("test-files/survey-plan.pdf");
 
         uploadFile("Deed_plan", "test-files/deed-plan.pdf");
+        waitABit();
         uploadFile("detailed_mine_plan", "test-files/detailed-plan.pdf");
+        waitABit();
         uploadFile("economic_viability_report", "test-files/economic-report.pdf");
+        waitABit();
         uploadFile("license_boundary_survey", "test-files/survey-plan.pdf");
+        waitABit();
+    }
 
-//        String nicFrontPath = projectPath + "/src/test/resources/test_images/nic_front.jpg";
-
-        // --- Submit form ---
+    @Test(priority = 6, dependsOnMethods = "uploadRequiredFiles")
+    public void submitFormSuccessfully() throws InterruptedException {
         WebElement submitButton = driver.findElement(By.cssSelector("button[type='submit']"));
-        // Scroll to the button to ensure it's in view
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
-        // Wait for the button to be clickable before clicking
         wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
         System.out.println("🚀 Submitting the form...");
 
         Thread.sleep(3000);
-
-        // --- Confirm submission success ---
         WebElement successMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-message-success")));
         System.out.println("✅ Form submission successful! Message: " + successMessage.getText());
     }
 
-    // --- CORRECTED HELPER METHOD for Ant Design Uploads ---
+    @Test(priority = 7)
+    public void testMissingMandatoryField() {
+        driver.get("https://mmpro.aasait.lk/mlowner/home/mlrequest");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("land_name"))).sendKeys("");
+        waitABit();
+        WebElement submitButton = driver.findElement(By.cssSelector("button[type='submit']"));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
+        submitButton.click();
+        waitABit();
+
+        WebElement errorMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-form-item-explain-error")));
+        Assert.assertTrue(errorMsg.isDisplayed(), "❌ Validation message not shown for empty required field");
+        System.out.println("⚠️ Validation error displayed as expected when required field is missing.");
+    }
+
     private void uploadFile(String inputId, String relativeFilePath) {
         try {
-            // Get the absolute path of the file
             String absolutePath = new File(relativeFilePath).getAbsolutePath();
-
-            // The <input type="file"> is HIDDEN in Ant Design's Upload component.
-            // We must wait for it to be PRESENT in the DOM, not visible.
             WebElement uploadInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id(inputId)));
-
-            // Send the file path directly to the hidden input element.
             uploadInput.sendKeys(absolutePath);
             System.out.println("📎 Uploaded '" + relativeFilePath + "' to input #" + inputId);
         } catch (Exception e) {
@@ -146,12 +154,11 @@ public class MLRequestFormTest {
         }
     }
 
-    // Helper to create dummy files for testing purposes
     private void createDummyFile(String relativePath) {
         try {
             File file = new File(relativePath);
             if (!file.exists()) {
-                file.getParentFile().mkdirs(); // Create parent directories if they don't exist
+                file.getParentFile().mkdirs();
                 file.createNewFile();
             }
         } catch (Exception e) {
@@ -163,6 +170,7 @@ public class MLRequestFormTest {
     public void tearDown() {
         if (driver != null) {
             driver.quit();
+            System.out.println("🚪 Browser closed.");
         }
     }
 }
