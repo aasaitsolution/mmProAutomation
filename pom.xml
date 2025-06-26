@@ -19,6 +19,7 @@
     </properties>
 
     <dependencies>
+    
         <!-- Selenium Java dependency -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
@@ -56,6 +57,13 @@
             <version>${aspectj.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>
@@ -69,6 +77,7 @@
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
+                    <release>11</release>
                 </configuration>
             </plugin>
 

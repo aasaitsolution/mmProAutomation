@@ -1,179 +1,171 @@
-// package MiningEngineer;
+package MiningEngineer;
 
-// import org.openqa.selenium.*;
-// import org.openqa.selenium.support.ui.ExpectedConditions;
-// import org.testng.Assert;
-// import org.testng.annotations.Test;
-// import java.time.LocalDate;
-// import java.time.format.DateTimeFormatter;
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+import static org.testng.Assert.assertEquals;
 
-// public class AppointmentsSetDateTest extends AppointmentsTestBase {
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
-//     @Test(priority = 1)
-//     public void testSetDateFunctionality() {
-//         try {
-//             switchToPendingTab();
-//             waitForAppointmentsToLoad();
-//             clickFirstSetDateButton();
-//             verifyDatePickerVisible();
-//             selectFutureDate(1); // Select tomorrow's date
-//             clickConfirmButton();
-//             verifySuccessMessage();
-//         } catch (Exception e) {
-//             captureScreenshot("set_date_failure");
-//             throw new RuntimeException("Set Date test failed", e);
-//         }
-//     }
+public class AppointmentsSetDateTest extends AppointmentsTestBase {
+    private final String DATE_FORMAT = "yyyy-MM-dd";
 
-//     @Test(priority = 2)
-//     public void testPastDatesDisabled() {
-//         try {
-//             switchToPendingTab();
-//             waitForAppointmentsToLoad();
-//             clickFirstSetDateButton();
-//             verifyDatePickerVisible();
-//             verifyDateDisabled(LocalDate.now().minusDays(1));
-//         } catch (Exception e) {
-//             captureScreenshot("past_dates_disabled_failure");
-//             throw new RuntimeException("Past dates disabled test failed", e);
-//         }
-//     }
+    @BeforeClass
+    public void navigateToAppointments() {
+        try {
+            driver.get(BASE_URL + "/me/dashboard");
 
-//     @Test(priority = 3)
-//     public void testConfirmWithoutDateShowsError() {
-//         try {
-//             switchToPendingTab();
-//             waitForAppointmentsToLoad();
-//             clickFirstSetDateButton();
-//             verifyDatePickerVisible();
-//             clickConfirmButton();
-//             verifyErrorMessage("Please select a date first!");
-//         } catch (Exception e) {
-//             captureScreenshot("confirm_without_date_failure");
-//             throw new RuntimeException("Confirm without date test failed", e);
-//         }
-//     }
+            wait.until(ExpectedConditions.or(
+                    ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".appointments-table")),
+                    ExpectedConditions.visibilityOfElementLocated(By.xpath("//button[contains(., 'Set Date') or contains(., 'දිනය සකසන්න') or contains(., 'திகதி அமைக்கவும்')]"))
+            ));
 
-//     // ─────────── HELPER METHODS ─────────────
+            try {
+                WebElement modalClose = driver.findElement(By.cssSelector(".ant-modal-close"));
+                if (modalClose.isDisplayed()) {
+                    modalClose.click();
+                    wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".ant-modal")));
+                }
+            } catch (Exception ignored) {}
+        } catch (Exception e) {
+            captureScreenshot("navigation_failure");
+            throw new RuntimeException("Failed to navigate to appointments: " + e.getMessage(), e);
+        }
+    }
 
-//     private void switchToPendingTab() {
-//         By pendingTabLocator = By.xpath("//div[contains(@class, 'ant-tabs-tab') and contains(., 'Pending')]");
+    @Test(priority = 1)
+    public void testSetDateButtonVisibility() {
+        try {
+            WebElement setDateButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//button[contains(@class, 'ant-btn') and .//text()[normalize-space()='Set Date' or normalize-space()='දිනය සකසන්න' or normalize-space()='திகதி அமைக்கவும்']]")
+            ));
+            assert setDateButton.isDisplayed() : "Set Date button is not visible";
+        } catch (Exception e) {
+            captureScreenshot("button_visibility_failure");
+            throw e;
+        }
+    }
 
-//         try {
-//             WebElement pendingTab = wait.until(ExpectedConditions.elementToBeClickable(pendingTabLocator));
-//             scrollIntoView(pendingTab);
-//             clickWithRetry(pendingTab);
+    @Test(priority = 2)
+    public void testSetDateButtonClickOpensPopover() {
+        try {
+            WebElement setDateButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//button[contains(@class, 'ant-btn') and .//text()[contains(., 'Set Date') or contains(., 'දිනය සකසන්න') or contains(., 'திகதி அமைக்கவும்')]]")
+            ));
+            setDateButton.click();
 
-//             wait.until(ExpectedConditions.or(
-//                     ExpectedConditions.attributeContains(pendingTab, "class", "ant-tabs-tab-active"),
-//                     ExpectedConditions.presenceOfElementLocated(
-//                             By.xpath("//div[contains(@class, 'ant-tabs-tabpane-active')]"))
-//             ));
+            WebElement input = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector(".ant-popover .ant-picker-input input")
+            ));
+            input.click();
 
-//             waitForAppointmentsToLoad();
+            WebElement datePanel = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(".ant-picker-panel")
+            ));
 
-//         } catch (TimeoutException e) {
-//             System.out.println("Current URL: " + driver.getCurrentUrl());
-//             throw new RuntimeException("Failed to switch to Pending tab", e);
-//         }
-//     }
+            assert datePanel.isDisplayed() : "Date picker panel did not appear";
+        } catch (Exception e) {
+            captureScreenshot("popover_failure");
+            throw e;
+        }
+    }
 
-//     private void clickWithRetry(WebElement element) {
-//         int attempts = 0;
-//         while (attempts < 2) {
-//             try {
-//                 element.click();
-//                 return;
-//             } catch (StaleElementReferenceException e) {
-//                 attempts++;
-//                 if (attempts >= 2) throw e;
-//             }
-//         }
-//     }
+    @Test(priority = 3)
+    public void testDateSelection() {
+        // Get and format tomorrow's date
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        String formattedDate = tomorrow.format(DateTimeFormatter.ofPattern(DATE_FORMAT));
 
-//     private void waitForAppointmentsToLoad() {
-//         try {
-//             wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                     By.xpath("//div[contains(@class, 'ant-table-container')]")));
+        // Click the set date button
+        WebElement setDateButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[contains(@class, 'ant-btn') and " +
+                        "(contains(., 'Set Date') or contains(., 'දිනය සකසන්න') or contains(., 'திகதி அமைக்கவும்'))]")));
+        setDateButton.click();
 
-//             wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(
-//                     By.xpath("//tr[contains(@class, 'ant-table-row')]"), 0));
-//         } catch (TimeoutException e) {
-//             throw new RuntimeException("Appointments table failed to load", e);
-//         }
-//     }
+        // Wait for and click date picker input
+        WebElement input = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector(".ant-picker-input input")));
+        input.click();
 
-//     private void clickFirstSetDateButton() {
-//         By setDateButton = By.xpath("(//button[contains(., 'Set Date')])[1]");
-//         clickElement(setDateButton);
-//     }
+        // Wait for calendar to be visible
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector(".ant-picker-dropdown, .ant-picker-panel")));
 
-//     private void verifyDatePickerVisible() {
-//         try {
-//             wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                     By.xpath("//div[contains(@class, 'ant-picker-dropdown') and not(contains(@style, 'display: none'))]")));
+        // Select the date
+        WebElement dateCell = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath(String.format("//td[@title='%s']", formattedDate))));
+        dateCell.click();
 
-//             wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                     By.xpath("//div[contains(@class, 'ant-picker-header')]")));
-//         } catch (TimeoutException e) {
-//             throw new RuntimeException("Date picker popup did not appear", e);
-//         }
-//     }
+        // Verify selection
+        String selectedDate = input.getAttribute("value");
+        assertEquals(selectedDate, formattedDate, "Selected date not shown in input field");
+    }
 
-//     private void selectFutureDate(int daysInFuture) {
-//         LocalDate futureDate = LocalDate.now().plusDays(daysInFuture);
-//         selectSpecificDate(futureDate);
-//     }
+    @Test(priority = 4, dependsOnMethods = "testDateSelection")
+    public void testSetAppointmentDate() {
+        // Switch to pending tab
+        driver.findElement(By.xpath("//div[text()='Pending']")).click();
 
-//     private void selectSpecificDate(LocalDate date) {
-//         String dateStr = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        // Click on "Set Date" button
+        WebElement setDateButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[contains(., 'Set Date')]")));
+        setDateButton.click();
 
-//         try {
-//             By dateCell = By.xpath(String.format(
-//                     "//td[@title='%s' and not(contains(@class, 'disabled'))]", dateStr));
+        // Pick today's date
+        WebElement today = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector(".ant-picker-cell-inner"))); // Selects the first visible date
+        today.click();
 
-//             WebElement cell = wait.until(ExpectedConditions.elementToBeClickable(dateCell));
-//             scrollIntoView(cell);
-//             clickWithRetry(cell);
+        // Click Confirm button in the popover
+        WebElement confirmButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[contains(., 'Confirm')]")));
+        confirmButton.click();
 
-//             wait.until(ExpectedConditions.attributeContains(cell, "class", "ant-picker-cell-selected"));
+        // Expect success message
+        WebElement message = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.className("ant-message-success")));
+        Assert.assertTrue(message.getText().contains("scheduled"));
+    }
 
-//         } catch (TimeoutException e) {
-//             throw new RuntimeException("Failed to select date: " + dateStr, e);
-//         }
-//     }
 
-//     private void verifyDateDisabled(LocalDate date) {
-//         String dateStr = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-//         By dateCell = By.xpath(String.format("//td[@title='%s']", dateStr));
+    @Test(priority = 5)
+    public void testPastDateDisabled() {
+        try {
+            WebElement setDateButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//button[contains(@class, 'ant-btn') and .//text()[contains(., 'Confirm') or contains(., 'තහවුරු කරන්න') or contains(., 'உறுதிப்படுத்தவும்')]]")
+            ));
+            setDateButton.click();
 
-//         WebElement cell = wait.until(ExpectedConditions.presenceOfElementLocated(dateCell));
-//         Assert.assertTrue(cell.getAttribute("class").contains("disabled"),
-//                 "Date " + dateStr + " should be disabled");
-//     }
+            WebElement input = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector(".ant-popover .ant-picker-input input")
+            ));
+            input.click();
 
-//     private void clickConfirmButton() {
-//         By confirmButton = By.xpath("//button[contains(., 'Confirm')]");
-//         clickElement(confirmButton);
-//     }
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            String formattedYesterday = yesterday.format(DateTimeFormatter.ofPattern(DATE_FORMAT));
 
-//     private void verifySuccessMessage() {
-//         verifyMessage("Date confirmed and appointment scheduled!");
-//     }
+            WebElement pastDateCell = driver.findElement(
+                    By.xpath(String.format("//td[@title='%s']", formattedYesterday))
+            );
 
-//     private void verifyErrorMessage(String expectedMessage) {
-//         verifyMessage(expectedMessage);
-//     }
+            assert pastDateCell.getAttribute("class").contains("ant-picker-cell-disabled") :
+                    "Past date should be disabled but is clickable";
+        } catch (Exception e) {
+            captureScreenshot("past_date_test_failure");
+            throw e;
+        }
+    }
 
-//     private void verifyMessage(String expectedText) {
-//         By messageLocator = By.xpath(String.format(
-//                 "//div[contains(@class, 'ant-message-notice') and contains(., '%s')]",
-//                 expectedText));
-
-//         try {
-//             wait.until(ExpectedConditions.visibilityOfElementLocated(messageLocator));
-//         } catch (TimeoutException e) {
-//             throw new RuntimeException("Expected message not displayed: " + expectedText, e);
-//         }
-//     }
-// }
+    @AfterMethod
+    public void closePopover() {
+        try {
+            WebElement body = driver.findElement(By.tagName("body"));
+            body.click(); // Click somewhere outside to dismiss popover
+        } catch (Exception ignored) {}
+    }
+}
