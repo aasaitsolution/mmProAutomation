@@ -21,6 +21,7 @@
 <!--            <class name="MiningEngineer.AppointmentsTabNavigationTest"/> -->
 <!--            <class name="MiningEngineer.AppointmentsViewDetailsTest"/> -->
 <!--            <class name="MiningEngineer.AppointmentsSetDateTest"/> -->
+<!--                <class name="MiningEngineer.ScheduledTabTests"/> -->
 
                     </classes>
                 </test>
