@@ -1,3 +1,5 @@
+
+//Done
 package MLOwner;
 
 import org.openqa.selenium.By;
@@ -19,6 +21,31 @@ public class mlownersingin {
     private WebDriver driver;
     private WebDriverWait wait;
 
+<<<<<<< achintha
+
+    @BeforeClass
+    public void setup() {
+        // Set Chrome options
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--incognito");
+
+        // Initialize WebDriver with options
+        driver = new ChromeDriver(options);
+
+        // Maximize the window before navigating (optional but often improves stability)
+        driver.manage().window().maximize();
+
+        // Initialize WebDriverWait (recommended: do this before using it)
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+
+        // Navigate to the login page
+        driver.get("https://mmpro.aasait.lk/");
+        System.out.println("🌐 Opened MMPro login page");
+    }
+
+
+
+=======
     @BeforeClass
     public void setUp() {
         ChromeOptions options = new ChromeOptions();
@@ -60,6 +87,7 @@ public class mlownersingin {
     }
 
 
+>>>>>>> main
     @Test(priority = 1)
     public void mlsignin() {
         try {

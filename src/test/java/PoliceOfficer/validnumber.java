@@ -1,122 +1,138 @@
+//Done
 package PoliceOfficer;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
+
 import java.time.Duration;
 
 public class validnumber {
     private WebDriver driver;
     private WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:5173";
-    private static final String VALID_LICENSE = "LA4565";
 
-    @BeforeMethod
+    @BeforeClass
     public void setup() {
-        driver = new ChromeDriver();
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--incognito");
+        driver = new ChromeDriver(options);
         driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(100)); // Increased timeout
+        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        driver.get("https://mmpro.aasait.lk/");
+        System.out.println("🚀 Browser launched and navigated to the homepage.");
     }
 
-    @Test
-    public void testValidLicensePlate() throws InterruptedException {
+    @Test(priority = 1, description = "Navigate from homepage to the Sign In page")
+    public void navigateToSignInPage() {
+        long start = System.currentTimeMillis();
+
+        WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("a[href='/signin'] button")));
+        loginButton.click();
+
+        wait.until(ExpectedConditions.urlContains("/signin"));
+        Assert.assertTrue(driver.getCurrentUrl().contains("/signin"), "Failed to navigate to the sign-in page.");
+        System.out.println("✅ Navigated to Sign In page successfully.");
+
+        long end = System.currentTimeMillis();
+        System.out.println("⏱ Test Duration: " + (end - start) + " ms");
+    }
+
+    @Test(priority = 2, description = "Enter valid credentials and log in as a police officer")
+    public void enterCredentialsAndLogin() {
+        long start = System.currentTimeMillis();
+
+        WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.id("sign-in_username")));
+        usernameField.sendKeys("saman");
+
+        WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.id("sign-in_password")));
+        passwordField.sendKeys("12345678");
+
+        WebElement signInButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("button[type='submit']")));
+        signInButton.click();
+        System.out.println("✅ Submitted credentials.");
+
         try {
-            // Login
-            performLogin();
+            Alert alert = driver.switchTo().alert();
+            alert.dismiss();
+            System.out.println("⚠️ Alert was present and dismissed.");
+        } catch (NoAlertPresentException e) {
+            System.out.println("ℹ️ No alert was present.");
+        }
 
-            // Wait for dashboard to load completely
-            wait.until(ExpectedConditions.urlToBe(BASE_URL + "/police-officer/dashboard"));
+        wait.until(ExpectedConditions.urlContains("/police-officer"));
+        Assert.assertTrue(driver.getCurrentUrl().contains("/police-officer"),
+                "Login failed or redirection to dashboard was unsuccessful.");
+        System.out.println("✅ Landed on Police Officer Dashboard.");
 
-            // Add a small delay to ensure page is fully loaded
-            Thread.sleep(2000);
+        long end = System.currentTimeMillis();
+        System.out.println("⏱ Test Duration: " + (end - start) + " ms");
+    }
 
-            // Enter and verify license number
-            WebElement numberInput = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/main/div/input")
-            ));
-            numberInput.clear();
-            numberInput.sendKeys(VALID_LICENSE);
+    @Test(priority = 3, description = "Check for a valid vehicle number", dependsOnMethods = "enterCredentialsAndLogin")
+    public void checkValidVehicleNumber() {
+        try {
+            // Ensure we are on the dashboard page
+            wait.until(ExpectedConditions.urlContains("/police-officer"));
 
-            // Verify input value
-            Assert.assertEquals(numberInput.getAttribute("value"), VALID_LICENSE,
-                    "License plate number was not entered correctly");
+            // Wait for the input field to be visible - using a broad but robust selector
+            WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("input[type='text']")));
+            wait.until(ExpectedConditions.elementToBeClickable(inputField));
 
-            // Get the check button and verify it's enabled
+            inputField.clear();
+            inputField.sendKeys("CBA4321");
+            System.out.println("✅ Entered vehicle number.");
+
+            // Click the check button
             WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/main/div/button")
-            ));
-            Assert.assertTrue(checkButton.isEnabled(), "Check button is not enabled");
+                    By.cssSelector("button.po-check-button")));
+            checkButton.click();
+            System.out.println("✅ Submitted a valid vehicle number for check.");
 
-            // Print current URL before click
-            System.out.println("URL before click: " + driver.getCurrentUrl());
+            // Wait for redirect to results page
+            wait.until(ExpectedConditions.urlContains("/police-officer/valid"));
+            System.out.println("ℹ️ Redirected to validation results page");
 
-            // Click with JavaScript to ensure the click happens
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", checkButton);
+            // Validate that the result badge confirms validity
+            WebElement validBadge = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.className("pov-validBadge")));
+            String resultText = validBadge.getText();
+            System.out.println("ℹ️ Validation Result: " + resultText);
 
-            // Print URL immediately after click
-            System.out.println("URL immediately after click: " + driver.getCurrentUrl());
+            Assert.assertTrue(resultText.toLowerCase().contains("valid"),
+                    "The vehicle was not marked as 'Valid'.");
+            System.out.println("✅ Vehicle number correctly marked as Valid.");
 
-            // Wait for a moment to see if there's any immediate change
-            Thread.sleep(1000);
-            System.out.println("URL 1 second after click: " + driver.getCurrentUrl());
+            // Return to dashboard
+            driver.navigate().to("https://mmpro.aasait.lk/police-officer");
+            wait.until(ExpectedConditions.urlContains("/police-officer"));
+            System.out.println("✅ Successfully returned to the police officer dashboard.");
 
-            // Check for any error messages or loading indicators
-//            try {
-//                WebElement errorMessage = driver.findElement(By.className("ant-notification-notice"));
-//                if (errorMessage.isDisplayed()) {
-//                    System.out.println("Error message found: " + errorMessage.getText());
-//                }
-//            } catch (NoSuchElementException e) {
-//                System.out.println("No error message found");
-//            }
-
-            // Wait for URL change with a custom condition that prints progress
-            wait.until(driver -> {
-                String currentUrl = driver.getCurrentUrl();
-                System.out.println("Checking URL: " + currentUrl);
-                return currentUrl.equals(BASE_URL + "/police-officer/valid");
-            });
-
-            // Final verification
-            String finalUrl = driver.getCurrentUrl();
-            Assert.assertEquals(finalUrl, BASE_URL + "/police-officer/valid",
-                    "Failed to navigate to valid page");
-
+        } catch (TimeoutException e) {
+            System.err.println("❌ Timed out: couldn't find expected element or URL change.");
+            System.out.println("🔍 Debug URL: " + driver.getCurrentUrl());
+            System.out.println("🔍 Page Source Snippet: " + driver.getPageSource().substring(0, 1000));
+            Assert.fail("Timeout waiting for element or URL: " + e.getMessage());
         } catch (Exception e) {
-            System.out.println("Test failed! Final URL: " + driver.getCurrentUrl());
-            System.out.println("Exception: " + e.getMessage());
-
-            // Print page source to see what's on the page
-            System.out.println("Page source: " + driver.getPageSource());
-
-            throw e;
+            System.err.println("❌ Test failed due to: " + e.getMessage());
+            Assert.fail("Exception: " + e.toString());
         }
     }
 
-    private void performLogin() {
-        driver.get(BASE_URL + "/signin/");
 
-        WebElement username = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_username")));
-        username.sendKeys("police");
-
-        WebElement password = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_password")));
-        password.sendKeys("1234abcd");
-
-        WebElement signinButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector(".ant-btn-primary")
-        ));
-        signinButton.click();
+    @AfterClass
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+            System.out.println("🔚 Browser session ended.");
+        }
     }
-
-//    @AfterMethod
-//    public void tearDown() {
-//        if (driver != null) {
-//            driver.quit();
-//        }
-//    }
 }
