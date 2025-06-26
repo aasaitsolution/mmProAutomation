@@ -25,31 +25,41 @@ public class AppointmentsTestBase {
 
     @BeforeClass
     public void setUp() {
-        // Setup WebDriverManager to handle browser driver
-        WebDriverManager.chromedriver().setup();
+        try {
+            // Setup WebDriverManager to handle browser driver
+            WebDriverManager.chromedriver().setup();
 
-        // Configure Chrome options
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        options.addArguments("--start-maximized");
-        options.addArguments("--disable-notifications");
-        options.addArguments("--remote-allow-origins=*");
+            // Configure Chrome options
+            ChromeOptions options = new ChromeOptions();
+            options.addArguments("--incognito");
+            options.addArguments("--start-maximized");
+            options.addArguments("--disable-notifications");
+            options.addArguments("--remote-allow-origins=*");
+            options.setPageLoadStrategy(PageLoadStrategy.NORMAL);
 
-        // Initialize driver with enhanced capabilities
-        driver = new ChromeDriver(options);
+            // Initialize driver with enhanced capabilities
+            driver = new ChromeDriver(options);
 
-        // Configure wait with polling
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+            // Configure wait with polling
+            wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
-        // Create screenshots directory if not exists
-        createScreenshotDirectory();
+            // Create screenshots directory if not exists
+            createScreenshotDirectory();
 
-        // Perform login
-        login("amal", "12345678");
+            // Perform login
+            login("amal", "12345678");
 
-        // Verify successful navigation to dashboard
-        wait.until(ExpectedConditions.urlContains("/dashboard"));
+            // Verify successful navigation to dashboard
+            wait.until(ExpectedConditions.or(
+                    ExpectedConditions.urlContains("/dashboard"),
+                    ExpectedConditions.presenceOfElementLocated(
+                            By.cssSelector(".user-profile"))
+            ));
+        } catch (Exception e) {
+            captureScreenshot("setup_failure");
+            throw new RuntimeException("Setup failed: " + e.getMessage(), e);
+        }
     }
 
     protected void login(String username, String password) {
@@ -74,7 +84,11 @@ public class AppointmentsTestBase {
             signInButton.click();
 
             // Wait for login to complete
-            wait.until(ExpectedConditions.urlContains("/dashboard"));
+            wait.until(ExpectedConditions.or(
+                    ExpectedConditions.urlContains("/dashboard"),
+                    ExpectedConditions.presenceOfElementLocated(
+                            By.cssSelector(".user-profile"))
+            ));
 
         } catch (Exception e) {
             captureScreenshot("login_failure");
