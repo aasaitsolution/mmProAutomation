@@ -48,7 +48,7 @@ public class ActivationPageTest {
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_password"))).sendKeys("12345678");
         wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
         wait.until(ExpectedConditions.urlContains("/dashboard"));
-        System.out.println("Login successful, dashboard loaded.");
+        System.out.println("🔐 Logged in and dashboard loaded.");
     }
 
     @Test(priority = 2, dependsOnMethods = {"login"})
@@ -57,104 +57,104 @@ public class ActivationPageTest {
                 By.xpath("//button[.//span[text()='Activation']]")));
         activationBtn.click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//h1[contains(text(),'Officer Activation')]")));
-        System.out.println("Navigated to Activation page.");
+        System.out.println("🚀 Navigated to Officer Activation page.");
     }
 
     @Test(priority = 3, dependsOnMethods = {"navigateToActivation"})
-public void verifyTabsAndActivateAll() {
-    String[] expectedTabLabels = {
-        "Police Officers",
-        "GSMB Officers",
-        "Mining Engineer"
-    };
+    public void verifyTabsAndActivateAll() {
+        String[] expectedTabLabels = {
+            "Police Officers",
+            "GSMB Officers",
+            "Mining Engineer"
+        };
 
-    for (String tabLabel : expectedTabLabels) {
-        try {
-        WebElement tab = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("//div[contains(@class,'ant-tabs-tab') and normalize-space(text())='" + tabLabel + "']")));
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", tab);
-        wait.until(ExpectedConditions.elementToBeClickable(tab));
-        Thread.sleep(500);
-        tab.click();
-
-        System.out.println("\nSwitched to tab: " + tabLabel);
-
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".ant-spin")));
-
-try {
-    WebElement firstRow = waitForFirstValidRow();
-    System.out.println("First valid row found: " + firstRow.getText());
-    // Continue with activation logic below...
-} catch (TimeoutException e) {
-    System.out.println("No data found in tab: " + tabLabel);
-    continue; // Skip to next tab
-}
-        boolean rowFound = false;
-
-        // Try multiple times in case of stale element
-        for (int attempt = 0; attempt < 3; attempt++) {
+        for (String tabLabel : expectedTabLabels) {
             try {
-                List<WebElement> bodies = driver.findElements(By.cssSelector(".ant-table-tbody"));
+            WebElement tab = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//div[contains(@class,'ant-tabs-tab') and normalize-space(text())='" + tabLabel + "']")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", tab);
+            wait.until(ExpectedConditions.elementToBeClickable(tab));
+            Thread.sleep(500);
+            tab.click();
 
-                for (WebElement body : bodies) {
-                    if (body.isDisplayed()) {
-                        List<WebElement> rows = body.findElements(By.cssSelector("tr"));
+            System.out.println("\n👤Switched to tab: " + tabLabel);
 
-                        for (WebElement row : rows) {
-                            String rowText = row.getText().trim().toLowerCase();
-                            if (!rowText.contains("no data") && !rowText.isEmpty()) {
-                                List<WebElement> buttons = row.findElements(By.xpath(
-                                    ".//*[contains(translate(text(),'ACTIVATE','activate'),'activate') or contains(translate(text(),'DEACTIVATE','deactivate'),'deactivate')]"));
+            wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".ant-spin")));
 
-                                if (!buttons.isEmpty()) {
-                                    WebElement actionElement = buttons.get(0);
-                                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", actionElement);
-                                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", actionElement);
-                                    wait.until(ExpectedConditions.elementToBeClickable(actionElement));
-                                    Thread.sleep(500); // give it time to stabilize
-                                    actionElement.click();
+            try {
+                WebElement firstRow = waitForFirstValidRow();
+                System.out.println("First valid row found: ");
+                // Continue with activation logic below...
+            } catch (TimeoutException e) {
+                System.out.println("❌ No data found in tab: " + tabLabel);
+                continue; // Skip to next tab
+            }
+            boolean rowFound = false;
 
-                                    WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                                        By.cssSelector(".ant-modal-confirm")));
-                                    WebElement modalTitle = modal.findElement(By.cssSelector(".ant-modal-confirm-title"));
-                                    System.out.println("Modal title: " + modalTitle.getText());
+            // Try multiple times in case of stale element
+            for (int attempt = 0; attempt < 3; attempt++) {
+                try {
+                    List<WebElement> bodies = driver.findElements(By.cssSelector(".ant-table-tbody"));
 
-                                    WebElement okBtn = modal.findElement(By.cssSelector(".ant-modal-confirm-btns button.ant-btn-primary"));
-                                    okBtn.click();
+                    for (WebElement body : bodies) {
+                        if (body.isDisplayed()) {
+                            List<WebElement> rows = body.findElements(By.cssSelector("tr"));
 
-                                    wait.until(ExpectedConditions.invisibilityOf(modal));
-                                    System.out.println("Activated/Deactivated officer in tab: " + tabLabel);
+                            for (WebElement row : rows) {
+                                String rowText = row.getText().trim().toLowerCase();
+                                if (!rowText.contains("no data") && !rowText.isEmpty()) {
+                                    List<WebElement> buttons = row.findElements(By.xpath(
+                                        ".//*[contains(translate(text(),'ACTIVATE','activate'),'activate') or contains(translate(text(),'DEACTIVATE','deactivate'),'deactivate')]"));
 
-                                    Thread.sleep(2000); // Wait for table refresh
+                                    if (!buttons.isEmpty()) {
+                                        WebElement actionElement = buttons.get(0);
+                                        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", actionElement);
+                                        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", actionElement);
+                                        wait.until(ExpectedConditions.elementToBeClickable(actionElement));
+                                        Thread.sleep(500); // give it time to stabilize
+                                        actionElement.click();
 
-                                    rowFound = true;
-                                    break; // out of row loop
+                                        WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                                            By.cssSelector(".ant-modal-confirm")));
+                                        WebElement modalTitle = modal.findElement(By.cssSelector(".ant-modal-confirm-title"));
+                                        System.out.println("Modal title: " + modalTitle.getText());
+
+                                        WebElement okBtn = modal.findElement(By.cssSelector(".ant-modal-confirm-btns button.ant-btn-primary"));
+                                        okBtn.click();
+
+                                        wait.until(ExpectedConditions.invisibilityOf(modal));
+                                        System.out.println("👤 Activated/Deactivated officer in tab: " + tabLabel);
+
+                                        Thread.sleep(2000); // Wait for table refresh
+
+                                        rowFound = true;
+                                        break; // out of row loop
+                                    }
                                 }
                             }
                         }
+
+                        if (rowFound) break; // out of tbody loop
                     }
 
-                    if (rowFound) break; // out of tbody loop
+                    break; // break retry loop if successful
+
+                } catch (StaleElementReferenceException stale) {
+                    System.out.println("Stale element encountered in tab: " + tabLabel + " — retrying...");
+                    Thread.sleep(1000); // small delay before retry
                 }
+            }
 
-                break; // break retry loop if successful
+            if (!rowFound) {
+                System.out.println("❌ No activatable officers found in tab: " + tabLabel);
+            }
 
-            } catch (StaleElementReferenceException stale) {
-                System.out.println("Stale element encountered in tab: " + tabLabel + " — retrying...");
-                Thread.sleep(1000); // small delay before retry
+            } catch (Exception e) {
+                System.out.println("❌ Failed to load or activate tab: " + tabLabel);
+                e.printStackTrace();
             }
         }
-
-        if (!rowFound) {
-            System.out.println("No activatable officers found in tab: " + tabLabel);
-        }
-
-    } catch (Exception e) {
-        System.out.println("Failed to load or activate tab: " + tabLabel);
-        e.printStackTrace();
     }
-}
-}
     @AfterClass
     public void teardown() {
         if (driver != null) {
