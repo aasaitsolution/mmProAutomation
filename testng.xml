@@ -14,10 +14,11 @@
             <class name="MLOwner.DispatchHistoryTest"/>
             <class name="MLOwner.DispatchLoadPageTest"/>
             <class name="GSMBOfficer.GsmbOfficerSignin"/>
-            <class name="GSMBOfficer.AddMiningLicense"/>
+            <class name="GSMBOfficer.MiningLicenseTestSuite"/>
             <class name="GSMBOfficer.RequestMining"/>
             <class name="GSMBOfficer.GSMBmlTab"/>
             <class name="GSMBOfficer.TPLandMLview"/>
+            <class name="GSMBOfficer.PhysicalMeeting"/>
             <class name="PoliceOfficer.policeofficersignin"/>
             <class name="PoliceOfficer.validnumber"/>
             <class name="PoliceOfficer.invalidnumber"/>
