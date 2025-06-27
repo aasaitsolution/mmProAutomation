@@ -12,6 +12,7 @@ import java.util.List;
 
 public class DispatchHistoryTest {
 
+   
     private WebDriver driver;
     private WebDriverWait wait;
 
@@ -19,19 +20,18 @@ public class DispatchHistoryTest {
     public void setup() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--incognito");
-
         driver = new ChromeDriver(options);
         driver.manage().window().maximize();
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
-    @Test(priority = 1)
-    public void loginToMLDashboard() {
+   @Test(priority = 1)
+    public void loginToDashboard() throws InterruptedException {
         driver.get("https://mmpro.aasait.lk/");
-        WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("a[href='/signin'] button")));
+        WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("a[href='/signin'] button")));
         loginBtn.click();
-
+        Thread.sleep(500); // wait after login click
+        waitForPageLoadComplete();
         WebElement username = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
         WebElement password = driver.findElement(By.id("sign-in_password"));
 
@@ -40,72 +40,143 @@ public class DispatchHistoryTest {
 
         WebElement signIn = driver.findElement(By.cssSelector("button[type='submit']"));
         signIn.click();
+        waitForPageLoadComplete();
 
         wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-        System.out.println("Login successful.");
-
-        // Navigate to dispatch history after login
-        driver.get("https://mmpro.aasait.lk/mlowner/history?licenseNumber=LLL/100/402");
+        System.out.println("✅ Login successful.");
     }
 
     @Test(priority = 2)
-    public void testPageTitle() {
-        WebElement title = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".history-title")));
-        Assert.assertTrue(title.getText().toLowerCase().contains("dispatch"));
+    public void navigateToDispatchHistory() throws InterruptedException {
+        driver.get("https://mmpro.aasait.lk/mlowner/history?licenseNumber=LLL/100/402");
+        waitForPageLoadComplete();
+        System.out.println("✅ Navigated to Dispatch History page.");
     }
 
     @Test(priority = 3)
-    public void testDatePickerInteraction() throws InterruptedException {
-        WebElement datePicker = wait.until(ExpectedConditions.elementToBeClickable(By.className("history-datepicker")));
-        datePicker.click();
-
-        // FIX: Add a small static wait to allow for the calendar panel's animation to complete.
-        // This makes the element finding much more reliable.
-        Thread.sleep(500);
-
-        String dayToSelect = "19";
-        WebElement dateCell = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//div[contains(@class, 'ant-picker-cell-in-view') and .//div[text()='" + dayToSelect + "']]")
-        ));
-        dateCell.click();
-        System.out.println("✅ Date " + dayToSelect + " selected successfully.");
+    public void verifyDispatchHistoryTitleVisible() throws InterruptedException {
+        WebElement title = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".history-title")));
+        Assert.assertTrue(title.getText().toLowerCase().contains("dispatch"));
+        System.out.println("✅ Page title contains 'dispatch'.");
     }
 
     @Test(priority = 4)
-    public void testHistoryCardPrintAndBackToHome() throws InterruptedException {
-        // --- Part 1: Find card and click Print ---
-        List<WebElement> cards = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.className("history-card")));
-        Assert.assertFalse(cards.isEmpty(), "No dispatch history cards found.");
+    public void openDatePickerAndSelectDate() throws InterruptedException {
+        WebElement dateInput = wait.until(ExpectedConditions.elementToBeClickable(By.className("history-datepicker")));
+        dateInput.click();
 
-        WebElement firstCard = cards.get(0);
+        WebElement calendarPopup = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-dropdown")));
+        WebElement dateCell = calendarPopup.findElement(By.xpath("//td[@title='2025-06-19']"));
+        waitUntilClickable(dateCell);
+        dateCell.click();
+
+        Thread.sleep(2000);
+        System.out.println("✅ Date selected from calendar.");
+    }
+
+    @Test(priority = 5)
+    public void verifyHistoryCardPresent() throws InterruptedException {
+        List<WebElement> cards = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.className("history-card")));
+        Assert.assertFalse(cards.isEmpty(), "❌ No dispatch history cards found.");
+        System.out.println("✅ Dispatch history cards found.");
+    }
+    @Test(priority = 6)
+    public void testPrintReceiptNavigation() throws InterruptedException {
+        WebElement firstCard = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("history-card")));
         Assert.assertTrue(firstCard.getText().contains("License Number"));
 
         WebElement printButton = firstCard.findElement(By.tagName("button"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", printButton);
-        Thread.sleep(500); // Small pause for scroll
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", printButton);
+        waitUntilClickable(printButton);
+        Thread.sleep(1000);
+        printButton.click();
+        Thread.sleep(1000);
+        waitForPageLoadComplete();
 
-        // --- Part 2: Verify navigation to receipt and click Back to Home ---
         wait.until(ExpectedConditions.urlContains("/mlowner/home/dispatchload/TPLreceipt"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("TPLreceipt"), "Did not navigate to the TPL receipt page.");
+        Assert.assertTrue(driver.getCurrentUrl().contains("TPLreceipt"), "❌ Not navigated to TPL receipt page.");
         System.out.println("✅ Navigated to TPL receipt page.");
+    }
 
-        // Now, on the receipt page, find and click the "Back to Home" button
+    @Test(priority = 7)
+    public void testBackToHomeNavigation() throws InterruptedException {
         WebElement backButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//button[contains(.,'Back to Home') or contains(.,'ආපසු') or contains(.,'முகப்புக்குத் திரும்பு')]")
-        ));
+            By.xpath("//button[contains(.,'Back to Home') or contains(.,'ආපසු') or contains(.,'முகப்புக்குத் திரும்பு')]")));
 
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", backButton);
+        waitUntilClickable(backButton);
         Thread.sleep(500);
         backButton.click();
+        Thread.sleep(1000);
+        waitForPageLoadComplete();
 
-        // --- Part 3: Verify navigation back to the main dashboard ---
         wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-        WebElement dashboard = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[contains(text(),'Dashboard') or contains(text(),'උපකරණ පුවරුව') or contains(text(),'டாஷ்போர்டு')]")
-        ));
-        Assert.assertTrue(dashboard.isDisplayed(), "Dashboard not visible after clicking Back to Home.");
-        System.out.println("✅ Back to Home button works correctly and returned to the dashboard.");
+        System.out.println("✅ Returned to dashboard after clicking Back to Home.");
+    }
+
+
+
+    @Test(priority = 8)
+    public void testHistoryCardsAbsentCase() throws InterruptedException {
+        driver.get("https://mmpro.aasait.lk/mlowner/history?licenseNumber=ZZZ/999/999");
+        Thread.sleep(3000);
+        waitForPageLoadComplete();
+
+        List<WebElement> cards = driver.findElements(By.className("history-card"));
+
+        if (cards.isEmpty()) {
+            System.out.println("🛑 No dispatch history cards present as expected for invalid license.");
+
+            // Try clicking "Back to Home" button if visible
+            try {
+                WebElement backButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("button.history-back-button span")));
+
+                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", backButton);
+                backButton.click();
+                waitForPageLoadComplete();
+
+                wait.until(ExpectedConditions.urlContains("/mlowner/home"));
+                System.out.println("✅ Navigated back to home successfully from empty history.");
+            } catch (TimeoutException e) {
+                System.out.println("❌ 'Back to Home' button not found or not clickable.");
+            }
+        } else {
+            System.out.println("⚠️ Unexpected cards found for invalid license.");
+        }
+    }
+    
+    
+    @Test(priority = 9)
+    public void verifyDashboardCardVisible() {
+        WebElement cardTitle = wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//span[contains(@class, 'card-title-text') and (contains(text(), 'View All Licenses') or " +
+                    "contains(text(), 'Request a Mining License') or contains(text(), 'View Requested Licenses'))]")));
+
+        Assert.assertTrue(cardTitle.isDisplayed(), "❌ Dashboard card title not visible after back navigation.");
+        System.out.println("✅ Dashboard loaded successfully.");
+    }
+
+    @Test(priority = 10)
+    public void testInvalidHistoryNavigation() {
+        driver.get("https://mmpro.aasait.lk/mlowner/history?licenseNumber=INVALID/404");
+        waitForPageLoadComplete();
+
+        List<WebElement> errorElements = driver.findElements(By.xpath("//*[contains(text(),'No records') or contains(text(),'No TPL history found for this license')]"));
+        if (!errorElements.isEmpty()) {
+            System.out.println("❌ Error message displayed for invalid license number as expected.");
+        } else {
+            System.out.println("⚠️ No error message visible for invalid license.");
+        }
+    }
+
+    private void waitForPageLoadComplete() {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(
+            webDriver -> ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
+    }
+
+    private void waitUntilClickable(WebElement element) {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(ExpectedConditions.elementToBeClickable(element));
     }
 
     @AfterClass

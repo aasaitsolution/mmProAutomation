@@ -6,6 +6,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 import java.time.Duration;
@@ -25,104 +26,92 @@ public class mlownerhome {
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
-    @Test
-    public void testMLOwnerHomePageButtons() {
-        try {
-            // 1. Login
-            driver.get("https://mmpro.aasait.lk/");
-            System.out.println("Current URL: " + driver.getCurrentUrl());
+    @Test(priority = 1)
+    public void testLogin() throws InterruptedException {
+        System.out.println("🚀 Starting ML Owner Login Test...");
 
-            WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("a[href='/signin'] button")));
-            loginButton.click();
-            System.out.println("Clicked login button");
+        driver.get("https://mmpro.aasait.lk/");
+        System.out.println("🌐 Opened URL: " + driver.getCurrentUrl());
+        Thread.sleep(1000);
 
-            // Login form
-            WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
-            usernameField.sendKeys("pasindu");
+        WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("a[href='/signin'] button")));
+        loginButton.click();
+        System.out.println("🔐 Clicked Login button");
+        Thread.sleep(1000);
 
-            WebElement passwordField = driver.findElement(By.id("sign-in_password"));
-            passwordField.sendKeys("12345678");
+        WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+        usernameField.sendKeys("pasindu");
 
-            WebElement signInButton = driver.findElement(By.cssSelector("button[type='submit']"));
-            signInButton.click();
-            System.out.println("Submitted login form");
+        WebElement passwordField = driver.findElement(By.id("sign-in_password"));
+        passwordField.sendKeys("12345678");
 
-            // Wait for home page to load
-            wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-            System.out.println("Reached ML Owner Home page");
+        WebElement signInButton = driver.findElement(By.cssSelector("button[type='submit']"));
+        signInButton.click();
+        System.out.println("✅ Submitted login form");
+        Thread.sleep(1500);
 
-            // 2. Test the three main cards/buttons
-            testViewLicensesCard();
-            testMLRequestCard();
-            testRequestedLicensesCard();
-
-            System.out.println("All tests completed successfully!");
-
-        } catch (Exception e) {
-            System.out.println("Test Failed: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            driver.quit();
-        }
-    }
-
-    private void testViewLicensesCard() {
-        System.out.println("=== Testing View Licenses Card ===");
-
-        WebElement viewLicensesCard = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//div[contains(@class, 'custom-card')]//*[name()='svg' and contains(@class, 'anticon-file-search')]/ancestor::div[contains(@class, 'custom-card')]")));
-
-        WebElement clickMeButton = viewLicensesCard.findElement(
-                By.xpath(".//button[contains(@class, 'ml-card-button')]"));
-        clickMeButton.click();
-        System.out.println("Clicked View Licenses button");
-
-        wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
-        System.out.println("Navigated to View Licenses page");
-
-        driver.navigate().back();
         wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-        System.out.println("Returned to home page");
+        System.out.println("🏠 Reached ML Owner Home Page");
+        Thread.sleep(1000);
     }
 
-    private void testMLRequestCard() {
-        System.out.println("=== Testing ML Request Card ===");
-
-        WebElement mlRequestCard = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//div[contains(@class, 'custom-card')]//*[name()='svg' and contains(@class, 'anticon-file-add')]/ancestor::div[contains(@class, 'custom-card')]")));
-
-        WebElement clickMeButton = mlRequestCard.findElement(
-                By.xpath(".//button[contains(@class, 'ml-card-button')]"));
-        clickMeButton.click();
-        System.out.println("Clicked ML Request button");
-
-        wait.until(ExpectedConditions.urlContains("/mlowner/home/mlrequest"));
-        System.out.println("Navigated to ML Request page");
-
-        driver.navigate().back();
-        wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-        System.out.println("Returned to home page");
+    @Test(priority = 2)
+    public void testViewAllLicensesCard() throws InterruptedException {
+        testCardNavigation("View All Licenses", "/mlowner/home/viewlicenses", "📄");
     }
 
-    private void testRequestedLicensesCard() {
-        System.out.println("=== Testing Requested Licenses Card ===");
+    @Test(priority = 3)
+    public void testRequestMiningLicenseCard() throws InterruptedException {
+        testCardNavigation("Request a Mining License", "/mlowner/home/mlrequest", "📝");
+    }
 
-        WebElement requestedLicensesCard = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//div[contains(@class, 'custom-card')]//*[name()='svg' and contains(@class, 'anticon-file-sync')]/ancestor::div[contains(@class, 'custom-card')]")));
+    @Test(priority = 4)
+    public void testViewRequestedLicensesModal() throws InterruptedException {
+        System.out.println("🔍 Testing Modal Card: View Requested Licenses");
 
-        WebElement clickMeButton = requestedLicensesCard.findElement(
-                By.xpath(".//button[contains(@class, 'ml-card-button')]"));
+        WebElement card = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//span[contains(text(), 'View Requested Licenses')]/ancestor::div[contains(@class, 'custom-card')]")));
+
+        WebElement clickMeButton = card.findElement(By.xpath(".//button[contains(@class, 'ml-card-button')]"));
         clickMeButton.click();
-        System.out.println("Clicked Requested Licenses button");
+        System.out.println("🖱️ Clicked button: View Requested Licenses");
+        Thread.sleep(1000);
 
         WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.className("ant-modal-content")));
-        System.out.println("Requested Licenses modal is visible");
+        System.out.println("💬 Modal appeared");
 
-        WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//button[contains(., 'Close')]")));
+        WebElement closeButton = modal.findElement(By.cssSelector("button[aria-label='Close']"));
         closeButton.click();
-        System.out.println("Closed the modal");
+        System.out.println("❎ Closed the modal");
+        Thread.sleep(1000);
+    }
+
+    private void testCardNavigation(String buttonText, String expectedUrlPart, String emoji) throws InterruptedException {
+        System.out.println("=== " + emoji + " Testing Card: " + buttonText + " ===");
+
+        WebElement card = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//span[contains(text(), '" + buttonText + "')]/ancestor::div[contains(@class, 'custom-card')]")));
+
+        WebElement clickMeButton = card.findElement(By.xpath(".//button[contains(@class, 'ml-card-button')]"));
+        clickMeButton.click();
+        System.out.println("🖱️ Clicked: " + buttonText);
+        Thread.sleep(1000);
+
+        wait.until(ExpectedConditions.urlContains(expectedUrlPart));
+        System.out.println("✅ Navigated to: " + expectedUrlPart);
+        Thread.sleep(1000);
+
+        driver.navigate().back();
+        wait.until(ExpectedConditions.urlContains("/mlowner/home"));
+        System.out.println("↩️ Returned to Home Page");
+        Thread.sleep(1000);
+    }
+
+    @AfterClass
+    public void tearDown() {
+        System.out.println("🧹 Closing the browser...");
+        driver.quit();
     }
 }

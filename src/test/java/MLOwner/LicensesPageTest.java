@@ -28,6 +28,41 @@ public class LicensesPageTest {
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
+    @Test(priority = 0)
+    public void loginWithInvalidCredentials() {
+        try {
+            driver.get("https://mmpro.aasait.lk/");
+            wait.until(ExpectedConditions.jsReturnsValue("return document.readyState === 'complete'"));
+
+            WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("a[href='/signin'] button")));
+            loginBtn.click();
+
+            WebElement username = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+            WebElement password = driver.findElement(By.id("sign-in_password"));
+
+            username.clear();
+            username.sendKeys("invalidUser");
+            password.clear();
+            password.sendKeys("wrongpass");
+
+            WebElement signInBtn = driver.findElement(By.cssSelector("button[type='submit']"));
+            signInBtn.click();
+
+            // Wait for error message or check login URL did not change
+            WebElement errorMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//*[contains(text(),'Invalid') or contains(text(),'wrong') or contains(text(),'failed')]")));
+
+            Assert.assertNotNull(errorMsg, "❌ Expected error message not found for invalid login");
+            System.out.println("✅ Error message displayed for invalid credentials");
+
+        } catch (Exception e) {
+            System.err.println("❌ Login failure test failed: " + e.getMessage());
+            throw e;
+        }
+    }
+
+
     @Test(priority = 1)
     public void loginToDashboard() {
         try {
@@ -122,54 +157,30 @@ public class LicensesPageTest {
         }
     }
 
-//    @Test(priority = 4, dependsOnMethods = "navigateToLicensesPage")
-//    public void testDateFilters() throws InterruptedException {
-//        try {
-//            // Refresh the page to reset any previous filters
-//            driver.navigate().refresh();
-//            wait.until(ExpectedConditions.jsReturnsValue("return document.readyState === 'complete'"));
-//            wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input.search-input")));
-//            Thread.sleep(1000); // Pause for UI to settle after refresh
-//
-//            // Find the Ant Design Range Picker component
-//            WebElement dateRangePicker = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".ant-picker-range")));
-//
-//            // Click the range picker to open the calendar panel
-//            dateRangePicker.click();
-//
-//            // Wait for the calendar dropdown panel to become visible
-//            WebElement datePickerPanel = wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                    By.cssSelector(".ant-picker-dropdown:not(.ant-picker-dropdown-hidden)")));
-//
-//            // Find the "Today" button in the footer of the date picker panel
-//            WebElement todayButton = wait.until(ExpectedConditions.elementToBeClickable(
-//                    datePickerPanel.findElement(By.className("ant-picker-today-btn"))));
-//
-//            // Clicking "Today" in a RangePicker selects today's date for both start and end
-//            todayButton.click();
-//
-//            // Wait for the panel to close as confirmation of selection
-//            wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".ant-picker-dropdown")));
-//
-//            // Wait for search results to update based on the filter
-//            Thread.sleep(2000);
-//
-//            // Check results after date filtering
-//            List<WebElement> cards = driver.findElements(By.cssSelector(".license-card"));
-//
-//            if (cards.isEmpty()) {
-//                WebElement emptyState = driver.findElement(By.cssSelector(".ant-empty"));
-//                Assert.assertNotNull(emptyState, "Neither license cards nor empty state found after date filter");
-//                System.out.println("⚠️ No licenses found for today's date range");
-//            } else {
-//                System.out.println("✅ Date filter working - found " + cards.size() + " license(s)");
-//            }
-//
-//        } catch (Exception e) {
-//            System.err.println("❌ Date filter test failed: " + e.getMessage());
-//            throw e;
-//        }
-//    }
+    @Test(priority = 4, dependsOnMethods = "navigateToLicensesPage")
+    public void testSearchWithInvalidInput() throws InterruptedException {
+        try {
+            WebElement searchInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("input.search-input")));
+
+            searchInput.clear();
+            searchInput.sendKeys("##@@!!invalid123");
+            Thread.sleep(1500);
+
+            List<WebElement> cards = driver.findElements(By.cssSelector(".license-card"));
+            Assert.assertTrue(cards.isEmpty(), "❌ Unexpected license card found for invalid input");
+
+            WebElement emptyState = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".ant-empty")));
+            Assert.assertNotNull(emptyState, "❌ No empty state shown for invalid search");
+
+            System.out.println("✅ Proper handling of invalid search input");
+
+        } catch (Exception e) {
+            System.err.println("❌ Invalid search input test failed: " + e.getMessage());
+            throw e;
+        }
+    }
+
 
     @Test(priority = 5, dependsOnMethods = "navigateToLicensesPage")
     public void testCardContentsAndHistoryButton() throws InterruptedException {
@@ -215,6 +226,25 @@ public class LicensesPageTest {
             throw e;
         }
     }
+
+    @Test(priority = 6, dependsOnMethods = "navigateToLicensesPage")
+    public void testBrokenHistoryNavigation() throws InterruptedException {
+        try {
+            driver.get("https://mmpro.aasait.lk/mlowner/history");
+            Thread.sleep(500);
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+
+            List<WebElement> errorMessages = driver.findElements(By.xpath("//*[contains(text(),'not found') or contains(text(),'No license')]"));
+            Assert.assertFalse(errorMessages.isEmpty(), "❌ Expected error message not shown on broken history URL");
+
+            System.out.println("✅ Error displayed for incomplete history URL");
+
+        } catch (Exception e) {
+            System.err.println("❌ Broken history navigation test failed: " + e.getMessage());
+            throw e;
+        }
+    }
+
 
     @AfterClass
     public void teardown() {
