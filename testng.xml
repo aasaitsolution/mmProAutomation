@@ -3,24 +3,33 @@
 <suite name="Suite" parallel="false">
     <test name="Test">
         <classes>
-<!--            <class name="Home.homepage"/>-->
-<!--            <class name="MLOwner.mlownerhome"/>-->
-<!--            <class name="MLOwner.mlownersingin"/>-->
-<!--            <class name="MLOwner.DispatchloadTesting"/>-->
-<!--            <class name="GSMBOfficer.GsmbOfficerSignin"/>-->
+            <class name="Home.homepage"/>
+            <class name="Home.Register"/>
+            <class name="Home.Resetpassword"/>
+            <class name="MLOwner.mlownerhome"/>
+            <class name="MLOwner.mlownersingin"/>
+            <class name="MLOwner.MLRequestFormTest"/>
+            <class name="MLOwner.MLOwnerButtonTabsTest"/>
+            <class name="MLOwner.LicensesPageTest"/>
+            <class name="MLOwner.DispatchHistoryTest"/>
+            <class name="MLOwner.DispatchLoadPageTest"/>
+            <class name="GSMBOfficer.GsmbOfficerSignin"/>
             <class name="GSMBOfficer.AddMiningLicense"/>
-<!--            <class name="GSMBOfficer.AddLicenseOwner"/>-->
-<!--            <class name="GSMBOfficer.GSMBmlTab"/>-->
-<!--            <class name="PoliceOfficer.policeofficersignin"/>-->
-<!--            <class name="PoliceOfficer.validnumber"/>-->
-<!--            <class name="PoliceOfficer.invalidnumber"/>-->
-<!--            <class name="GeneralPublic.GeneralPublicDashboard"/>-->
-<!--            <class name="GeneralPublic.InvalidNumber"/>-->
-<!--            <class name="GeneralPublic.ValidNumber"/>-->
-<!--            <class name="MiningEngineer.MiningEngineerSignIn/>"-->
-<!--            <class name="MiningEngineer.AppointmentsTabNavigationTest"/> -->
-<!--            <class name="MiningEngineer.AppointmentsViewDetailsTest"/> -->
-<!--            <class name="MiningEngineer.AppointmentsSetDateTest"/> -->
+            <class name="GSMBOfficer.RequestMining"/>
+            <class name="GSMBOfficer.GSMBmlTab"/>
+            <class name="GSMBOfficer.TPLandMLview"/>
+            <class name="PoliceOfficer.policeofficersignin"/>
+            <class name="PoliceOfficer.validnumber"/>
+            <class name="PoliceOfficer.invalidnumber"/>
+            <class name="GeneralPublic.GeneralPublicDashboard"/>
+            <class name="GeneralPublic.InvalidNumber"/>
+            <class name="GeneralPublic.ValidNumber"/>
+            <class name="MiningEngineer.MiningEngineerSignIn"/>
+            <class name="MiningEngineer.AppointmentsTabNavigationTest"/>
+            <class name="MiningEngineer.AppointmentsViewDetailsTest"/>
+<!--            <class name="MiningEngineer.AppointmentsSetDateTest"/>-->
+            <class name="GSMBManagement.ActivationPageTest"/>
+            <class name="GSMBManagement.GSMBManagementDashboard"/>
 
                     </classes>
                 </test>
