@@ -204,7 +204,8 @@ public class policeofficersignin {
             System.out.println("✅ Vehicle number correctly marked as Valid.");
 
             // Navigate back to the original page
-            driver.navigate().to("https://mmpro.aasait.lk/police-officer");
+            driver.navigate().back();
+            wait.until(ExpectedConditions.urlContains("/police-officer"));
 
             // Verify we're back on the original page
             wait.until(ExpectedConditions.urlToBe(originalUrl));
@@ -216,36 +217,56 @@ public class policeofficersignin {
     }
 
 
-    @Test(priority = 5, description = "Check form validation for empty vehicle number", dependsOnMethods = "enterCredentialsAndLogin")
+    @Test(priority = 4, description = "Check form validation for empty vehicle number", dependsOnMethods = "enterCredentialsAndLogin")
     public void checkEmptyVehicleNumber() {
         resetDashboardState();
+
+        // Wait for input box to be ready before clicking
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input[type='text']")));
+
         WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("button.po-check-button")));
         checkButton.click();
         System.out.println("✅ Clicked Check button with empty input field.");
 
-        // Look for the Ant Design validation error message
+        // Wait for the validation modal and message
         WebElement errorMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//div[@role='alert' and contains(text(), 'Please input a vehicle number')]")));
+                By.cssSelector(".validation-modal .validation-message")));
 
-        Assert.assertEquals(errorMessage.getText(), "Please input a vehicle number", "Validation error message for empty field is incorrect or not found.");
+        String expectedMessage = "Invalid Vehicle Number Format!";
+        Assert.assertEquals(errorMessage.getText().trim(), expectedMessage,
+                "Validation error message for empty field is incorrect or not found.");
         System.out.println("✅ Validation error message for empty input displayed correctly.");
+
+        WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector(".validation-close-button")));
+        closeButton.click();
     }
 
-    @Test(priority = 6, description = "Verify the logout functionality", dependsOnMethods = "enterCredentialsAndLogin")
+
+    @Test(priority = 5, description = "Verify the logout functionality", dependsOnMethods = "enterCredentialsAndLogin")
     public void verifyLogoutFunctionality() {
         resetDashboardState();
-        // The logout button is often just a button with the text "Logout"
-        WebElement logoutButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//button/span[text()='Logout']/..")));
-        logoutButton.click();
-        System.out.println("✅ Clicked the Logout button.");
 
-        // After logout, user should be redirected to the homepage
-        wait.until(ExpectedConditions.urlToBe("https://mmpro.aasait.lk/"));
-        Assert.assertEquals(driver.getCurrentUrl(), "https://mmpro.aasait.lk/", "User was not redirected to the homepage after logout.");
+        // 1. Click on the profile dropdown (the arrow icon)
+        WebElement dropdownIcon = wait.until(ExpectedConditions.elementToBeClickable(
+            By.cssSelector("div[style*='display: flex'] svg")));
+        dropdownIcon.click();
+        System.out.println("✅ Clicked the dropdown icon.");
+
+        // 2. Wait for the Logout <p> element to be visible and click it
+        WebElement logoutOption = wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//p[normalize-space()='Logout']")));
+        logoutOption.click();
+        System.out.println("✅ Clicked the Logout option.");
+
+        // 3. Confirm redirection to the homepage
+        wait.until(ExpectedConditions.urlToBe("https://mmpro.aasait.lk/signin"));
+        Assert.assertEquals(driver.getCurrentUrl(), "https://mmpro.aasait.lk/signin",
+            "User was not redirected to the homepage after logout.");
         System.out.println("✅ Successfully logged out and redirected to the homepage.");
     }
+
 
     @AfterClass
     public void tearDown() {
