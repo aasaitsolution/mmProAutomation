@@ -266,7 +266,7 @@ public class RequestMining {
 
             // Submit the schedule
             WebElement scheduleSubmitButton = wait.until(ExpectedConditions.presenceOfElementLocated(
-                    By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/div[3]/button[2]")));
+                    By.xpath("/html/body/div[3]/div/div[2]/div/div[1]/div/div[3]/button[2]")));
 
             ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleSubmitButton);
 
