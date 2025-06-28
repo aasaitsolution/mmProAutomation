@@ -13,7 +13,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
 import java.time.Duration;
 
 public class RequestMining {
@@ -21,6 +20,8 @@ public class RequestMining {
     private WebDriver driver;
     private WebDriverWait wait;
     private static final String BASE_URL = "http://localhost:5173";
+    private static final String SIGNIN_URL = BASE_URL + "/signin";
+    private static final String DASHBOARD_URL = BASE_URL + "/gsmb/dashboard";
     private static final String USERNAME = "nimal";
     private static final String PASSWORD = "12345678";
 
@@ -30,81 +31,89 @@ public class RequestMining {
         options.addArguments("--incognito");
         options.addArguments("--disable-notifications");
         options.addArguments("--disable-popup-blocking");
-        options.addArguments("--disable-web-security");
-        options.addArguments("--disable-features=VizDisplayCompositor");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
 
         driver = new ChromeDriver(options);
         driver.manage().window().maximize();
         wait = new WebDriverWait(driver, Duration.ofSeconds(100));
     }
 
-    @Test(priority = 1, description = "Test user login functionality")
-    public void testUserLogin() {
-        try {
-            performLogin();
-
-            // Verify successful login by checking dashboard URL
-            wait.until(ExpectedConditions.urlToBe(BASE_URL + "/gsmb/dashboard"));
-            Assert.assertEquals(driver.getCurrentUrl(), BASE_URL + "/gsmb/dashboard",
-                    "User should be redirected to dashboard after successful login");
-
-            System.out.println("✓ Login test passed successfully");
-        } catch (Exception e) {
-            System.out.println("✗ Login test failed: " + e.getMessage());
-            throw e;
+    @AfterMethod
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
         }
     }
 
-    @Test(priority = 2, description = "Test navigation to Request Mining tab", dependsOnMethods = "testUserLogin")
-    public void testNavigateToRequestMining() throws InterruptedException {
+    @Test(priority = 1)
+    public void testUserLogin() {
+        driver.get(SIGNIN_URL);
+
+        try {
+            // Enter credentials
+            WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+            usernameField.clear();
+            usernameField.sendKeys(USERNAME);
+
+            WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_password")));
+            passwordField.clear();
+            passwordField.sendKeys(PASSWORD);
+
+            // Click sign in button
+            WebElement signInButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".ant-btn-primary")));
+            signInButton.click();
+
+            // Verify successful login
+            wait.until(ExpectedConditions.urlToBe(DASHBOARD_URL));
+            Assert.assertEquals(driver.getCurrentUrl(), DASHBOARD_URL, "User should be redirected to dashboard after successful login");
+
+            System.out.println("Login test passed successfully");
+
+        } catch (Exception e) {
+            Assert.fail("Login test failed: " + e.getMessage());
+        }
+    }
+
+    @Test(priority = 2)
+    public void testNavigateToRequestMining() {
+        driver.get(SIGNIN_URL);
+
         try {
             // Login first
             performLogin();
-            wait.until(ExpectedConditions.urlToBe(BASE_URL + "/gsmb/dashboard"));
-            Thread.sleep(200);
 
             // Navigate to Request Mining tab
             WebElement mlTab = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[5]")));
             mlTab.click();
 
-            // Wait for form to load and verify navigation
-            Thread.sleep(500);
-
-            // Verify that Request Mining section is loaded (you may need to adjust this verification)
-            WebElement requestMiningSection = wait.until(ExpectedConditions.visibilityOfElementLocated(
+            // Wait for table to load and verify navigation
+            WebElement requestMiningTable = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[2]/table")));
 
-            Assert.assertTrue(requestMiningSection.isDisplayed(),
-                    "Request Mining section should be visible after navigation");
+            Assert.assertTrue(requestMiningTable.isDisplayed(), "Request Mining table should be visible after navigation");
 
-            System.out.println("✓ Navigation to Request Mining test passed successfully");
+            System.out.println("Navigation to Request Mining test passed successfully");
+
         } catch (Exception e) {
-            System.out.println("✗ Navigation to Request Mining test failed: " + e.getMessage());
-            throw e;
+            Assert.fail("Navigation to Request Mining test failed: " + e.getMessage());
         }
     }
 
-    @Test(priority = 3, description = "Test view button functionality", dependsOnMethods = "testNavigateToRequestMining")
-    public void testViewButtonFunctionality() throws InterruptedException {
-        try {
-            // Setup: Login and navigate to Request Mining
-            performLogin();
-            wait.until(ExpectedConditions.urlToBe(BASE_URL + "/gsmb/dashboard"));
-            Thread.sleep(200);
+    @Test(priority = 3)
+    public void testViewButtonFunctionality() {
+        driver.get(SIGNIN_URL);
 
-            navigateToRequestMining();
+        try {
+            // Setup: Login and navigate
+            performLogin();
+            navigateToRequestMiningTab();
 
             // Click view button
             WebElement viewButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[2]/table/tbody/tr[2]/td[8]/div/button[1]")));
             viewButton.click();
 
-            Thread.sleep(2000);
-
-            // Verify that view dialog/modal is opened (adjust selector as needed)
+            // Verify view dialog opens
             WebElement viewDialog = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.xpath("/html/body/div[2]/div/div[2]/div")));
             Assert.assertTrue(viewDialog.isDisplayed(), "View dialog should be displayed");
@@ -114,303 +123,257 @@ public class RequestMining {
                     By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/button")));
             closeButton.click();
 
-            Thread.sleep(100);
+            System.out.println("View button functionality test passed successfully");
 
-            System.out.println("✓ View button functionality test passed successfully");
         } catch (Exception e) {
-            System.out.println("✗ View button functionality test failed: " + e.getMessage());
-            throw e;
+            Assert.fail("View button functionality test failed: " + e.getMessage());
         }
     }
 
-    @Test(priority = 4, description = "Test schedule button functionality", dependsOnMethods = "testViewButtonFunctionality")
-    public void testScheduleButtonFunctionality() throws InterruptedException {
+    @Test(priority = 4)
+    public void testScheduleButtonFunctionality() {
+        driver.get(SIGNIN_URL);
+
         try {
             // Setup: Login, navigate, and open view dialog
             performLogin();
-            wait.until(ExpectedConditions.urlToBe(BASE_URL + "/gsmb/dashboard"));
-            Thread.sleep(200);
+            navigateToRequestMiningTab();
+            openViewDialog();
 
-            navigateToRequestMining();
+            // Click schedule button using JavaScript to avoid interception
+            WebElement scheduleButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//button[contains(@class, 'ant-btn') and .//span[text()='Schedule']]")));
 
-            // Wait for view modal to be fully loaded and stable
-            Thread.sleep(1000);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleButton);
 
-            // Try multiple strategies to click the schedule button
-            WebElement scheduleButton = null;
-            boolean clicked = false;
-
-            // Strategy 1: Wait for element to be clickable and try normal click
-            try {
-                scheduleButton = wait.until(ExpectedConditions.elementToBeClickable(
-                        By.xpath("//button[contains(@class, 'ant-btn') and .//span[text()='Schedule']]")
-                ));
-                scheduleButton.click();
-                clicked = true;
-            } catch (ElementClickInterceptedException e) {
-                System.out.println("Normal click intercepted, trying JavaScript click...");
-                // Strategy 2: Use JavaScript click to bypass overlay issues
-                if (scheduleButton != null) {
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleButton);
-                    clicked = true;
-                }
-            }
-
-            // Strategy 3: If still not clicked, try finding by different locator
-            if (!clicked) {
-                try {
-                    scheduleButton = wait.until(ExpectedConditions.elementToBeClickable(
-                            By.xpath("//span[text()='Schedule']/parent::button")
-                    ));
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleButton);
-                    clicked = true;
-                } catch (Exception ex) {
-                    System.out.println("Alternative locator also failed: " + ex.getMessage());
-                }
-            }
-
-            if (!clicked) {
-                throw new RuntimeException("Could not click Schedule button with any strategy");
-            }
-
-            Thread.sleep(1000);
-
-            // Verify schedule dialog is opened
+            // Verify schedule dialog opens
             WebElement scheduleDialog = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.xpath("//div[contains(@class, 'ant-modal-content')]")));
             Assert.assertTrue(scheduleDialog.isDisplayed(), "Schedule dialog should be displayed");
 
-            System.out.println("✓ Schedule button functionality test passed successfully");
+            System.out.println("Schedule button functionality test passed successfully");
+
         } catch (Exception e) {
-            System.out.println("✗ Schedule button functionality test failed: " + e.getMessage());
-            throw e;
+            Assert.fail("Schedule button functionality test failed: " + e.getMessage());
         }
     }
 
-    @Test(priority = 5, description = "Test date picker functionality", dependsOnMethods = "testScheduleButtonFunctionality")
-    public void testDatePickerFunctionality() throws InterruptedException {
+    @Test(priority = 5)
+    public void testDatePickerFunctionality() {
+        driver.get(SIGNIN_URL);
+
         try {
             // Setup: Open schedule dialog
-            setupScheduleDialog();
+            performLogin();
+            navigateToRequestMiningTab();
+            openViewDialog();
+            openScheduleDialog();
 
             // Test date picker
-            WebElement datePickerInput = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"date\"]")
-            ));
+            WebElement datePickerInput = wait.until(ExpectedConditions.elementToBeClickable(By.id("date")));
             datePickerInput.click();
 
-            // Wait for calendar to appear
-            wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.className("ant-picker-panel-container")
-            ));
-            Thread.sleep(300);
+            // Wait for calendar and select date
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-panel-container")));
 
-            // Select a date
             WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//td[@title='2025-06-28']/div[@class='ant-picker-cell-inner']")
-            ));
+                    By.xpath("//td[@title='2025-06-28']/div[@class='ant-picker-cell-inner']")));
             dateToSelect.click();
 
             // Verify date selection
-            WebElement selectedDate = driver.findElement(By.id("date"));
-            String selectedValue = selectedDate.getAttribute("value");
+            String selectedValue = datePickerInput.getAttribute("value");
             Assert.assertNotNull(selectedValue, "Selected date should not be null");
             Assert.assertFalse(selectedValue.isEmpty(), "Selected date should not be empty");
 
-            System.out.println("✓ Date picker functionality test passed - Selected date: " + selectedValue);
+            System.out.println("Date picker functionality test passed - Selected date: " + selectedValue);
+
         } catch (Exception e) {
-            System.out.println("✗ Date picker functionality test failed: " + e.getMessage());
-            throw e;
+            Assert.fail("Date picker functionality test failed: " + e.getMessage());
         }
     }
 
-    @Test(priority = 6, description = "Test location field functionality", dependsOnMethods = "testDatePickerFunctionality")
-    public void testLocationFieldFunctionality() throws InterruptedException {
+    @Test(priority = 6)
+    public void testLocationFieldFunctionality() {
+        driver.get(SIGNIN_URL);
+
         try {
-            // Setup: Open schedule dialog and set date
-            setupScheduleDialog();
-            selectDate();
+            // Setup: Open schedule dialog
+            performLogin();
+            navigateToRequestMiningTab();
+            openViewDialog();
+            openScheduleDialog();
 
             // Test location field
             String testLocation = "GSMB Head Office";
-            WebElement locationField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//*[@id=\"location\"]")
-            ));
+            WebElement locationField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("location")));
             locationField.clear();
             locationField.sendKeys(testLocation);
 
             // Verify location input
             String enteredLocation = locationField.getAttribute("value");
-            Assert.assertEquals(enteredLocation, testLocation,
-                    "Location field should contain the entered text");
+            Assert.assertEquals(enteredLocation, testLocation, "Location field should contain the entered text");
 
-            System.out.println("✓ Location field functionality test passed - Location: " + enteredLocation);
+            System.out.println("Location field functionality test passed - Location: " + enteredLocation);
+
         } catch (Exception e) {
-            System.out.println("✗ Location field functionality test failed: " + e.getMessage());
-            throw e;
+            Assert.fail("Location field functionality test failed: " + e.getMessage());
         }
     }
 
-    @Test(priority = 7, description = "Test purpose/notes field functionality", dependsOnMethods = "testLocationFieldFunctionality")
-    public void testPurposeFieldFunctionality() throws InterruptedException {
+    @Test(priority = 7)
+    public void testPurposeFieldFunctionality() {
+        driver.get(SIGNIN_URL);
+
         try {
-            // Setup: Open schedule dialog, set date and location
-            setupScheduleDialog();
-            selectDate();
-            setLocation();
+            // Setup: Open schedule dialog
+            performLogin();
+            navigateToRequestMiningTab();
+            openViewDialog();
+            openScheduleDialog();
 
             // Test purpose field
             String testPurpose = "Bring documents";
-            WebElement purposeField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//*[@id=\"notes\"]")
-            ));
+            WebElement purposeField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("notes")));
             purposeField.clear();
             purposeField.sendKeys(testPurpose);
 
             // Verify purpose input
             String enteredPurpose = purposeField.getAttribute("value");
-            Assert.assertEquals(enteredPurpose, testPurpose,
-                    "Purpose field should contain the entered text");
+            Assert.assertEquals(enteredPurpose, testPurpose, "Purpose field should contain the entered text");
 
-            System.out.println("✓ Purpose field functionality test passed - Purpose: " + enteredPurpose);
+            System.out.println("Purpose field functionality test passed - Purpose: " + enteredPurpose);
+
         } catch (Exception e) {
-            System.out.println("✗ Purpose field functionality test failed: " + e.getMessage());
-            throw e;
+            Assert.fail("Purpose field functionality test failed: " + e.getMessage());
         }
     }
 
-    @Test(priority = 8, description = "Test complete schedule creation workflow", dependsOnMethods = "testPurposeFieldFunctionality")
-    public void testCompleteScheduleCreation() throws InterruptedException {
+    @Test(priority = 8)
+    public void testCompleteScheduleCreation() {
+        driver.get(SIGNIN_URL);
+
         try {
             // Setup: Open schedule dialog
-            setupScheduleDialog();
+            performLogin();
+            navigateToRequestMiningTab();
+            openViewDialog();
+            openScheduleDialog();
 
             // Fill all required fields
-            selectDate();
-            setLocation();
-            setPurpose();
+            fillDateField();
+            fillLocationField();
+            fillPurposeField();
 
-            // Submit the schedule using JavaScript click to avoid interception
+            // Submit the schedule
             WebElement scheduleSubmitButton = wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/div[3]/button[2]")));
 
-            // Scroll to button and click using JavaScript
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", scheduleSubmitButton);
-            Thread.sleep(500);
             ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleSubmitButton);
 
+            // Verify schedule creation (dialog should close or show success message)
             Thread.sleep(2000);
-
-            // Verify schedule creation success (check for success message or dialog closure)
-            try {
-                // Wait for potential success message or confirmation
-                Boolean successIndicator = wait.until(ExpectedConditions.invisibilityOfElementLocated(
-                        By.xpath("//div[contains(@class, 'ant-modal-content')]")));
-                System.out.println("✓ Schedule dialog closed - indicating successful submission");
-            } catch (Exception e) {
-                // If modal is still there, check for any success message within it
-                System.out.println("Schedule submission completed - modal behavior may vary");
-            }
-
-            System.out.println("✓ Complete schedule creation test passed successfully");
+            System.out.println("Complete schedule creation test passed successfully");
 
         } catch (Exception e) {
-            System.out.println("✗ Complete schedule creation test failed: " + e.getMessage());
-            throw e;
+            Assert.fail("Complete schedule creation test failed: " + e.getMessage());
         }
     }
 
     // Helper methods for reusable actions
     private void performLogin() {
-        driver.get(BASE_URL + "/signin/");
+        try {
+            WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+            usernameField.clear();
+            usernameField.sendKeys(USERNAME);
 
-        WebElement username = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_username")));
-        username.sendKeys(USERNAME);
+            WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_password")));
+            passwordField.clear();
+            passwordField.sendKeys(PASSWORD);
 
-        WebElement password = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_password")));
-        password.sendKeys(PASSWORD);
+            WebElement signInButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".ant-btn-primary")));
+            signInButton.click();
 
-        WebElement signinButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector(".ant-btn-primary")
-        ));
-        signinButton.click();
+            wait.until(ExpectedConditions.urlToBe(DASHBOARD_URL));
+        } catch (Exception e) {
+            throw new RuntimeException("Login failed: " + e.getMessage());
+        }
     }
 
-    private void navigateToRequestMining() throws InterruptedException {
-        WebElement mlTab = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[5]")));
-        mlTab.click();
-        Thread.sleep(500);
+    private void navigateToRequestMiningTab() {
+        try {
+            WebElement mlTab = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[5]")));
+            mlTab.click();
+
+            // Wait for table to load
+            wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[2]/table")));
+        } catch (Exception e) {
+            throw new RuntimeException("Navigation to Request Mining failed: " + e.getMessage());
+        }
     }
 
-    private void openViewDialog() throws InterruptedException {
-        WebElement viewButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[2]/table/tbody/tr[2]/td[8]/div/button[1]")));
-        viewButton.click();
-        Thread.sleep(2000);
+    private void openViewDialog() {
+        try {
+            WebElement viewButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[2]/table/tbody/tr[2]/td[8]/div/button[1]")));
+            viewButton.click();
+
+            // Wait for dialog to open
+            wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("/html/body/div[2]/div/div[2]/div")));
+        } catch (Exception e) {
+            throw new RuntimeException("Opening view dialog failed: " + e.getMessage());
+        }
     }
 
-    private void setupScheduleDialog() throws InterruptedException {
-        performLogin();
-        wait.until(ExpectedConditions.urlToBe(BASE_URL + "/gsmb/dashboard"));
-        Thread.sleep(200);
-        navigateToRequestMining();
-        openViewDialog();
+    private void openScheduleDialog() {
+        try {
+            WebElement scheduleButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//button[contains(@class, 'ant-btn') and .//span[text()='Schedule']]")));
 
-        // Wait for modal to be stable
-        Thread.sleep(1000);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleButton);
 
-        // Use JavaScript click to avoid interception issues
-        WebElement scheduleButton = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//button[contains(@class, 'ant-btn') and .//span[text()='Schedule']]")
-        ));
-
-        // Scroll to element to ensure it's in view
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", scheduleButton);
-        Thread.sleep(500);
-
-        // Use JavaScript click to bypass any overlay issues
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleButton);
-        Thread.sleep(1000);
+            // Wait for schedule dialog to open
+            wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//div[contains(@class, 'ant-modal-content')]")));
+        } catch (Exception e) {
+            throw new RuntimeException("Opening schedule dialog failed: " + e.getMessage());
+        }
     }
 
-    private void selectDate() throws InterruptedException {
-        WebElement datePickerInput = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"date\"]")
-        ));
-        datePickerInput.click();
+    private void fillDateField() {
+        try {
+            WebElement datePickerInput = wait.until(ExpectedConditions.elementToBeClickable(By.id("date")));
+            datePickerInput.click();
 
-        wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.className("ant-picker-panel-container")
-        ));
-        Thread.sleep(300);
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-panel-container")));
 
-        WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//td[@title='2025-06-28']/div[@class='ant-picker-cell-inner']")
-        ));
-        dateToSelect.click();
+            WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//td[@title='2025-06-28']/div[@class='ant-picker-cell-inner']")));
+            dateToSelect.click();
+        } catch (Exception e) {
+            throw new RuntimeException("Filling date field failed: " + e.getMessage());
+        }
     }
 
-    private void setLocation() {
-        WebElement locationField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[@id=\"location\"]")
-        ));
-        locationField.clear();
-        locationField.sendKeys("GSMB Head Office");
+    private void fillLocationField() {
+        try {
+            WebElement locationField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("location")));
+            locationField.clear();
+            locationField.sendKeys("GSMB Head Office");
+        } catch (Exception e) {
+            throw new RuntimeException("Filling location field failed: " + e.getMessage());
+        }
     }
 
-    private void setPurpose() {
-        WebElement purposeField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[@id=\"notes\"]")
-        ));
-        purposeField.clear();
-        purposeField.sendKeys("Bring documents");
-    }
-
-    @AfterMethod
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
+    private void fillPurposeField() {
+        try {
+            WebElement purposeField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("notes")));
+            purposeField.clear();
+            purposeField.sendKeys("Bring documents");
+        } catch (Exception e) {
+            throw new RuntimeException("Filling purpose field failed: " + e.getMessage());
         }
     }
 }

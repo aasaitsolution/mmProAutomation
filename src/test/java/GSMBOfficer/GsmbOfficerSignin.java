@@ -76,7 +76,7 @@ public class GsmbOfficerSignin {
             signInButton.click();
 
             // Verify successful login by checking dashboard
-            WebElement dashboardElement = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".dashboard-container")));
+            WebElement dashboardElement = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".ant-card-body h3")));
             Assert.assertTrue(dashboardElement.isDisplayed(), "Dashboard not loaded after login");
 
             System.out.println("Valid login test passed successfully");
