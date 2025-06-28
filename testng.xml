@@ -28,7 +28,6 @@
 
             <class name="GeneralPublic.GeneralPublicDashboard"/>
             <class name="GeneralPublic.InvalidNumber"/>
-            <class name="GeneralPublic.ValidNumber"/>
 
             <class name="MiningEngineer.MiningEngineerSignIn"/>
             <class name="MiningEngineer.AppointmentsTabNavigationTest"/>
