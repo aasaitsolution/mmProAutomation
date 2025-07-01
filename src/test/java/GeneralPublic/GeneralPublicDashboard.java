@@ -60,9 +60,10 @@ public class GeneralPublicDashboard {
             WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.className("gp-modal-body")));
              WebElement input = modal.findElement(By.cssSelector("input.valid-message"));
+             Thread.sleep(2000);
             String modalValue = input.getAttribute("value");  // Correct way to read <input value="...">
             System.out.println("📩 Modal appeared with value: " + modalValue);
-            Thread.sleep(1000);
+            Thread.sleep(2000);
 
 
             if (modalValue.toLowerCase().contains("valid")) {
