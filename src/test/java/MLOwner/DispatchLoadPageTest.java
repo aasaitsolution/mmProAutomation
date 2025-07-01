@@ -30,7 +30,7 @@ public class DispatchLoadPageTest {
 
     @Test(priority = 1)
     public void loginToMLDashboard() {
-        driver.get("http://localhost:5173/");
+        driver.get("https://mmpro.aasait.lk/");
         WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("a[href='/signin'] button")));
         loginBtn.click();
@@ -51,7 +51,7 @@ public class DispatchLoadPageTest {
 
     @Test(priority = 2, dependsOnMethods = "loginToMLDashboard")
     public void openDispatchLoadPage() throws InterruptedException {
-        driver.get("http://localhost:5173/mlowner/home/dispatchload/LLL/100/431/Eravur");
+        driver.get("https://mmpro.aasait.lk/mlowner/home/dispatchload/LLL/100/431/Eravur");
         Thread.sleep(3000);
         System.out.println("🌐 Navigated to Dispatch Load Page.");
     }
