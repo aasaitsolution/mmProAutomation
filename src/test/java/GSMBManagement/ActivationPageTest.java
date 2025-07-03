@@ -43,7 +43,7 @@ public class ActivationPageTest {
 
     @Test(priority = 1)
     public void login() {
-        driver.get("http://localhost:5173/signin");
+        driver.get("https://mmpro.aasait.lk/signin");
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username"))).sendKeys("sunil");
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_password"))).sendKeys("12345678");
         wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
