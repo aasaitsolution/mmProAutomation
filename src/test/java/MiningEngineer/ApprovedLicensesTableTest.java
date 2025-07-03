@@ -108,7 +108,6 @@ public class ApprovedLicensesTableTest extends AppointmentsTestBase {
 
         Assert.assertTrue(detailsSection.isDisplayed(), "Details section should be visible after clicking 'View Details'.");
     }
-
     @AfterClass
     public void tearDown() {
         if (driver != null) {
