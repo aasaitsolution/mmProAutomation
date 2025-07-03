@@ -35,6 +35,7 @@
             <class name="MiningEngineer.AppointmentsSetDateTest"/>
             <class name="MiningEngineer.AppointmentsTestBase"/>
             <class name="MiningEngineer.ScheduledTabTests"/>
+            <class name="MiningEngineer.ApprovedLicensesTableTest"/>
 
             <class name="GSMBManagement.GSMBManagementDashboard"/>
             <class name="GSMBManagement.ActivationPageTest"/>
