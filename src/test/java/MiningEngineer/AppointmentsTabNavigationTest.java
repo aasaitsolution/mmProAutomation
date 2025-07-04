@@ -32,11 +32,12 @@ public class AppointmentsTabNavigationTest extends AppointmentsTestBase {
     @Test
     public void testSwitchToHoldTab() {
         switchAndVerifyTab(
-                "//div[contains(@class, 'me-tab-label') and contains(., 'On Hold')]",
-                "//div[contains(@class, 'ant-tabs-tab-pane-active')]//h3[contains(., 'On Hold Appointments')]",
+                "//span[@class='tab-title' and normalize-space(text())='Hold Licenses']/parent::div",
+                "//h3[contains(., 'On Hold Appointments')]",
                 "hold_tab"
         );
     }
+
 
     private void switchAndVerifyTab(String tabLocator, String contentLocator, String screenshotPrefix) {
         try {
