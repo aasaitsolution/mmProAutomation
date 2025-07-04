@@ -33,12 +33,28 @@ public class AppointmentsTabNavigationTest extends AppointmentsTestBase {
     public void testSwitchToHoldTab() {
         switchAndVerifyTab(
                 "//span[@class='tab-title' and normalize-space(text())='Hold Licenses']/parent::div",
-                "//h3[contains(., 'On Hold Appointments')]",
+                "//*[@id=\"root\"]/div/main/div/main/div[2]/div[2]",
                 "hold_tab"
         );
     }
 
+    @Test (priority = 4)
+    public void testSwitchToApprovedTab() {
+        switchAndVerifyTab(
+                "//span[@class='tab-title' and normalize-space(text())='Approved Licenses']/parent::div",
+                "//*[@id=\"rc-tabs-0-panel-approved-licenses\"]",
+                "hold_tab"
+        );
+    }
 
+    @Test (priority = 5)
+    public void testSwitchToRejectedTab() {
+        switchAndVerifyTab(
+                "//span[@class='tab-title' and normalize-space(text())='Rejected Licenses']/parent::div",
+                "//*[@id=\"rc-tabs-0-panel-rejected-licenses\"]",
+                "hold_tab"
+        );
+    }
     private void switchAndVerifyTab(String tabLocator, String contentLocator, String screenshotPrefix) {
         try {
             // Debug: Print all visible tabs
