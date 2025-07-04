@@ -14,6 +14,7 @@
             <class name="MLOwner.LicensesPageTest"/>
             <class name="MLOwner.DispatchHistoryTest"/>
             <class name="MLOwner.DispatchLoadPageTest"/>
+            <class name="MLOwner.RoyaltyPayementTest"/>
 
             <class name="GSMBOfficer.GsmbOfficerSignin"/>
             <class name="GSMBOfficer.MiningLicenseTestSuite"/>
@@ -35,6 +36,7 @@
             <class name="MiningEngineer.AppointmentsSetDateTest"/>
             <class name="MiningEngineer.AppointmentsTestBase"/>
             <class name="MiningEngineer.ScheduledTabTests"/>
+            <class name="MiningEngineer.MiningEngineerRejectedLicensesTest"/>
 
             <class name="GSMBManagement.GSMBManagementDashboard"/>
             <class name="GSMBManagement.ActivationPageTest"/>

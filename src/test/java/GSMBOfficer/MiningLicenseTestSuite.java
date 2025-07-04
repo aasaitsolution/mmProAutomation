@@ -161,7 +161,7 @@ public class MiningLicenseTestSuite {
             Thread.sleep(300);
 
             WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//td[@title='2025-06-15']/div[@class='ant-picker-cell-inner']")));
+                    By.xpath("//td[@title='2025-07-29']/div[@class='ant-picker-cell-inner']")));
             dateToSelect.click();
 
             // Verify date selection
@@ -173,7 +173,7 @@ public class MiningLicenseTestSuite {
             WebElement endDateInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("end_date")));
             ((JavascriptExecutor) driver).executeScript(
                     "const el = arguments[0];" +
-                            "const value = '2025-06-25';" +
+                            "const value = '2025-07-31';" +
                             "const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;" +
                             "nativeInputValueSetter.call(el, value);" +
                             "el.dispatchEvent(new Event('input', { bubbles: true }));" +
@@ -424,14 +424,14 @@ public class MiningLicenseTestSuite {
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-panel-container")));
         Thread.sleep(300);
         WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//td[@title='2025-06-15']/div[@class='ant-picker-cell-inner']")));
+                By.xpath("//td[@title='2025-07-29']/div[@class='ant-picker-cell-inner']")));
         dateToSelect.click();
 
         // End date
         WebElement endDateInput = driver.findElement(By.id("end_date"));
         ((JavascriptExecutor) driver).executeScript(
                 "const el = arguments[0];" +
-                        "const value = '2025-06-25';" +
+                        "const value = '2025-07-31';" +
                         "const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;" +
                         "nativeInputValueSetter.call(el, value);" +
                         "el.dispatchEvent(new Event('input', { bubbles: true }));" +

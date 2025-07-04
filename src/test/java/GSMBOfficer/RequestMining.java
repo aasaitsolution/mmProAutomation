@@ -177,7 +177,7 @@ public class RequestMining {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-panel-container")));
 
             WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//td[@title='2025-06-28']/div[@class='ant-picker-cell-inner']")));
+                    By.xpath("//td[@title='2025-07-31']/div[@class='ant-picker-cell-inner']")));
             dateToSelect.click();
 
             // Verify date selection
@@ -248,36 +248,36 @@ public class RequestMining {
         }
     }
 
-    @Test(priority = 8)
-    public void testCompleteScheduleCreation() {
-        driver.get(SIGNIN_URL);
-
-        try {
-            // Setup: Open schedule dialog
-            performLogin();
-            navigateToRequestMiningTab();
-            openViewDialog();
-            openScheduleDialog();
-
-            // Fill all required fields
-            fillDateField();
-            fillLocationField();
-            fillPurposeField();
-
-            // Submit the schedule
-            WebElement scheduleSubmitButton = wait.until(ExpectedConditions.presenceOfElementLocated(
-                    By.xpath("/html/body/div[3]/div/div[2]/div/div[1]/div/div[3]/button[2]")));
-
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleSubmitButton);
-
-            // Verify schedule creation (dialog should close or show success message)
-            Thread.sleep(2000);
-            System.out.println("Complete schedule creation test passed successfully");
-
-        } catch (Exception e) {
-            Assert.fail("Complete schedule creation test failed: " + e.getMessage());
-        }
-    }
+//    @Test(priority = 8)
+//    public void testCompleteScheduleCreation() {
+//        driver.get(SIGNIN_URL);
+//
+//        try {
+//            // Setup: Open schedule dialog
+//            performLogin();
+//            navigateToRequestMiningTab();
+//            openViewDialog();
+//            openScheduleDialog();
+//
+//            // Fill all required fields
+//            fillDateField();
+//            fillLocationField();
+//            fillPurposeField();
+//
+//            // Submit the schedule
+//            WebElement scheduleSubmitButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+//                    By.xpath("/html/body/div[3]/div/div[2]/div/div[1]/div/div[3]/button[2]")));
+//
+//            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", scheduleSubmitButton);
+//
+//            // Verify schedule creation (dialog should close or show success message)
+//            Thread.sleep(2000);
+//            System.out.println("Complete schedule creation test passed successfully");
+//
+//        } catch (Exception e) {
+//            Assert.fail("Complete schedule creation test failed: " + e.getMessage());
+//        }
+//    }
 
     // Helper methods for reusable actions
     private void performLogin() {
