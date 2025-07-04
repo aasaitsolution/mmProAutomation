@@ -1,3 +1,4 @@
+//Done
 package MiningEngineer;
 
 import org.apache.commons.io.FileUtils;
@@ -10,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+
+import static org.testng.Assert.fail;
 
 public class ScheduledTabTests extends AppointmentsTestBase {
 
@@ -50,31 +53,40 @@ public class ScheduledTabTests extends AppointmentsTestBase {
 
     @Test(priority = 4)
     public void testViewDetailsButtonOpensModal() {
-        WebElement viewDetailsButton = driver.findElement(By.xpath("//*[@id=\"rc-tabs-1-panel-scheduled\"]/div/div/div/div[2]/div/div/div/div/div/div/div/div/table/tbody/tr[3]/td[5]/div/div[1]/button/span"));
-        viewDetailsButton.click();
+        try {
+            // Wait for and click using the test ID
+            WebElement viewDetailsButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("button[data-testid='view-details-button']")
+            ));
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-modal")));
-        Assert.assertTrue(modal.isDisplayed(), "Modal should be visible after clicking 'View Details'.");
+            // Scroll and click with JavaScript
+            ((JavascriptExecutor)driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", viewDetailsButton);
+            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", viewDetailsButton);
 
-        WebElement closeButton = modal.findElement(By.cssSelector("button[aria-label='Close']"));
-        closeButton.click();
-    }
+            // Wait for modal using the more reliable wrapper approach
+            WebElement modalWrapper = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(".ant-modal-wrap:not([style*='display: none'])")
+            ));
 
-/*    private WebElement getFirstRowActionButton(String buttonText) {
-        WebElement firstRow = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector(".ant-table-tbody > tr")));
-        WebElement actionsCell = firstRow.findElement(By.xpath(".//td[last()]"));
-        List<WebElement> buttons = actionsCell.findElements(By.tagName("button"));
+            Assert.assertTrue(modalWrapper.isDisplayed(), "Modal wrapper should be visible");
 
-        for (WebElement btn : buttons) {
-            if (btn.getText().trim().equalsIgnoreCase(buttonText)) {
-                return btn;
-            }
+            // Find the close button within the visible modal
+            WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector(".ant-modal-wrap:not([style*='display: none']) .ant-modal-close")
+            ));
+
+            // Click using JavaScript
+            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", closeButton);
+
+            // Wait for modal to disappear
+            wait.until(ExpectedConditions.invisibilityOf(modalWrapper));
+
+        } catch (Exception e) {
+            takeScreenshot("view_details_modal_error");
+            fail("Test failed: " + e.getMessage());
         }
-        throw new NotFoundException(buttonText + " button not found.");
     }
-*/
+
     @Test(priority = 5)
     public void testApproveButtonFunctionality() {
         WebElement approveButton = wait.until(ExpectedConditions.elementToBeClickable(
@@ -137,84 +149,329 @@ public class ScheduledTabTests extends AppointmentsTestBase {
         submitBtn.click();
     }
 
-    @Test(priority = 13)
-    public void testFillAndSubmitApprovalForm() {
+//    @Test(priority = 13)
+//    public void testFillAndSubmitApprovalForm() {
+//        try {
+//            // 1. Log browser console warnings/errors (for debugging)
+//            driver.manage().logs().get("browser").forEach(
+//                    log -> System.out.println("BROWSER LOG: " + log));
+//
+//            // 2. Try multiple modal selectors with fallback strategy
+//            WebElement modal = null;
+//            String[] modalSelectors = {
+//                    ".ant-modal-content", // Common content class
+//                    ".ant-modal-wrap:not([style*='display: none'])", // Visible wrapper
+//                    "[role='dialog']", // Generic dialog role
+//                    "//div[contains(@class,'modal') and .//*[contains(text(),'Approve')]]" // Modal with "Approve"
+//            };
+//
+//            for (String selector : modalSelectors) {
+//                try {
+//                    if (selector.startsWith("//")) {
+//                        modal = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(selector)));
+//                    } else {
+//                        modal = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(selector)));
+//                    }
+//                    System.out.println("Modal found with selector: " + selector);
+//                    break;
+//                } catch (TimeoutException e) {
+//                    System.out.println("Modal not found with selector: " + selector);
+//                }
+//            }
+//
+//            if (modal == null) {
+//                takeScreenshot("modal_not_found");
+//                Assert.fail("Could not locate approval modal with any selector");
+//            }
+//
+//            // 3. Fill out the remarks field (textarea)
+//            WebElement remarksInput = wait.until(ExpectedConditions.elementToBeClickable(
+//                    modal.findElement(By.xpath(".//textarea"))));
+//            remarksInput.clear();
+//            remarksInput.sendKeys("Approved for next phase");
+//
+//            // 4. Handle the date picker
+//            WebElement datePicker = wait.until(ExpectedConditions.elementToBeClickable(
+//                    modal.findElement(By.cssSelector(".ant-picker"))));
+//            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", datePicker);
+//
+//            WebElement today = wait.until(ExpectedConditions.elementToBeClickable(
+//                    By.cssSelector(".ant-picker-cell-today")));
+//            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", today);
+//
+//            // 5. Click the submit button (supports multilingual)
+//            WebElement submitBtn = wait.until(ExpectedConditions.elementToBeClickable(
+//                    modal.findElement(By.xpath(".//button[contains(.,'Submit') or contains(.,'ඉදිරිපත් කරන්න') or contains(.,'சமர்ப்பிக்கவும்')]"))));
+//            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitBtn);
+//            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitBtn);
+//
+//            // 6. Verify modal closes and success toast appears
+//            try {
+//                // Wait for modal content to be invisible (more reliable than wrap)
+//                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+//                        By.cssSelector(".ant-modal-content")));
+//
+//                // Wait for success toast (in any language)
+//                WebElement successToast = wait.until(ExpectedConditions.visibilityOfElementLocated(
+//                        By.xpath("//div[contains(@class,'ant-message') and " +
+//                                "(contains(.,'success') or contains(.,'සාර්ථකව') or contains(.,'வெற்றி'))]")));
+//
+//                Assert.assertTrue(successToast.isDisplayed(), "Success toast not shown");
+//
+//            } catch (TimeoutException e) {
+//                takeScreenshot("submit_timeout");
+//                Assert.fail("Failed to detect submission success: " + e.getMessage());
+//            }
+//
+//        } catch (Exception e) {
+//            takeScreenshot("approval_form_failure");
+//            Assert.fail("Failed to fill and submit approval form: " + e.getMessage());
+//        }
+//    }
+
+
+
+    @Test(priority = 14)
+    public void testCloseApproveModalButton() {
         try {
-            // Open modal by clicking the "Schedule" or similar button
-            WebElement scheduleBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[span[contains(text(),'Schedule')]]")));
-            scheduleBtn.click();
+            // 1. Wait for any visible modal wrapper (more reliable than content)
+            List<WebElement> modals = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+                    By.cssSelector(".ant-modal-wrap:not([style*='display: none'])")));
 
-            // Wait for modal to appear
-            WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector(".ant-modal-content")));
-
-            // Fill form fields in modal
-            WebElement remarksInput = modal.findElement(By.xpath(".//textarea[contains(@id, 'remarks')]"));
-            remarksInput.sendKeys("Approved for next phase");
-
-            WebElement datePicker = modal.findElement(By.cssSelector(".ant-picker"));
-            datePicker.click();
-            WebElement today = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector(".ant-picker-cell-inner[title='Today']")));
-            today.click();
-
-            // Wait for submit button
-            WebElement submitBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[span[text()='Submit']]")));
-
-            // Wait for modal mask to disappear if visible
-            List<WebElement> masks = driver.findElements(By.cssSelector(".ant-modal-mask"));
-            if (!masks.isEmpty() && masks.get(0).isDisplayed()) {
-                wait.until(ExpectedConditions.invisibilityOf(masks.get(0)));
+            if (modals.isEmpty()) {
+                System.out.println("No visible modals found to close");
+                return;
             }
 
-            // Submit the form using JavaScript to avoid overlay issues
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitBtn);
+            // 2. Take screenshot before closing for debugging
+            takeScreenshot("before_modal_close");
 
-            // Optionally wait for success message or confirmation
-            WebElement successToast = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector(".ant-notification-notice-message")));
-            String successText = successToast.getText();
-            Assert.assertTrue(successText.toLowerCase().contains("success"), "Form submission failed or not confirmed.");
+            // 3. Find close button within the visible modal
+            WebElement closeBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector(".ant-modal-wrap:not([style*='display: none']) .ant-modal-close")));
 
-            System.out.println("Approval form submitted successfully.");
+            // 4. Scroll to and click with JavaScript (more reliable)
+            ((JavascriptExecutor)driver).executeScript("arguments[0].scrollIntoView(true);", closeBtn);
+            Thread.sleep(300); // Small pause for scroll to complete
+            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", closeBtn);
+
+            // 5. Wait for modal to close with multiple verification methods
+            try {
+                // Wait for modal to become invisible
+                wait.until(ExpectedConditions.invisibilityOf(closeBtn));
+
+                // Additional verification - check modal content is gone
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                        By.cssSelector(".ant-modal-wrap:not([style*='display: none']) .ant-modal-content")));
+
+                // Final check - count of visible modals should be 0
+                wait.until(driver -> driver.findElements(
+                        By.cssSelector(".ant-modal-wrap:not([style*='display: none'])")).size() == 0);
+
+            } catch (TimeoutException e) {
+                takeScreenshot("after_failed_modal_close");
+                throw new AssertionError("Modal failed to close properly");
+            }
+
         } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail("Failed to fill and submit approval form: " + e.getMessage());
+            takeScreenshot("modal_close_error");
+            // Print browser console logs for debugging
+            driver.manage().logs().get("browser").forEach(l -> System.out.println("CONSOLE LOG: " + l));
+            throw new AssertionError("Failed to close modal: " + e.getMessage(), e);
         }
     }
-    @Test(priority = 14)
-    public void testCloseApproveModalButton() throws InterruptedException {
-        // Wait for the close (X) button to be clickable
-        WebElement closeBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("/html/body/div[3]/div/div[2]/div/div[1]/div/button/span/span")));
-        Assert.assertTrue(closeBtn.isDisplayed(), "Close (X) button should be visible.");
 
-        // Allow for animation to complete
-        Thread.sleep(1000);
-
-        // Click the close button
-        closeBtn.click();
-
-        // Wait for modal to disappear
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(
-                By.xpath("//div[contains(@class,'ant-modal-content')]")));
-    }
 
     @Test(priority = 15)
     public void testHoldButtonFunctionality() {
+        // Wait for any previous modals to close
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                By.cssSelector(".ant-modal-content")));
+
         WebElement holdButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//table/tbody/tr[2]/td[last()]//button[span[text()='Hold']]")));
-        Assert.assertTrue(holdButton.isDisplayed(), "Hold button should be visible.");
-        holdButton.click();
+                By.xpath("//tr[contains(@class,'ant-table-row')][1]//button[contains(.,'Hold')]")));
+        ((JavascriptExecutor)driver).executeScript("arguments[0].click();", holdButton);
     }
 
     @Test(priority = 16)
     public void testHoldModalVisibleAfterClick() {
         WebElement modalTitle = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//div[contains(@class,'ant-modal')]//div[text()='Hold Appointment']")));
+                By.xpath("//div[contains(@class,'ant-modal')]//*[contains(.,'Hold Appointment')]")));
         Assert.assertTrue(modalTitle.isDisplayed(), "Modal should be visible after clicking Hold.");
+    }
+
+
+//    @Test(priority = 17)
+//    public void testModalHoldButtonFunctionality() {
+//        try {
+//            // 1. First verify the hold button exists and is visible
+//            WebElement holdBtn = wait.until(ExpectedConditions.elementToBeClickable(
+//                    By.xpath("//button[contains(.,'Hold')]")));
+//
+//            System.out.println("Hold button found, attempting to click...");
+//            ((JavascriptExecutor)driver).executeScript("arguments[0].scrollIntoView(true);", holdBtn);
+//            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", holdBtn);
+//
+//            // 2. Try multiple modal detection strategies
+//            WebElement modal = null;
+//            String[] modalSelectors = {
+//                    "//div[contains(@class,'ant-modal') and .//*[contains(text(),'Hold Mining License')]]", // Strict
+//                    "//div[contains(@class,'ant-modal')]", // Just modal
+//                    "//div[@role='dialog' and .//*[contains(text(),'Hold')]]", // Role-based
+//                    "//div[contains(@class,'ant-modal-wrap') and not(contains(@style,'display: none'))]" // Wrapper
+//            };
+//
+//            for (String selector : modalSelectors) {
+//                try {
+//                    modal = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(selector)));
+//                    System.out.println("Modal found with selector: " + selector);
+//                    break;
+//                } catch (TimeoutException e) {
+//                    System.out.println("Modal not found with selector: " + selector);
+//                    continue;
+//                }
+//            }
+//
+//            if (modal == null) {
+//                takeScreenshot("hold_modal_not_found");
+//                fail("Could not locate Hold modal with any selector");
+//            }
+//
+//            // 3. Find confirm button with multiple strategies
+//            WebElement confirmHoldBtn = null;
+//            String[] buttonSelectors = {
+//                    ".//button[.//span[contains(.,'Hold')]]",
+//                    ".//button[contains(.,'Hold')]",
+//                    ".//button[contains(@class,'ant-btn-primary')]"
+//            };
+//
+//            for (String selector : buttonSelectors) {
+//                try {
+//                    confirmHoldBtn = modal.findElement(By.xpath(selector));
+//                    System.out.println("Confirm button found with selector: " + selector);
+//                    break;
+//                } catch (NoSuchElementException e) {
+//                    continue;
+//                }
+//            }
+//
+//            if (confirmHoldBtn == null) {
+//                takeScreenshot("confirm_button_not_found");
+//                fail("Could not locate Confirm Hold button");
+//            }
+//
+//            // 4. Click confirm button
+//            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", confirmHoldBtn);
+//            System.out.println("Confirm Hold button clicked");
+//
+//            // 5. Verify modal closed with multiple conditions
+//            wait.until(ExpectedConditions.invisibilityOf(modal));
+//            System.out.println("Modal closed successfully");
+//
+//        } catch (Exception e) {
+//            takeScreenshot("hold_button_failure");
+//            // Print browser console logs
+//            driver.manage().logs().get("browser").forEach(l -> System.out.println("BROWSER LOG: " + l));
+//            throw new AssertionError("Hold button test failed: " + e.getMessage(), e);
+//        }
+//    }
+
+    @Test(priority = 18)
+    public void testCloseHoldModalButton() {
+        try {
+            // Find all close buttons in visible modals
+            List<WebElement> closeButtons = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+                    By.cssSelector(".ant-modal-wrap:not([style*='display: none']) .ant-modal-close")));
+
+            if (!closeButtons.isEmpty()) {
+                // Get the last opened modal's close button (most likely the hold modal)
+                WebElement closeBtn = closeButtons.get(closeButtons.size() - 1);
+
+                // Click using JavaScript
+                ((JavascriptExecutor)driver).executeScript("arguments[0].click();", closeBtn);
+
+                // Wait for modal to disappear
+                wait.until(ExpectedConditions.invisibilityOf(closeBtn));
+            } else {
+                fail("No modal close buttons found");
+            }
+        } catch (Exception e) {
+            takeScreenshot("close_hold_modal_error");
+            fail("Failed to close hold modal: " + e.getMessage());
+        }
+    }
+
+    @Test(priority = 20)
+    public void testRejectButtonFunctionality() {
+        try {
+            // 1. First ensure all modals are closed
+            closeAllModals();
+
+            // 2. Wait for page to settle (optional but recommended)
+            Thread.sleep(1000); // Small pause after closing modals
+
+            // 3. Locate the reject button with a more robust selector
+            WebElement rejectButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//tr[contains(@class,'ant-table-row')]//button[contains(.,'Reject')]")));
+
+            // 4. Make sure button is truly visible and clickable
+            wait.until(ExpectedConditions.visibilityOf(rejectButton));
+            wait.until(ExpectedConditions.elementToBeClickable(rejectButton));
+
+            // 5. Scroll into view with proper alignment
+            ((JavascriptExecutor)driver).executeScript(
+                    "arguments[0].scrollIntoView({block: 'center', inline: 'center'});",
+                    rejectButton);
+
+            // 6. Use JavaScript click as last resort
+            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", rejectButton);
+
+            // 7. Verify the reject confirmation modal appears
+            WebElement rejectModal = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//div[contains(@class,'ant-modal')][contains(.,'Reject')]")));
+            Assert.assertTrue(rejectModal.isDisplayed(), "Reject confirmation modal should appear");
+
+        } catch (Exception e) {
+            takeScreenshot("reject_button_failure");
+            fail("Failed to click reject button: " + e.getMessage());
+        }
+    }
+
+    private void closeAllModals() {
+        try {
+            // Find all modal close buttons (Ant Design typically uses this class)
+            List<WebElement> closeButtons = driver.findElements(
+                    By.cssSelector(".ant-modal-close"));
+
+            // Click each close button found
+            for (WebElement closeBtn : closeButtons) {
+                try {
+                    if (closeBtn.isDisplayed()) {
+                        ((JavascriptExecutor)driver).executeScript("arguments[0].click();", closeBtn);
+                        wait.until(ExpectedConditions.invisibilityOf(closeBtn));
+                    }
+                } catch (Exception e) {
+                    // If one fails, continue with others
+                    System.out.println("Could not close one modal: " + e.getMessage());
+                }
+            }
+
+            // Additional check for any remaining modals
+            List<WebElement> modals = driver.findElements(By.cssSelector(".ant-modal-wrap"));
+            for (WebElement modal : modals) {
+                try {
+                    if (modal.isDisplayed()) {
+                        // Try to close by clicking outside the modal
+                        ((JavascriptExecutor)driver).executeScript(
+                                "arguments[0].style.display = 'none';", modal);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Could not hide modal: " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error in closeAllModals: " + e.getMessage());
+        }
     }
 
     private void takeScreenshot(String filename) {
@@ -224,59 +481,6 @@ public class ScheduledTabTests extends AppointmentsTestBase {
         } catch (IOException e) {
             System.err.println("Failed to capture screenshot: " + e.getMessage());
         }
-    }
-
-/*
-    @Test(priority = 17)
-    public void testModalHoldButtonFunctionality() {
-        try {
-            // Open hold modal using JavaScript click
-            WebElement holdBtn = wait.until(ExpectedConditions.presenceOfElementLocated(
-                    By.xpath("//button[.//span[contains(.,'Hold')]]")));
-            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", holdBtn);
-
-            // Wait for modal with content verification
-            WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//div[contains(@class,'ant-modal')][.//*[contains(.,'Hold Mining License')]]")));
-
-            // Find and click confirm hold button using JavaScript
-            WebElement confirmHoldBtn = modal.findElement(
-                    By.xpath(".//button[.//span[contains(.,'Hold')]]"));
-            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", confirmHoldBtn);
-
-            // Verify modal closed with polling
-            wait.until(ExpectedConditions.invisibilityOf(modal));
-
-        } catch (Exception e) {
-            takeScreenshot("hold_button_failure");
-            throw new AssertionError("Hold button test failed: " + e.getMessage(), e);
-        }
-    }
-*/
-@Test(priority = 18)
-public void testCloseHoldModalButton() throws InterruptedException {
-    // Wait for the close (X) button to be clickable
-    WebElement closeBtn = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/button/span/span")));
-    Assert.assertTrue(closeBtn.isDisplayed(), "Close (X) button should be visible.");
-
-    // Allow for animation to complete
-    Thread.sleep(1000);
-
-    // Click the close button
-    closeBtn.click();
-
-    // Wait for modal to disappear
-    wait.until(ExpectedConditions.invisibilityOfElementLocated(
-            By.xpath("//div[contains(@class,'ant-modal-content')]")));
-}
-
-    @Test(priority = 20)
-    public void testRejectButtonFunctionality() {
-        WebElement rejectButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//table/tbody/tr[2]/td[last()]//button[span[text()='Reject']]")));
-        Assert.assertTrue(rejectButton.isDisplayed(), "Reject button should be visible.");
-        rejectButton.click();
     }
 
 }

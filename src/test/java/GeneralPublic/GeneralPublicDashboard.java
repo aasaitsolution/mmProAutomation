@@ -1,3 +1,4 @@
+//Done
 package GeneralPublic;
 
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -11,6 +12,7 @@ import org.testng.Assert;
 import org.openqa.selenium.*;
 
 import java.time.Duration;
+import java.util.List;
 
 public class GeneralPublicDashboard {
     private WebDriver driver;
@@ -28,7 +30,7 @@ public class GeneralPublicDashboard {
 
     @Test(priority = 1)
     public void openWebsite() {
-        driver.get("http://localhost:5173/");
+        driver.get("https://mmpro.aasait.lk/");
         System.out.println("🌐 Opened public site");
         Assert.assertTrue(driver.getTitle() != null, "Page did not load properly");
     }
@@ -55,32 +57,46 @@ public class GeneralPublicDashboard {
     }
 
     @Test(priority = 4, dependsOnMethods = {"enterAndSubmitVehicleNumber"})
-    public void verifyModalResponse() throws InterruptedException {
+    public void verifyModalResponse() {
         try {
+            // 1. **FIXED**: Wait for the MODAL element to become VISIBLE, not just present.
+            //    We target the main modal container.
             WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.className("gp-modal-body")));
-             WebElement input = modal.findElement(By.cssSelector("input.valid-message"));
-            String modalValue = input.getAttribute("value");  // Correct way to read <input value="...">
+                    By.cssSelector("div.modal"))); // Wait for the main modal div to be visible
+
+            // 2. **FIXED**: Find the correct element (the input field) and get its 'value' attribute.
+            //    We wait for the input to be visible inside the modal.
+            WebElement messageInput = wait.until(ExpectedConditions.visibilityOfNestedElementsLocatedBy(
+                    modal, By.cssSelector("input.invalid-message"))).get(0);
+
+            String modalValue = messageInput.getAttribute("value").trim();
             System.out.println("📩 Modal appeared with value: " + modalValue);
-            Thread.sleep(1000);
 
+            // 3. **IMPROVED**: Use a more specific assertion to check the actual text.
+            //    This makes your test more reliable.
+            Assert.assertEquals(modalValue, "Invalid Load", "The modal did not show the expected 'Invalid Load' message.");
 
-            if (modalValue.toLowerCase().contains("valid")) {
-                System.out.println("✅ Vehicle number marked as Valid");
-            } else {
-                System.out.println("⚠️ Unexpected modal message");
-            }
+            // If the test passes the assertion, the vehicle number is correctly identified as invalid.
+            System.out.println("✅ Correctly identified as 'Invalid Load'.");
 
-            // 🧹 Close the modal
+            // Find and click the close button to dismiss the modal
             WebElement closeButton = driver.findElement(By.cssSelector(".modal-close-button"));
             closeButton.click();
-            System.out.println("🧹 Modal closed");
+
+            // Optional: Wait for the modal to disappear to ensure the close action worked
+            wait.until(ExpectedConditions.invisibilityOf(modal));
+
+            System.out.println("🧹 Modal closed successfully.");
 
         } catch (TimeoutException e) {
-            System.out.println("❌ Modal did not appear");
-            Assert.fail("Modal not found after checking license number");
+            System.out.println("❌ Modal did not appear in the expected time.");
+            System.out.println("Page Snapshot: " + driver.getPageSource());
+            // Add the exception to the fail message for better debugging
+            Assert.fail("Modal not found after checking license number.", e);
         }
     }
+
+
 
     @Test(priority = 5, dependsOnMethods = {"verifyModalResponse"})
     public void enterInvalidVehicleNumberFormat() {
