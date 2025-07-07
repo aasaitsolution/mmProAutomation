@@ -14,6 +14,7 @@
             <class name="MLOwner.LicensesPageTest"/>
             <class name="MLOwner.DispatchHistoryTest"/>
             <class name="MLOwner.DispatchLoadPageTest"/>
+            <class name="MLOwner.RoyaltyPayementTest"/>
 
             <class name="GSMBOfficer.GsmbOfficerSignin"/>
             <class name="GSMBOfficer.MiningLicenseTestSuite"/>
@@ -21,6 +22,8 @@
             <class name="GSMBOfficer.GSMBmlTab"/>
             <class name="GSMBOfficer.TPLandMLview"/>
             <class name="GSMBOfficer.PhysicalMeeting"/>
+            <class name="GSMBOfficer.RequestMiningFilter"/>
+            <class name="GSMBOfficer.ValidateLicense"/>
 
             <class name="PoliceOfficer.policeofficersignin"/>
             <class name="PoliceOfficer.validnumber"/>
@@ -35,7 +38,10 @@
             <class name="MiningEngineer.AppointmentsSetDateTest"/>
             <class name="MiningEngineer.AppointmentsTestBase"/>
             <class name="MiningEngineer.ScheduledTabTests"/>
+            <class name="MiningEngineer.MiningEngineerRejectedLicensesTest"/>
+            <class name="MiningEngineer.ApprovedLicensesTablePage"/>
             <class name="MiningEngineer.ApprovedLicensesTableTest"/>
+            <class name="MiningEngineer.RejectedLicensesTablePage"/>
             <class name="MiningEngineer.RejectedLicensesTableTest"/>
 
             <class name="GSMBManagement.GSMBManagementDashboard"/>
