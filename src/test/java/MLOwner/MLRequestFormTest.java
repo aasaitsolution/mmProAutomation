@@ -57,7 +57,7 @@ public class MLRequestFormTest {
         wait.until(driver -> ((JavascriptExecutor) driver).executeScript("return document.readyState").equals("complete"));
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("land_name")));
         waitABit();
-        System.out.println("✅ ML Request form is loaded.");
+        System.out.println("ML Request form is loaded.");
     }
 
     @Test(priority = 3, dependsOnMethods = "openMLRequestFormPage")
