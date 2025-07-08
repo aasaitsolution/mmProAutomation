@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 public class AppointmentsTestBase {
     protected WebDriver driver;
     protected WebDriverWait wait;
+    //protected static final String BASE_URL = "https://mmpro.aasait.lk";
     protected static final String BASE_URL = "http://localhost:5173";
     protected static final String SCREENSHOT_DIR = "test-output/screenshots/";
 
