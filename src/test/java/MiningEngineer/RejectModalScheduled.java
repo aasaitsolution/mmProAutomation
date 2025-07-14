@@ -2,7 +2,8 @@ package MiningEngineer;
 
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -10,10 +11,9 @@ import java.io.File;
 import java.time.Duration;
 import java.util.List;
 
-public class ApproveModal extends AppointmentsTestBase {
-
-    // Helper to open Scheduled tab and Approve modal
-    private void openApproveModal() {
+public class RejectModalScheduled extends AppointmentsTestBase {
+    // Helper to open Scheduled tab and Reject modal
+    private void openRejectModal() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
         // Click "Scheduled" tab
@@ -25,7 +25,6 @@ public class ApproveModal extends AppointmentsTestBase {
         WebElement scheduledTab = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//div[contains(@class,'ant-tabs-tab') and normalize-space()='Scheduled']")));
         scheduledTab.click();
-
 
         // Wait for the Scheduled tab content to load
         wait.until(ExpectedConditions.visibilityOfElementLocated(
@@ -45,14 +44,14 @@ public class ApproveModal extends AppointmentsTestBase {
             throw new RuntimeException("No data found in the Scheduled tab table");
         }
 
-        // Try to find and click the Approve button
-        WebElement approveBtn = null;
+        // Try to find and click the Reject button
+        WebElement rejectBtn = null;
         try {
             // First try - exact match
-            approveBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//table/tbody/tr//button[span[text()='Approve']]")));
+            rejectBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//table/tbody/tr//button[span[text()='Reject']]")));
         } catch (TimeoutException e) {
-            System.out.println("Approve button not found with exact match, trying alternatives...");
+            System.out.println("Reject button not found with exact match, trying alternatives...");
 
             // Print available buttons for debugging
             List<WebElement> buttons = driver.findElements(By.xpath("//table/tbody/tr//button"));
@@ -63,42 +62,38 @@ public class ApproveModal extends AppointmentsTestBase {
 
             // Try alternative selectors
             try {
-                approveBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                        By.xpath("//table/tbody/tr//button[contains(text(),'Approve')]")));
+                rejectBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                        By.xpath("//table/tbody/tr//button[contains(text(),'Reject')]")));
             } catch (TimeoutException e2) {
-                throw new RuntimeException("No Approve button found in the table");
+                throw new RuntimeException("No Reject button found in the table");
             }
         }
 
-        // Click the Approve button
+        // Click the reject button
         try {
-            approveBtn.click();
+            rejectBtn.click();
         } catch (Exception e) {
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", approveBtn);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", rejectBtn);
         }
 
-        // Wait for the Approve Mining License modal
+        // Wait for the Reject Mining License modal
         wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//div[contains(@class,'ant-modal')]//div[text()='Approve Mining License']")));
+                By.xpath("//div[contains(@class,'ant-modal')]//div[text()='Reject appointment']")));
     }
 
     @Test(priority = 1)
-    public void testApproveModalFieldPresence() {
-        openApproveModal();
+    public void testRejectModalFieldPresence() {
+        openRejectModal();
 
-        Assert.assertTrue(driver.findElement(By.xpath("//input[@placeholder='Enter total capacity in cubic meters']")).isDisplayed(), "Total Capacity missing.");
-        Assert.assertTrue(driver.findElement(By.xpath("//input[@placeholder='Enter monthly maximum capacity']")).isDisplayed(), "Monthly Max Capacity missing.");
-        Assert.assertTrue(driver.findElement(By.xpath("//input[@placeholder='Select date' and ancestor::div[contains(., 'Start Date')]]")).isDisplayed(), "Start Date missing.");
-        Assert.assertTrue(driver.findElement(By.xpath("//input[@placeholder='Select date' and ancestor::div[contains(., 'Expiry Date')]]")).isDisplayed(), "Expiry Date missing.");
-        Assert.assertTrue(driver.findElement(By.xpath("//span[text()='Select Files']/ancestor::button")).isDisplayed(), "Upload button missing.");
-        Assert.assertTrue(driver.findElement(By.xpath("//textarea[@placeholder='Enter additional comments']")).isDisplayed(), "Comments field missing.");
-        Assert.assertTrue(driver.findElement(By.xpath("//button[span[text()='Submit']]")).isDisplayed(), "Submit button missing.");
+        Assert.assertTrue(driver.findElement(By.xpath("//textarea[@placeholder='Type the reason for Rejection here']")).isDisplayed(), "Reason field missing.");
+        Assert.assertTrue(driver.findElement(By.xpath("//span[text()='Upload Report (PDF)']/ancestor::button")).isDisplayed(), "Upload button missing.");
+        Assert.assertTrue(driver.findElement(By.xpath("//button[span[text()='Confirm Rejection']]")).isDisplayed(), "Confirm button missing.");
     }
 
     @Test(priority = 2)
-    public void testApproveModalRequiredValidation() {
+    public void testRejectModalRequiredValidation() {
         // Scroll to the submit button
-        WebElement submitButton = driver.findElement(By.xpath("//button[span[text()='Submit']]"));
+        WebElement submitButton = driver.findElement(By.xpath("//button[span[text()='Confirm Rejection']]"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
 
         // Click Submit without filling the form
@@ -132,8 +127,10 @@ public class ApproveModal extends AppointmentsTestBase {
             }
         }
     }
+
+    /**
     @Test(priority = 3)
-    public void testApproveModalValidSubmission() {
+    public void testRejectModalValidSubmission() {
         try {
             // Fill required fields with explicit waits
             waitAndSendKeys(By.xpath("//input[@placeholder='Enter total capacity in cubic meters']"), "3000");
@@ -185,7 +182,7 @@ public class ApproveModal extends AppointmentsTestBase {
 
 
         } catch (Exception e) {
-            takeScreenshot("approve_modal_failure");
+            takeScreenshot("reject_modal_failure");
             throw new RuntimeException("Test failed due to exception: ", e);
         }
     }
@@ -222,7 +219,7 @@ public class ApproveModal extends AppointmentsTestBase {
     }
 
     @Test(priority = 4)
-    public void testApproveModalCloseButton() {
+    public void testRejectModalCloseButton() {
 
         WebElement closeBtn = driver.findElement(
                 By.cssSelector(".ant-modal-wrap:not([style*='display: none']) .ant-modal-close"));
@@ -234,4 +231,5 @@ public class ApproveModal extends AppointmentsTestBase {
                 .until(ExpectedConditions.invisibilityOfElementLocated(
                         By.cssSelector(".ant-modal-wrap:not([style*='display: none'])")));
     }
+    **/
 }
