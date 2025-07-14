@@ -11,7 +11,7 @@ import java.io.File;
 import java.time.Duration;
 import java.util.List;
 
-public class HoldModal extends AppointmentsTestBase {
+public class HoldModalScheduled extends AppointmentsTestBase {
 
     private void openHoldModal() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
