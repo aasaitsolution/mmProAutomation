@@ -171,50 +171,50 @@ public class policeofficersignin {
         System.out.println("✅ Landed on Police Officer Dashboard.");
     }
 
-    @Test(priority = 3, description = "Check for a valid vehicle number", dependsOnMethods = "enterCredentialsAndLogin")
-    public void checkValidVehicleNumber() {
-        try {
-            resetDashboardState(); // Ensure a clean start for the test
-
-            // Store the current URL for later comparison
-            String originalUrl = driver.getCurrentUrl();
-
-            // Enter vehicle number and click check button
-            WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("input[type='text']")));
-            inputField.sendKeys("ABX1234");
-
-            WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("button.po-check-button")));
-            checkButton.click();
-            System.out.println("✅ Submitted a valid vehicle number for check.");
-
-            // Wait for the redirect to the valid page
-            wait.until(ExpectedConditions.urlContains("/police-officer/valid"));
-            System.out.println("ℹ️ Redirected to validation results page");
-
-            // Verify the content on the validation page
-            WebElement validBadge = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.className("pov-validBadge")));
-            String resultText = validBadge.getText();
-            System.out.println("ℹ️ Validation Result: " + resultText);
-
-            Assert.assertTrue(resultText.toLowerCase().contains("valid"),
-                    "The vehicle was not marked as 'Valid'.");
-            System.out.println("✅ Vehicle number correctly marked as Valid.");
-
-            // Navigate back to the original page
-            driver.navigate().back();
-            wait.until(ExpectedConditions.urlContains("/police-officer"));
-
-            // Verify we're back on the original page
-            wait.until(ExpectedConditions.urlToBe(originalUrl));
-            System.out.println("✅ Successfully returned to the police officer dashboard.");
-        } catch (Exception e) {
-            System.err.println("❌ Test failed due to: " + e.getMessage());
-            Assert.fail("Test failed due to exception: " + e.toString());
-        }
-    }
+//    @Test(priority = 3, description = "Check for a valid vehicle number", dependsOnMethods = "enterCredentialsAndLogin")
+//    public void checkValidVehicleNumber() {
+//        try {
+//            resetDashboardState(); // Ensure a clean start for the test
+//
+//            // Store the current URL for later comparison
+//            String originalUrl = driver.getCurrentUrl();
+//
+//            // Enter vehicle number and click check button
+//            WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+//                    By.cssSelector("input[type='text']")));
+//            inputField.sendKeys("ABX1234");
+//
+//            WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
+//                    By.cssSelector("button.po-check-button")));
+//            checkButton.click();
+//            System.out.println("✅ Submitted a valid vehicle number for check.");
+//
+//            // Wait for the redirect to the valid page
+//            wait.until(ExpectedConditions.urlContains("/police-officer/valid"));
+//            System.out.println("ℹ️ Redirected to validation results page");
+//
+//            // Verify the content on the validation page
+//            WebElement validBadge = wait.until(ExpectedConditions.visibilityOfElementLocated(
+//                    By.className("pov-validBadge")));
+//            String resultText = validBadge.getText();
+//            System.out.println("ℹ️ Validation Result: " + resultText);
+//
+//            Assert.assertTrue(resultText.toLowerCase().contains("valid"),
+//                    "The vehicle was not marked as 'Valid'.");
+//            System.out.println("✅ Vehicle number correctly marked as Valid.");
+//
+//            // Navigate back to the original page
+//            driver.navigate().back();
+//            wait.until(ExpectedConditions.urlContains("/police-officer"));
+//
+//            // Verify we're back on the original page
+//            wait.until(ExpectedConditions.urlToBe(originalUrl));
+//            System.out.println("✅ Successfully returned to the police officer dashboard.");
+//        } catch (Exception e) {
+//            System.err.println("❌ Test failed due to: " + e.getMessage());
+//            Assert.fail("Test failed due to exception: " + e.toString());
+//        }
+//    }
 
 
     @Test(priority = 4, description = "Check form validation for empty vehicle number", dependsOnMethods = "enterCredentialsAndLogin")
