@@ -38,8 +38,10 @@
             <class name="MiningEngineer.AppointmentsSetDateTest"/>
             <class name="MiningEngineer.AppointmentsTestBase"/>
             <class name="MiningEngineer.ScheduledTabTests"/>
-            <class name="MiningEngineer.ApproveModal"/>
-            <class name="MiningEngineer.ApprovedLicensesTablePage"/>
+
+            <class name="MiningEngineer.ApproveModalScheduled"/>
+            <class name="MiningEngineer.HoldModalScheduled"/>
+
             <class name="MiningEngineer.ApprovedLicensesTableTest"/>
             <class name="MiningEngineer.RejectedLicensesTablePage"/>
             <class name="MiningEngineer.RejectedLicensesTableTest"/>
