@@ -69,7 +69,7 @@ public class RejectedLicensesTableTest extends AppointmentsTestBase {
 
         // Wait for the table to load and locate the button
         By buttonXPath = By.xpath(
-                "//*[@id=\"rc-tabs-1-panel-rejected-licenses\"]/div/div/div/div/div/div/div/div/table/tbody/tr[2]/td[5]/div/div/button/span"
+                "//*[@id=\"rc-tabs-0-panel-rejected-licenses\"]/div/div/div/div/div/div/div/div/table/tbody/tr[2]/td[5]/div/div/button"
         );
 
         WebElement viewDetailsBtn = wait.until(ExpectedConditions.elementToBeClickable(buttonXPath));

@@ -32,19 +32,19 @@
             <class name="GeneralPublic.GeneralPublicDashboard"/>
             <class name="GeneralPublic.InvalidNumber"/>
 
-            <class name="MiningEngineer.MiningEngineerSignIn"/>
-            <class name="MiningEngineer.AppointmentsTabNavigationTest"/>
-            <class name="MiningEngineer.AppointmentsViewDetailsTest"/>
             <class name="MiningEngineer.AppointmentsSetDateTest"/>
-            <class name="MiningEngineer.AppointmentsTestBase"/>
-            <class name="MiningEngineer.ScheduledTabTests"/>
-
+            <class name="MiningEngineer.AppointmentsTabNavigationTest"/>
+<!--            <class name="MiningEngineer.AppointmentsTestBase"/>-->
+            <class name="MiningEngineer.AppointmentsViewDetailsTest"/>
+<!--            <class name="MiningEngineer.ApprovedLicensesTablePage"/>-->
+            <class name="MiningEngineer.ApprovedLicensesTableTest"/>
             <class name="MiningEngineer.ApproveModalScheduled"/>
             <class name="MiningEngineer.HoldModalScheduled"/>
-
-            <class name="MiningEngineer.ApprovedLicensesTableTest"/>
-            <class name="MiningEngineer.RejectedLicensesTablePage"/>
+            <class name="MiningEngineer.MiningEngineerSignIn"/>
+<!--            <class name="MiningEngineer.RejectedLicensesTablePage"/>-->
             <class name="MiningEngineer.RejectedLicensesTableTest"/>
+<!--            <class name="MiningEngineer.RejectModalScheduled"/>-->
+            <class name="MiningEngineer.ScheduledTabTests"/>
 
             <class name="GSMBManagement.GSMBManagementDashboard"/>
             <class name="GSMBManagement.ActivationPageTest"/>

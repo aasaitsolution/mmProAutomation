@@ -47,7 +47,7 @@ public class GeneralPublicDashboard {
     public void enterAndSubmitVehicleNumber() {
         WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
             By.cssSelector("input[type='text']")));
-        inputField.sendKeys("ABX1234");
+        inputField.sendKeys("LA1010");
         System.out.println("✍️ Entered vehicle number: ABX1234");
 
         WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
@@ -148,7 +148,7 @@ public void verifyModalResponse() {
             e.printStackTrace();
         }
         if (driver != null) {
-            driver.quit();
+            //driver.quit();
             System.out.println("🛑 Browser closed");
         }
     }

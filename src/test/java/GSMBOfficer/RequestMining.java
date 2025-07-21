@@ -19,7 +19,7 @@ public class RequestMining {
 
     private WebDriver driver;
     private WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:5173";
+    private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String SIGNIN_URL = BASE_URL + "/signin";
     private static final String DASHBOARD_URL = BASE_URL + "/gsmb/dashboard";
     private static final String USERNAME = "nimal";

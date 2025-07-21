@@ -7,30 +7,37 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
 import java.time.Duration;
 
 public class TPLandMLview {
     private WebDriver driver;
     private WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:5173";
+    private static final String BASE_URL = "https://mmpro.aasait.lk";
+    private static final String USERNAME = "nimal";
+    private static final String PASSWORD = "12345678";
 
     @BeforeMethod
     public void setup() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--incognito");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--remote-allow-origins=*");
+        options.setAcceptInsecureCerts(true);
 
         driver = new ChromeDriver(options);
         driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30)); // Reduced timeout to 30 seconds
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+
         performLogin();
     }
 
     @Test(priority = 1)
-    public void testViewMiningLicense() throws InterruptedException {
+    public void testViewMiningLicense() {
         navigateToTab("Mining License", "//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[3]");
 
         WebElement viewButton = wait.until(ExpectedConditions.elementToBeClickable(
@@ -41,7 +48,7 @@ public class TPLandMLview {
     }
 
     @Test(priority = 2)
-    public void testViewTransportLicense() throws InterruptedException {
+    public void testViewTransportLicense() {
         navigateToTab("Transport License", "//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[2]");
 
         WebElement viewButton = wait.until(ExpectedConditions.elementToBeClickable(
@@ -52,7 +59,7 @@ public class TPLandMLview {
     }
 
     @Test(priority = 3)
-    public void testComplaintsPagination() throws InterruptedException {
+    public void testComplaintsPagination() {
         navigateToTab("Complaints", "//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[4]");
 
         // Test pagination
@@ -60,34 +67,33 @@ public class TPLandMLview {
         testPagination("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/ul/li[1]/button");
     }
 
-    private void navigateToTab(String tabName, String tabXpath) throws InterruptedException {
+    private void navigateToTab(String tabName, String tabXpath) {
         wait.until(ExpectedConditions.urlToBe(BASE_URL + "/gsmb/dashboard"));
-        Thread.sleep(200); // Small delay for page stability
+        waitABit(200);
 
         WebElement tab = wait.until(ExpectedConditions.elementToBeClickable(By.xpath(tabXpath)));
         tab.click();
-        Thread.sleep(500); // Wait for tab content to load
+        waitABit(500);
     }
 
-    private void verifyAndCloseModal(String closeButtonXpath) throws InterruptedException {
-        Thread.sleep(2000); // Wait for modal to fully appear
+    private void verifyAndCloseModal(String closeButtonXpath) {
+        waitABit(2000);
 
         WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath(closeButtonXpath)));
         closeButton.click();
 
-        Thread.sleep(1000); // Wait for modal to close
+        waitABit(1000);
     }
 
-    private void testPagination(String buttonXpath) throws InterruptedException {
+    private void testPagination(String buttonXpath) {
         try {
             WebElement button = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath(buttonXpath)));
             button.click();
-            Thread.sleep(1000); // Wait for page to load
+            waitABit(1000);
         } catch (Exception e) {
             System.out.println("Pagination button not found or not clickable: " + buttonXpath);
-            // Continue test even if pagination fails (depending on your requirements)
         }
     }
 
@@ -95,15 +101,25 @@ public class TPLandMLview {
         driver.get(BASE_URL + "/signin/");
 
         WebElement username = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_username")));
-        username.sendKeys("nimal");
+        username.sendKeys(USERNAME);
 
         WebElement password = wait.until(ExpectedConditions.elementToBeClickable(By.id("sign-in_password")));
-        password.sendKeys("12345678");
+        password.sendKeys(PASSWORD);
 
         WebElement signinButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector(".ant-btn-primary")
-        ));
+                By.cssSelector(".ant-btn-primary")));
         signinButton.click();
+
+        // Verify login success
+        wait.until(ExpectedConditions.urlContains("/gsmb/dashboard"));
+    }
+
+    private void waitABit(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @AfterMethod

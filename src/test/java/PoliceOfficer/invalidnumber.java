@@ -21,7 +21,7 @@ public class invalidnumber {
     private static final Log log = LogFactory.getLog(invalidnumber.class);
     private WebDriver driver;
     private WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:5173";
+    private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String INVALID_LICENSE = "ABP1234";
 
     @BeforeClass

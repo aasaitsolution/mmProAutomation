@@ -17,7 +17,7 @@ public class GsmbOfficerSignin {
 
     private WebDriver driver;
     private WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:5173";
+    private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String SIGNIN_URL = BASE_URL + "/signin";
 
     @BeforeMethod

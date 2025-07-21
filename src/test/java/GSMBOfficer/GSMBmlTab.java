@@ -32,7 +32,7 @@ public class GSMBmlTab {
     public void gsmbSignin() {
         try {
             // Navigate to the application
-            driver.get("http://localhost:5173/signin");
+            driver.get("https://mmpro.aasait.lk/signin");
             System.out.println("Navigated to signin page");
 
             // Wait for page to load completely
