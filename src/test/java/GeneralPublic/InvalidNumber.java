@@ -21,7 +21,7 @@ public class InvalidNumber {
     private WebDriver driver;
     private WebDriverWait wait;
 
-    private static final String BASE_URL = "http://localhost:5173";
+    private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String INVALID_LICENSE = "LA4550";
     private static final String PHONE_NUMBER = "0769025444";
     private static final String OTP_CODE = "123456";

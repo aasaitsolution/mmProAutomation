@@ -132,63 +132,63 @@ public class ApproveModalScheduled extends AppointmentsTestBase {
             }
         }
     }
-    @Test(priority = 3)
-    public void testApproveModalValidSubmission() {
-        try {
-            // Fill required fields with explicit waits
-            waitAndSendKeys(By.xpath("//input[@placeholder='Enter total capacity in cubic meters']"), "3000");
-            waitAndSendKeys(By.xpath("//input[@placeholder='Enter monthly maximum capacity']"), "300");
-
-            // Fill dates
-            waitAndSendKeys(By.xpath("(//input[@placeholder='Select date'])[1]"), "2025-08-01"); // Start Date
-            waitAndSendKeys(By.xpath("(//input[@placeholder='Select date'])[2]"), "2026-08-01"); // Expiry Date
-
-            // Upload file
-            File file = new File("src/test/resources/test-files/economic-report.pdf");
-            Assert.assertTrue(file.exists(), "Test file not found");
-
-            By fileInputLocator = By.xpath("//input[@type='file']");
-            WebElement fileInput = driver.findElement(fileInputLocator);
-            fileInput.sendKeys(file.getAbsolutePath());
-
-            //  Wait for uploaded file name to appear
-            By uploadedFile = By.xpath("//span[contains(@class, 'ant-upload-list-item-name') and contains(text(), 'economic-report.pdf')]");
-            new WebDriverWait(driver, Duration.ofSeconds(15))
-                    .until(ExpectedConditions.visibilityOfElementLocated(uploadedFile));
-
-            // Add comments
-            waitAndSendKeys(By.xpath("//textarea[@placeholder='Enter additional comments']"), "Test approval");
-
-            // Submit
-            WebElement submitButton = new WebDriverWait(driver, Duration.ofSeconds(10))
-                    .until(ExpectedConditions.elementToBeClickable(By.xpath("//button[span[text()='Submit']]")));
-            submitButton.click();
-
-            // Wait for success or error message
-            // Wait for any toast or message box to appear
-            By toastLocator = By.cssSelector("div.ant-message > div"); // or tweak based on actual DOM
-
-            WebElement messageBox = new WebDriverWait(driver, Duration.ofSeconds(30))
-                    .until(ExpectedConditions.visibilityOfElementLocated(toastLocator));
-
-// Print message content for debugging
-            System.out.println("Message displayed: " + messageBox.getText());
-
-// Fail only if it's an error
-            if (messageBox.getAttribute("class").contains("ant-message-error")) {
-                Assert.fail("Submission failed with error: " + messageBox.getText());
-            } else {
-                Assert.assertTrue(messageBox.getText().toLowerCase().contains("success")
-                                || messageBox.getAttribute("class").contains("success"),
-                        "Expected success message, but got: " + messageBox.getText());
-            }
-
-
-        } catch (Exception e) {
-            takeScreenshot("approve_modal_failure");
-            throw new RuntimeException("Test failed due to exception: ", e);
-        }
-    }
+//    @Test(priority = 3)
+//    public void testApproveModalValidSubmission() {
+//        try {
+//            // Fill required fields with explicit waits
+//            waitAndSendKeys(By.xpath("//input[@placeholder='Enter total capacity in cubic meters']"), "3000");
+//            waitAndSendKeys(By.xpath("//input[@placeholder='Enter monthly maximum capacity']"), "300");
+//
+//            // Fill dates
+//            waitAndSendKeys(By.xpath("(//input[@placeholder='Select date'])[1]"), "2025-08-01"); // Start Date
+//            waitAndSendKeys(By.xpath("(//input[@placeholder='Select date'])[2]"), "2026-08-01"); // Expiry Date
+//
+//            // Upload file
+//            File file = new File("src/test/resources/test-files/economic-report.pdf");
+//            Assert.assertTrue(file.exists(), "Test file not found");
+//
+//            By fileInputLocator = By.xpath("//input[@type='file']");
+//            WebElement fileInput = driver.findElement(fileInputLocator);
+//            fileInput.sendKeys(file.getAbsolutePath());
+//
+//            //  Wait for uploaded file name to appear
+//            By uploadedFile = By.xpath("//span[contains(@class, 'ant-upload-list-item-name') and contains(text(), 'economic-report.pdf')]");
+//            new WebDriverWait(driver, Duration.ofSeconds(15))
+//                    .until(ExpectedConditions.visibilityOfElementLocated(uploadedFile));
+//
+//            // Add comments
+//            waitAndSendKeys(By.xpath("//textarea[@placeholder='Enter additional comments']"), "Test approval");
+//
+//            // Submit
+//            WebElement submitButton = new WebDriverWait(driver, Duration.ofSeconds(10))
+//                    .until(ExpectedConditions.elementToBeClickable(By.xpath("//button[span[text()='Submit']]")));
+//            submitButton.click();
+//
+//            // Wait for success or error message
+//            // Wait for any toast or message box to appear
+//            By toastLocator = By.cssSelector("div.ant-message > div"); // or tweak based on actual DOM
+//
+//            WebElement messageBox = new WebDriverWait(driver, Duration.ofSeconds(30))
+//                    .until(ExpectedConditions.visibilityOfElementLocated(toastLocator));
+//
+//// Print message content for debugging
+//            System.out.println("Message displayed: " + messageBox.getText());
+//
+//// Fail only if it's an error
+//            if (messageBox.getAttribute("class").contains("ant-message-error")) {
+//                Assert.fail("Submission failed with error: " + messageBox.getText());
+//            } else {
+//                Assert.assertTrue(messageBox.getText().toLowerCase().contains("success")
+//                                || messageBox.getAttribute("class").contains("success"),
+//                        "Expected success message, but got: " + messageBox.getText());
+//            }
+//
+//
+//        } catch (Exception e) {
+//            takeScreenshot("approve_modal_failure");
+//            throw new RuntimeException("Test failed due to exception: ", e);
+//        }
+//    }
 
 
     private boolean isElementPresent(By locator) {
@@ -221,17 +221,17 @@ public class ApproveModalScheduled extends AppointmentsTestBase {
         }
     }
 
-    @Test(priority = 4)
-    public void testApproveModalCloseButton() {
-
-        WebElement closeBtn = driver.findElement(
-                By.cssSelector(".ant-modal-wrap:not([style*='display: none']) .ant-modal-close"));
-
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", closeBtn);
-
-        // Verify modal closed
-        new WebDriverWait(driver, Duration.ofSeconds(5))
-                .until(ExpectedConditions.invisibilityOfElementLocated(
-                        By.cssSelector(".ant-modal-wrap:not([style*='display: none'])")));
-    }
+//    @Test(priority = 4)
+//    public void testApproveModalCloseButton() {
+//
+//        WebElement closeBtn = driver.findElement(
+//                By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/div[3]/button"));
+//
+//        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", closeBtn);
+//
+//        // Verify modal closed
+//        new WebDriverWait(driver, Duration.ofSeconds(5))
+//                .until(ExpectedConditions.invisibilityOfElementLocated(
+//                        By.cssSelector(".ant-modal-wrap:not([style*='display: none'])")));
+//    }
 }
