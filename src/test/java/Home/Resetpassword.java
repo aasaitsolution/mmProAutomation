@@ -119,7 +119,7 @@ public class Resetpassword {
                     By.cssSelector(".reset-password-modal .submit-button")));
             resetSubmitButton.click();
             System.out.println("🚀 Submitted password reset form");
-            Thread.sleep(3000);
+            Thread.sleep(30000);
 
             wait.until(ExpectedConditions.urlContains("/signin"));
             System.out.println("✅ Password reset successful and redirected to sign-in");
