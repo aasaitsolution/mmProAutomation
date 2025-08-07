@@ -65,14 +65,17 @@ public class PhysicalMeeting {
 
             // Navigate to Request Mining tab
             WebElement mlTab = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[5]")));
+                By.id("rc-tabs-0-tab-ML")));
             mlTab.click();
 
             waitABit();
 
             // Verify navigation success
-            Assert.assertTrue(driver.findElements(By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[1]/table/thead/tr/th[2]")).size() > 0,
-                    "Physical Meeting button not found - navigation failed");
+            WebElement pagination = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.className("ant-pagination")
+            ));
+
+            Assert.assertTrue(pagination.isDisplayed(), "Pagination not visible - Mining License tab might not have loaded correctly");
 
             System.out.println("✅ Navigation to Mining License tab test passed");
         } catch (Exception e) {
@@ -81,21 +84,30 @@ public class PhysicalMeeting {
         }
     }
 
-    @Test(priority = 3, groups = {"smoke", "modal"}, dependsOnMethods = {"testNavigateToMiningLicenseTab"})
+    @Test(priority = 3, groups = {"smoke", "modal"})
     public void testOpenPhysicalMeetingModal() {
         try {
             navigateToPhysicalMeetingModal();
 
             // Verify modal is opened
-            WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//button[contains(@class, 'ant-btn') and .//span[text()='Physical Meeting Status']]")));
-            Assert.assertTrue(modal.isDisplayed(), "Physical Meeting modal is not displayed");
+            WebElement modalButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//button[contains(@class, 'ant-btn') and span[text()='Physical Meeting Status']]")
+            ));
+            Assert.assertTrue(modalButton.isDisplayed(), "Physical Meeting Status button is not displayed");
 
             // Verify modal elements are present
-            Assert.assertTrue(driver.findElements(By.xpath("/html/body/div[3]/div/div[2]/div/div[1]/div/div[2]/div/div/div[2]/button")).size() > 0,
-                    "Approve button not found in modal");
-            Assert.assertTrue(driver.findElements(By.xpath("/html/body/div[3]/div/div[2]/div/div[1]/div/div[2]/div/div/div[1]/button")).size() > 0,
-                    "Reject button not found in modal");
+            // Assert Approve button is present
+            Assert.assertTrue(
+                driver.findElements(By.xpath("//button[.//span[text()='Approve']]")).size() > 0,
+                "Approve button not found in modal"
+            );
+
+            // Assert Reject button is present
+            Assert.assertTrue(
+                driver.findElements(By.xpath("//button[.//span[text()='Reject']]")).size() > 0,
+                "Reject button not found in modal"
+            );
+
 
             System.out.println("✅ Physical Meeting modal opening test passed");
         } catch (Exception e) {
@@ -354,8 +366,9 @@ public class PhysicalMeeting {
         waitABit();
 
         // Click the Physical Meeting button in the table
-        WebElement physicalMeetingButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[2]/table/tbody/tr[2]/td[8]/div/button[2]")));
+        WebElement physicalMeetingButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//button[contains(@class, 'ant-btn') and span[text()='Physical Meeting Status']]")
+            ));
         physicalMeetingButton.click();
 
         // Wait for modal to appear
