@@ -127,13 +127,13 @@ public class RequestMiningFilter {
             filterDropdown.click();
 
             // Verify all filter options are visible
-            List<WebElement> filterOptions = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+            List<WebElement> filterOptions = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(
                     By.xpath("//div[contains(@class, 'ant-select-item-option')]")));
 
             Assert.assertTrue(filterOptions.size() > 0, "Filter options should be visible");
 
             // Verify specific options exist
-            String[] expectedOptions = {"Physical Document", "Pending", "Awaiting ME Scheduling", "Rejected", "ME Approved"};
+            String[] expectedOptions = {"Pending", "Physical Document",  "Awaiting ME Scheduling", "ME Approved" ,"Rejected"};
             for (String option : expectedOptions) {
                 boolean optionExists = filterOptions.stream()
                         .anyMatch(element -> element.getText().trim().equals(option));
@@ -158,19 +158,9 @@ public class RequestMiningFilter {
 
             // Reset filter by selecting "All" or clearing selection
             WebElement filterDropdown = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[1]/div/div[2]/button")));
+                    By.xpath("//button[span[normalize-space(text())='Reset Filters']]")));
             filterDropdown.click();
 
-            // Try to find and click "All" option or clear selection
-            try {
-                WebElement allOption = wait.until(ExpectedConditions.elementToBeClickable(
-                        By.xpath("//div[contains(@class, 'ant-select-item-option') and text()='All']")));
-                allOption.click();
-            } catch (Exception e) {
-                // If "All" option doesn't exist, try clearing the selection
-                WebElement clearButton = driver.findElement(By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[1]/div/div[2]/button"));
-                clearButton.click();
-            }
 
             waitABit();
 
