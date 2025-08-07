@@ -10,7 +10,11 @@ import org.testng.Assert;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 import static org.testng.Assert.fail;
 
@@ -149,85 +153,78 @@ public class ScheduledTabTests extends AppointmentsTestBase {
         submitBtn.click();
     }
 
-//    @Test(priority = 13)
-//    public void testFillAndSubmitApprovalForm() {
-//        try {
-//            // 1. Log browser console warnings/errors (for debugging)
-//            driver.manage().logs().get("browser").forEach(
-//                    log -> System.out.println("BROWSER LOG: " + log));
-//
-//            // 2. Try multiple modal selectors with fallback strategy
-//            WebElement modal = null;
-//            String[] modalSelectors = {
-//                    ".ant-modal-content", // Common content class
-//                    ".ant-modal-wrap:not([style*='display: none'])", // Visible wrapper
-//                    "[role='dialog']", // Generic dialog role
-//                    "//div[contains(@class,'modal') and .//*[contains(text(),'Approve')]]" // Modal with "Approve"
-//            };
-//
-//            for (String selector : modalSelectors) {
-//                try {
-//                    if (selector.startsWith("//")) {
-//                        modal = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(selector)));
-//                    } else {
-//                        modal = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(selector)));
-//                    }
-//                    System.out.println("Modal found with selector: " + selector);
-//                    break;
-//                } catch (TimeoutException e) {
-//                    System.out.println("Modal not found with selector: " + selector);
-//                }
-//            }
-//
-//            if (modal == null) {
-//                takeScreenshot("modal_not_found");
-//                Assert.fail("Could not locate approval modal with any selector");
-//            }
-//
-//            // 3. Fill out the remarks field (textarea)
-//            WebElement remarksInput = wait.until(ExpectedConditions.elementToBeClickable(
-//                    modal.findElement(By.xpath(".//textarea"))));
-//            remarksInput.clear();
-//            remarksInput.sendKeys("Approved for next phase");
-//
-//            // 4. Handle the date picker
-//            WebElement datePicker = wait.until(ExpectedConditions.elementToBeClickable(
-//                    modal.findElement(By.cssSelector(".ant-picker"))));
-//            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", datePicker);
-//
-//            WebElement today = wait.until(ExpectedConditions.elementToBeClickable(
-//                    By.cssSelector(".ant-picker-cell-today")));
-//            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", today);
-//
-//            // 5. Click the submit button (supports multilingual)
-//            WebElement submitBtn = wait.until(ExpectedConditions.elementToBeClickable(
-//                    modal.findElement(By.xpath(".//button[contains(.,'Submit') or contains(.,'ඉදිරිපත් කරන්න') or contains(.,'சமர்ப்பிக்கவும்')]"))));
-//            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitBtn);
-//            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitBtn);
-//
-//            // 6. Verify modal closes and success toast appears
-//            try {
-//                // Wait for modal content to be invisible (more reliable than wrap)
-//                wait.until(ExpectedConditions.invisibilityOfElementLocated(
-//                        By.cssSelector(".ant-modal-content")));
-//
-//                // Wait for success toast (in any language)
-//                WebElement successToast = wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                        By.xpath("//div[contains(@class,'ant-message') and " +
-//                                "(contains(.,'success') or contains(.,'සාර්ථකව') or contains(.,'வெற்றி'))]")));
-//
-//                Assert.assertTrue(successToast.isDisplayed(), "Success toast not shown");
-//
-//            } catch (TimeoutException e) {
-//                takeScreenshot("submit_timeout");
-//                Assert.fail("Failed to detect submission success: " + e.getMessage());
-//            }
-//
-//        } catch (Exception e) {
-//            takeScreenshot("approval_form_failure");
-//            Assert.fail("Failed to fill and submit approval form: " + e.getMessage());
-//        }
-//    }
+  @Test(priority = 13)
+public void testFillAndSubmitApprovalForm() {
+    try {
+        // Log browser warnings (optional)
+        driver.manage().logs().get("browser").forEach(
+            log -> System.out.println("BROWSER LOG: " + log));
+
+        // 1. Click "Approve" button
+        WebElement approveButton = wait.until(ExpectedConditions.elementToBeClickable(
+            By.xpath("//button[.//span[text()='Approve']]")));
+        approveButton.click();
+
+        // Wait for modal and form visible
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".ant-modal-body form")));
+
+        // Fill Total Capacity
+        WebElement totalCapacityInput = driver.findElement(By.id("totalCapacity"));
+        totalCapacityInput.clear();
+        totalCapacityInput.sendKeys("1000");
+
+        // Fill Monthly Maximum Capacity
+        WebElement monthlyCapacityInput = driver.findElement(By.id("monthlyCapacity"));
+        monthlyCapacityInput.clear();
+        monthlyCapacityInput.sendKeys("300");
+
+        // Select specific start date
+        WebElement startDateInput = driver.findElement(By.id("startDate"));
+startDateInput.click();
+selectDate(driver, wait, "06/08/2025", "startDate");
+
+        Thread.sleep(1000);
+
+
+        // // Select specific due date
+        // // 1. Click expiry date input to open date picker
+        // WebElement expiryDateInput = wait.until(ExpectedConditions.elementToBeClickable( By.xpath("//input[@id='dueDate']")));
+        // expiryDateInput.click();
+
+        // 2. Select expiry date (e.g., 10 August 2025)
+        // You need to reuse the same calendar navigation and click logic you used for the start date
+
+        
+        
+        String testFilePath = System.getProperty("user.dir") + "/test-files/receipt.pdf";
+        createDummyFileIfNotExists(testFilePath);
+
+        // Upload file
+        WebElement uploadInput = driver.findElement(By.id("attachments"));
+        uploadInput.sendKeys(testFilePath);
+
+        // Fill Comments (optional)
+        WebElement commentsInput = driver.findElement(By.id("comments"));
+        commentsInput.clear();
+        commentsInput.sendKeys("Capacities set and report uploaded.");
+
+        WebElement dueDateInput = driver.findElement(By.id("dueDate"));
+        dueDateInput.click();
+        selectDate(driver, wait, "10/08/2025", "dueDate");
+
+        // Click Submit button
+        WebElement submitBtn = driver.findElement(By.xpath("//button[contains(.,'Submit')]"));
+        submitBtn.click();
+
+        // Wait for modal to disappear (form submitted)
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".ant-modal-body")));
+
+        System.out.println("Form submitted successfully.");
+    } catch (Exception e) {
+        takeScreenshot("approval_form_failure");
+        Assert.fail("Failed to fill and submit approval form: " + e.getMessage());
+    }
+}
 
 
 
@@ -301,80 +298,33 @@ public class ScheduledTabTests extends AppointmentsTestBase {
     }
 
 
-//    @Test(priority = 17)
-//    public void testModalHoldButtonFunctionality() {
-//        try {
-//            // 1. First verify the hold button exists and is visible
-//            WebElement holdBtn = wait.until(ExpectedConditions.elementToBeClickable(
-//                    By.xpath("//button[contains(.,'Hold')]")));
-//
-//            System.out.println("Hold button found, attempting to click...");
-//            ((JavascriptExecutor)driver).executeScript("arguments[0].scrollIntoView(true);", holdBtn);
-//            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", holdBtn);
-//
-//            // 2. Try multiple modal detection strategies
-//            WebElement modal = null;
-//            String[] modalSelectors = {
-//                    "//div[contains(@class,'ant-modal') and .//*[contains(text(),'Hold Mining License')]]", // Strict
-//                    "//div[contains(@class,'ant-modal')]", // Just modal
-//                    "//div[@role='dialog' and .//*[contains(text(),'Hold')]]", // Role-based
-//                    "//div[contains(@class,'ant-modal-wrap') and not(contains(@style,'display: none'))]" // Wrapper
-//            };
-//
-//            for (String selector : modalSelectors) {
-//                try {
-//                    modal = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(selector)));
-//                    System.out.println("Modal found with selector: " + selector);
-//                    break;
-//                } catch (TimeoutException e) {
-//                    System.out.println("Modal not found with selector: " + selector);
-//                    continue;
-//                }
-//            }
-//
-//            if (modal == null) {
-//                takeScreenshot("hold_modal_not_found");
-//                fail("Could not locate Hold modal with any selector");
-//            }
-//
-//            // 3. Find confirm button with multiple strategies
-//            WebElement confirmHoldBtn = null;
-//            String[] buttonSelectors = {
-//                    ".//button[.//span[contains(.,'Hold')]]",
-//                    ".//button[contains(.,'Hold')]",
-//                    ".//button[contains(@class,'ant-btn-primary')]"
-//            };
-//
-//            for (String selector : buttonSelectors) {
-//                try {
-//                    confirmHoldBtn = modal.findElement(By.xpath(selector));
-//                    System.out.println("Confirm button found with selector: " + selector);
-//                    break;
-//                } catch (NoSuchElementException e) {
-//                    continue;
-//                }
-//            }
-//
-//            if (confirmHoldBtn == null) {
-//                takeScreenshot("confirm_button_not_found");
-//                fail("Could not locate Confirm Hold button");
-//            }
-//
-//            // 4. Click confirm button
-//            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", confirmHoldBtn);
-//            System.out.println("Confirm Hold button clicked");
-//
-//            // 5. Verify modal closed with multiple conditions
-//            wait.until(ExpectedConditions.invisibilityOf(modal));
-//            System.out.println("Modal closed successfully");
-//
-//        } catch (Exception e) {
-//            takeScreenshot("hold_button_failure");
-//            // Print browser console logs
-//            driver.manage().logs().get("browser").forEach(l -> System.out.println("BROWSER LOG: " + l));
-//            throw new AssertionError("Hold button test failed: " + e.getMessage(), e);
-//        }
-//    }
+   @Test(priority = 17)
+   public void testModalHoldButtonFunctionality() {
+       try {
+           
+        WebElement holdButton = wait.until(ExpectedConditions.elementToBeClickable(
+                   By.xpath("//button[.//span[text()='Hold']]")));
+                holdButton.click();
+        
+        // Fill the textarea with reason
+        WebElement reasonTextarea = wait.until(ExpectedConditions.elementToBeClickable(
+            By.xpath("//textarea[@id='comment']")));
+        reasonTextarea.clear();
+        reasonTextarea.sendKeys("The appointment needs to be rescheduled due to unforeseen circumstances.");
+
+        // Click the "Confirm Hold" button
+        WebElement confirmHoldButton = wait.until(ExpectedConditions.elementToBeClickable(
+            By.xpath("//button[.//span[text()='Confirm Hold']]")));
+        confirmHoldButton.click();
+                
+        System.out.println("Form submitted successfully.");
+       } catch (Exception e) {
+           takeScreenshot("hold_button_failure");
+           // Print browser console logs
+           driver.manage().logs().get("browser").forEach(l -> System.out.println("BROWSER LOG: " + l));
+           throw new AssertionError("Hold button test failed: " + e.getMessage(), e);
+       }
+   }
 
     @Test(priority = 18)
     public void testCloseHoldModalButton() {
@@ -482,5 +432,90 @@ public class ScheduledTabTests extends AppointmentsTestBase {
             System.err.println("Failed to capture screenshot: " + e.getMessage());
         }
     }
+
+    private void createDummyFileIfNotExists(String path) {
+        try {
+            File file = new File(path);
+            if (!file.exists()) {
+                file.getParentFile().mkdirs();
+                if (path.endsWith(".pdf")) {
+                    java.nio.file.Files.write(file.toPath(), "Dummy PDF content for testing".getBytes());
+                } else if (path.endsWith(".jpg") || path.endsWith(".png")) {
+                    java.nio.file.Files.write(file.toPath(), "Dummy image content for testing".getBytes());
+                } else {
+                    java.nio.file.Files.write(file.toPath(), "Dummy file content for testing".getBytes());
+                }
+                System.out.println("📄 Created dummy file: " + path);
+            }
+        } catch (Exception e) {
+            System.out.println("❌ Could not create dummy file: " + path);
+            e.printStackTrace();
+        }
+    }
+
+  public void selectDate(WebDriver driver, WebDriverWait wait, String dateStr, String inputId) throws InterruptedException {
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    LocalDate targetDate = LocalDate.parse(dateStr, formatter);
+
+    WebElement dateInput = driver.findElement(By.id(inputId));
+
+    // Open the date picker explicitly (try multiple clicks if needed)
+    boolean calendarOpened = false;
+    int attempts = 0;
+    while (!calendarOpened && attempts < 3) {
+        dateInput.click();
+        Thread.sleep(1000);
+        List<WebElement> calendars = driver.findElements(By.cssSelector(".ant-picker-panel"));
+        for (WebElement cal : calendars) {
+            if (cal.isDisplayed()) {
+                calendarOpened = true;
+                break;
+            }
+        }
+        attempts++;
+    }
+    if (!calendarOpened) {
+        // fallback: JS click
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", dateInput);
+        Thread.sleep(1000);
+        List<WebElement> calendars = driver.findElements(By.cssSelector(".ant-picker-panel"));
+        calendarOpened = calendars.stream().anyMatch(WebElement::isDisplayed);
+    }
+    if (!calendarOpened) {
+        throw new RuntimeException("Failed to open calendar popup for input with id: " + inputId);
+    }
+
+    // // Wait for calendar panel visible
+    // wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".ant-picker-panel")));
+    // Thread.sleep(500);
+
+    // (navigate to correct month/year as before...)
+
+    // Select day (pick first visible and enabled matching day)
+    String dayString = String.valueOf(targetDate.getDayOfMonth());
+    List<WebElement> dayCells = driver.findElements(By.xpath(
+        "//td[contains(@class,'ant-picker-cell') and not(contains(@class,'ant-picker-cell-disabled'))]" +
+        "[div[contains(@class,'ant-picker-cell-inner') and text()='" + dayString + "']]"));
+
+    WebElement dayCell = null;
+    for (WebElement cell : dayCells) {
+        if (cell.isDisplayed() && cell.isEnabled()) {
+            dayCell = cell;
+            break;
+        }
+    }
+    if (dayCell == null) {
+        throw new RuntimeException("No enabled day cell found for day: " + dayString);
+    }
+
+    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", dayCell);
+    Thread.sleep(200);
+    try {
+        dayCell.click();
+    } catch (Exception e) {
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", dayCell);
+    }
+    Thread.sleep(500);
+}
 
 }

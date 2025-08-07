@@ -56,7 +56,7 @@ public class ValidateLicense {
     }
 
     // ==================== NAVIGATION TESTS ====================
-    @Test(priority = 2, groups = {"smoke", "navigation"}, dependsOnMethods = {"testSuccessfulLogin"})
+    @Test(priority = 2, groups = {"smoke", "navigation"})
     public void testNavigateToMiningLicenseTab() {
         try {
             performLogin();
@@ -65,14 +65,18 @@ public class ValidateLicense {
 
             // Navigate to Request Mining tab
             WebElement mlTab = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[5]")));
+                   By.xpath("//div[@role='tab' and text()='Request Mining']")));
             mlTab.click();
 
             waitABit();
 
-            // Verify navigation success
-            Assert.assertTrue(driver.findElements(By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[1]/table/thead/tr/th[2]")).size() > 0,
-                    "License validation button not found - navigation failed");
+            // Verify navigation success by checking for "Request Subject" column
+            boolean isRequestSubjectColumnPresent = driver.findElements(
+                By.xpath("//thead//th[text()='Request Subject']")
+            ).size() > 0;
+
+            Assert.assertTrue(isRequestSubjectColumnPresent,
+                    "❌ 'Request Subject' column not found - navigation to Mining License tab may have failed");
 
             System.out.println("✅ Navigation to Mining License tab test passed");
         } catch (Exception e) {
@@ -111,6 +115,7 @@ public class ValidateLicense {
             // Click Validate button
             WebElement validateButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[contains(@class, 'ant-btn-primary') and .//span[text()='Validate']]")));
+
             validateButton.click();
 
             waitABit();
@@ -124,28 +129,28 @@ public class ValidateLicense {
         }
     }
 
-//    @Test(priority = 5, groups = {"functional", "modal-close"})
-//    public void testCloseValidationModal() {
-//        try {
-//            navigateToLicenseValidationModal();
-//
-//            // Click close button (X button)
-//            WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
-//                    By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/button")));
-//            closeButton.click();
-//
-//            waitABit();
-//
-//            // Verify modal is closed
-//            Assert.assertTrue(driver.findElements(By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/button")).size() == 0,
-//                    "Modal should be closed but is still visible");
-//
-//            System.out.println("✅ License validation modal close test passed");
-//        } catch (Exception e) {
-//            System.out.println("❌ Modal close test failed: " + e.getMessage());
-//            throw e;
-//        }
-//    }
+   @Test(priority = 5, groups = {"functional", "modal-close"})
+   public void testCloseValidationModal() {
+       try {
+           navigateToLicenseValidationModal();
+
+           // Click close button (X button)
+           WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
+                   By.xpath("//button[@aria-label='Close' and contains(@class, 'ant-modal-close')]")));
+           closeButton.click();
+
+           waitABit();
+
+           // Verify modal is closed
+           Assert.assertTrue(driver.findElements(By.xpath("/html/body/div[2]/div/div[2]/div/div[1]/div/button")).size() == 0,
+                   "Modal should be closed but is still visible");
+
+           System.out.println("✅ License validation modal close test passed");
+       } catch (Exception e) {
+           System.out.println("❌ Modal close test failed: " + e.getMessage());
+           throw e;
+       }
+   }
 
     // ==================== HELPER METHODS ====================
     private void performLogin() {
@@ -167,9 +172,9 @@ public class ValidateLicense {
         wait.until(ExpectedConditions.urlToBe(BASE_URL + "/gsmb/dashboard"));
         waitABit();
 
-        // Navigate to Mining License tab
+        // Navigate to request Mining  tab
         WebElement mlTab = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[5]")));
+                By.xpath("//div[@role='tab' and text()='Request Mining']")));
         mlTab.click();
 
         waitABit();
@@ -188,12 +193,13 @@ public class ValidateLicense {
 
         // Click the validate the license button in the table
         WebElement validateLicenseButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div[2]/div/div/div/div/div[2]/table/tbody/tr[2]/td[8]/div/button[2]")));
+                    By.xpath("//button[contains(@class, 'ant-btn-primary') and .//span[text()='Validate the license']]")));
+
         validateLicenseButton.click();
 
         // Wait for modal to appear
-        wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//div[@class='ant-modal-title' and text()='License Validation']")));
+       wait.until(ExpectedConditions.visibilityOfElementLocated(
+    By.xpath("//div[contains(@class, 'ant-modal-title') and normalize-space(text())='License Validation']")));
     }
 
     private void waitABit() {
