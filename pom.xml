@@ -19,7 +19,7 @@
     </properties>
 
     <dependencies>
-    
+
         <!-- Selenium Java dependency -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>

@@ -360,7 +360,7 @@ public class MiningLicenseTestSuite {
         Thread.sleep(500);
 
         WebElement addButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/div/div/div/div/table/tbody/tr[1]/td[7]/div/a/button/span")));
+                By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/div/div/div/div/div/div/table/tbody/tr[1]/td[7]/div/a/button")));
         addButton.click();
         Thread.sleep(500);
     }
@@ -530,7 +530,7 @@ public class MiningLicenseTestSuite {
                 e.printStackTrace();
             }
 
-             driver.quit();
+            driver.quit();
         }
     }
 
