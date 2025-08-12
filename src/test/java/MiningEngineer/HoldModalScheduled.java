@@ -92,6 +92,7 @@ public class HoldModalScheduled extends AppointmentsTestBase {
 
     @Test(priority = 2)
     public void testHoldModalRequiredValidation() {
+        openHoldModal();
         WebElement holdButton = driver.findElement(By.xpath("//button[span[text()='Confirm Hold']]"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", holdButton);
 

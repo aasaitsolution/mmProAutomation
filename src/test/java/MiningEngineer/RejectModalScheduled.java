@@ -100,8 +100,10 @@ public class RejectModalScheduled extends AppointmentsTestBase {
 
     @Test(priority = 2)
     public void testRejectModalRequiredValidation() {
+        openRejectModal();
         // Find the submit button using the correct selector from HTML
-        WebElement submitButton = driver.findElement(By.xpath("//button[span[text()='Confirm Rejection']]"));
+        WebElement submitButton = driver.findElement(By.xpath("//button[span[text()='Confirm Rejection']]")
+);
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
 
         // Click Submit without filling the form
@@ -113,8 +115,8 @@ public class RejectModalScheduled extends AppointmentsTestBase {
         try {
             // Check for Ant Design toast/message notification
             WebElement toastMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//div[contains(@class,'ant-message')] | //div[contains(@class,'ant-notification')] | //div[contains(@class,'toast')]")));
-
+                   By.xpath("//div[contains(@class,'ant-message-notice-content')]//span[contains(text(),'Please fill all required fields')]")
+            ));
             Assert.assertTrue(toastMessage.isDisplayed(), "Validation toast message not shown for required fields.");
 
             // Optionally verify the toast message content contains validation text

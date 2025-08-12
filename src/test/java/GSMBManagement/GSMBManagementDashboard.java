@@ -322,6 +322,8 @@ public class GSMBManagementDashboard {
         }
     }
 
+    private static final String BASE_URL = "https://mmpro.aasait.lk";
+
     @Test(priority = 12, dependsOnMethods = {"loginToDashboard"})
     public void clickActivation() throws InterruptedException {
 
@@ -346,7 +348,7 @@ public class GSMBManagementDashboard {
         System.out.println("📍 Current URL: " + driver.getCurrentUrl());
     }
 
-    @Test(priority = 13, dependsOnMethods = {"clickActivation"})
+   @Test(priority = 13, dependsOnMethods = "loginToDashboard")
     public void verifyOfficerActivationPage() {
         waitForOfficerActivationPageToLoad();
         wait.until(ExpectedConditions.visibilityOfElementLocated(
@@ -359,15 +361,17 @@ public class GSMBManagementDashboard {
     }
 
     public void waitForOfficerActivationPageToLoad() {
-        try {
-            wait.until(ExpectedConditions.visibilityOfElementLocated(
+    wait.until(ExpectedConditions.urlContains("/gsmbmanagement"));
+
+    try {
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//h1[contains(text(),'Officer Activation')]")));
-            System.out.println("🟢 Officer Activation page is fully loaded.");
-        } catch (TimeoutException e) {
-            System.out.println("❌ Timeout: Officer Activation page did not load.");
-            throw e;
-        }
+        System.out.println("🟢 Officer Activation page is fully loaded.");
+    } catch (TimeoutException e) {
+        System.out.println("❌ Timeout: Officer Activation page did not load.");
+        throw e;
     }
+}
 
     @AfterClass
     public void tearDown() {
