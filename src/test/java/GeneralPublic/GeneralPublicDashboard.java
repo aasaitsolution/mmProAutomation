@@ -18,7 +18,7 @@ public class GeneralPublicDashboard {
     private WebDriver driver;
     private WebDriverWait wait;
 
-     @BeforeClass
+    @BeforeClass
     public void setup() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--incognito");
@@ -38,7 +38,7 @@ public class GeneralPublicDashboard {
     @Test(priority = 2, dependsOnMethods = {"openWebsite"})
     public void clickCheckValidityButton() {
         WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("//*[@id=\"root\"]/div/main/h1/button")));
+                By.xpath("//*[@id=\"root\"]/div/main/h1/button")));
         loginButton.click();
         System.out.println("🟢 Clicked 'Check Validity' button");
     }
@@ -46,45 +46,45 @@ public class GeneralPublicDashboard {
     @Test(priority = 3, dependsOnMethods = {"clickCheckValidityButton"})
     public void enterAndSubmitVehicleNumber() {
         WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-            By.cssSelector("input[type='text']")));
+                By.cssSelector("input[type='text']")));
         inputField.sendKeys("ABX1234");
         System.out.println("✍️ Entered vehicle number: ABX1234");
 
         WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
-            By.cssSelector("button.check-button")));
+                By.cssSelector("button.check-button")));
         checkButton.click();
         System.out.println("✅ Clicked check button");
     }
 
     @Test(priority = 4, dependsOnMethods = {"enterAndSubmitVehicleNumber"})
-public void verifyModalResponse() {
-    try {
-        // 1. Wait for modal-content to appear
-        WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-            By.cssSelector("div.modal-content")));
+    public void verifyModalResponse() {
+        try {
+            // 1. Wait for modal-content to appear
+            WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("div.modal-content")));
 
-        // 2. Wait for the input inside gp-modal-body
-        WebElement inputField = wait.until(ExpectedConditions.visibilityOfNestedElementsLocatedBy(
-            modal, By.cssSelector("input.valid-message"))).get(0);
+            // 2. Wait for the input inside gp-modal-body
+            WebElement inputField = wait.until(ExpectedConditions.visibilityOfNestedElementsLocatedBy(
+                    modal, By.cssSelector("input.valid-message"))).get(0);
 
-        // 3. Extract the value
-        String modalValue = inputField.getAttribute("value").trim();
-        System.out.println("📩 Modal appeared with value: " + modalValue);
+            // 3. Extract the value
+            String modalValue = inputField.getAttribute("value").trim();
+            System.out.println("📩 Modal appeared with value: " + modalValue);
 
-        // 4. Assert it's "Valid Load" now
-        Assert.assertEquals(modalValue, "Valid Load", "The modal did not show the expected 'Valid Load' message.");
+            // 4. Assert it's "Valid Load" now
+            Assert.assertEquals(modalValue, "Valid Load", "The modal did not show the expected 'Valid Load' message.");
 
-        // 5. Close modal
-        WebElement closeButton = modal.findElement(By.cssSelector(".modal-close-button"));
-        closeButton.click();
-        wait.until(ExpectedConditions.invisibilityOf(modal));
-        System.out.println("🧹 Modal closed successfully.");
+            // 5. Close modal
+            WebElement closeButton = modal.findElement(By.cssSelector(".modal-close-button"));
+            closeButton.click();
+            wait.until(ExpectedConditions.invisibilityOf(modal));
+            System.out.println("🧹 Modal closed successfully.");
 
-    } catch (TimeoutException e) {
-        System.out.println("❌ Modal did not appear in the expected time.");
-        Assert.fail("Modal not found after checking license number.", e);
+        } catch (TimeoutException e) {
+            System.out.println("❌ Modal did not appear in the expected time.");
+            Assert.fail("Modal not found after checking license number.", e);
+        }
     }
-}
 
 
 
@@ -93,20 +93,20 @@ public void verifyModalResponse() {
     public void enterInvalidVehicleNumberFormat() {
         try {
             WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.cssSelector("input[type='text']")));
+                    By.cssSelector("input[type='text']")));
             inputField.clear();
             inputField.sendKeys("XYZ!");  // Invalid format
             System.out.println("✍️ Entered invalid vehicle number: XYZ!");
 
             WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("button.check-button")));
+                    By.cssSelector("button.check-button")));
             checkButton.click();
             System.out.println("🚫 Clicked check button with invalid input");
             Thread.sleep(1000);
 
             // Wait for the modal to appear
             WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.className("gp-modal-body")));
+                    By.className("gp-modal-body")));
 
             // Look for the .invalid-message input
             WebElement invalidInput = modal.findElement(By.cssSelector("input.invalid-message"));
@@ -138,7 +138,7 @@ public void verifyModalResponse() {
         }
     }
 
- 
+
 
     @AfterClass
     public void tearDown() {
