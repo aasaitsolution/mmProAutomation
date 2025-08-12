@@ -41,7 +41,7 @@ public class TPLandMLview {
         navigateToTab("Mining License", "//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[3]");
 
         WebElement viewButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/div/div/div[2]/table/tbody/tr[2]/td[7]/div/button")));
+                By.xpath("//button[span[text()='View']]")));
         viewButton.click();
 
         verifyAndCloseModal("/html/body/div[2]/div/div[2]/div/div[1]/div/button");
@@ -52,7 +52,7 @@ public class TPLandMLview {
         navigateToTab("Transport License", "//*[@id=\"root\"]/div/main/div/div[2]/div[1]/div[1]/div/div[2]");
 
         WebElement viewButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/div/div/div[2]/table/tbody/tr[2]/td[11]/div/button")));
+                By.xpath("//button[span[text()='View']]")));
         viewButton.click();
 
         verifyAndCloseModal("/html/body/div[2]/div/div[2]/div/div[1]/div/button");
@@ -125,7 +125,7 @@ public class TPLandMLview {
     @AfterMethod
     public void tearDown() {
         if (driver != null) {
-           // driver.quit();
+            driver.quit();
         }
     }
 }
