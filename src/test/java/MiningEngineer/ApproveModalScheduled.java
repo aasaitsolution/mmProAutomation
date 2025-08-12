@@ -97,10 +97,11 @@ public class ApproveModalScheduled extends AppointmentsTestBase {
 
     @Test(priority = 2)
     public void testApproveModalRequiredValidation() {
+        openApproveModal();
         // Scroll to the submit button
-        WebElement submitButton = driver.findElement(By.xpath("//button[span[text()='Submit']]"));
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
-
+       WebElement submitButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
+    By.xpath("//button[span[text()='Submit']]")
+));
         // Click Submit without filling the form
         submitButton.click();
 
@@ -110,9 +111,11 @@ public class ApproveModalScheduled extends AppointmentsTestBase {
         try {
             // Check for Ant Design toast/message notification
             WebElement toastMessage = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//div[contains(@class,'ant-message')] | //div[contains(@class,'ant-notification')] | //div[contains(@class,'toast')]")));
+    By.xpath("//div[contains(@class,'ant-message-notice-wrapper')]//div[contains(@class,'ant-message-notice-error')] | //div[contains(@class,'ant-notification')] | //div[contains(@class,'toast')]")
+));
 
-            Assert.assertTrue(toastMessage.isDisplayed(), "Validation toast message not shown for required fields.");
+Assert.assertTrue(toastMessage.isDisplayed(), "Validation toast message not shown for required fields.");
+
 
             // Optionally verify the toast message content contains validation text
             String toastText = toastMessage.getText().toLowerCase();
