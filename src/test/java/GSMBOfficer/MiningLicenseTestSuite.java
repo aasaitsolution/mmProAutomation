@@ -322,7 +322,7 @@ public class MiningLicenseTestSuite {
 
             // Navigate to add license
             WebElement addButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@id=\"root\"]/div/main/div/div[4]/div/div/div/div/div/div/div/table/tbody/tr[1]/td[7]/div/a/button/span")));
+                    By.xpath("//button[span[text()='+ Add New License']]")));
             addButton.click();
             Thread.sleep(500);
 
