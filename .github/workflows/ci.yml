@@ -41,42 +41,42 @@ jobs:
 
 
   deploy-report:
-  needs: test
-  runs-on: ubuntu-latest
-
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Download Allure Results
-      uses: actions/download-artifact@v4
-      with:
-        name: allure-results
-        path: allure-results
-
-    - name: Download previous history
-      run: |
-        git fetch origin gh-pages || true
-        git checkout gh-pages -- history || echo "No previous history found"
-
-    - name: Prepare Allure History
-      run: |
-        mkdir -p allure-results/history
-        cp -r history/* allure-results/history/ || true
-
-    - name: Generate Allure Report
-      run: |
-        mvn io.qameta.allure:allure-maven:report -Dallure.results.directory=allure-results
-        mkdir -p allure-report
-        cp -r target/allure-report/* allure-report/ || echo "No report generated"
-
-    - name: Save history
-      run: |
-        mkdir -p allure-report/history
-        cp -r allure-report/history ./history || true
-
-    - name: Deploy Allure Report to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: allure-report
+    needs: test
+    runs-on: ubuntu-latest
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+  
+      - name: Download Allure Results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results
+  
+      - name: Download previous history
+        run: |
+          git fetch origin gh-pages || true
+          git checkout gh-pages -- history || echo "No previous history found"
+  
+      - name: Prepare Allure History
+        run: |
+          mkdir -p allure-results/history
+          cp -r history/* allure-results/history/ || true
+  
+      - name: Generate Allure Report
+        run: |
+          mvn io.qameta.allure:allure-maven:report -Dallure.results.directory=allure-results
+          mkdir -p allure-report
+          cp -r target/allure-report/* allure-report/ || echo "No report generated"
+  
+      - name: Save history
+        run: |
+          mkdir -p allure-report/history
+          cp -r allure-report/history ./history || true
+  
+      - name: Deploy Allure Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report
