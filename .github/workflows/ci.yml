@@ -1,4 +1,4 @@
-name: Run Tests and Generate Allure Report
+name: Run Tests and Deploy Allure Report
 
 on:
   push:
@@ -30,9 +30,6 @@ jobs:
       - name: Run Tests
         run: mvn test || true   # keep workflow running even if tests fail
 
-      - name: Generate Allure Results
-        run: mvn allure:report
-
       - name: Upload Allure Results
         uses: actions/upload-artifact@v4
         with:
@@ -53,30 +50,33 @@ jobs:
           name: allure-results
           path: allure-results
 
-      # ✅ Download previous history from gh-pages branch
-      - name: Download previous report history
+      # ✅ Get old history from gh-pages branch
+      - name: Download previous history
         run: |
-          git fetch origin gh-pages
-          git checkout gh-pages -- history || echo "No history found"
+          git fetch origin gh-pages || true
+          git checkout gh-pages -- history || echo "No previous history found"
 
-      # ✅ Copy history into results before generating new report
+      # ✅ Copy history into new results
       - name: Prepare Allure History
         run: |
           mkdir -p allure-results/history
           cp -r history/* allure-results/history/ || true
 
-      - name: Generate Final Allure Report
+      # ✅ Generate Allure Report
+      - name: Generate Allure Report
         run: |
-          mvn allure:report -Dallure.results.directory=allure-results
+          mvn io.qameta.allure:allure-maven:report \
+            -Dallure.results.directory=allure-results
           mkdir -p allure-report
-          cp -r target/allure-report/* allure-report/
+          cp -r target/site/allure-maven-plugin/* allure-report/
 
-      # ✅ Save new history for next runs
+      # ✅ Save history for next run
       - name: Save history
         run: |
           mkdir -p allure-report/history
           cp -r allure-report/history ./history || true
 
+      # ✅ Deploy report to GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
