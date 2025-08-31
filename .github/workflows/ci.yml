@@ -28,16 +28,13 @@ jobs:
             ${{ runner.os }}-m2
 
       - name: Run Tests
-        run: mvn test || true
+        run: mvn test || true   # keep workflow running even if tests fail
 
-      - name: Generate Allure Report
-        run: |
-          mvn allure:report
-          mkdir -p target/allure-results/history
-          cp -r target/allure-report/history/. target/allure-results/history/ || true
+      - name: Generate Allure Results
+        run: mvn allure:report
 
       - name: Upload Allure Results
-        uses: actions/upload-artifact@v4   # ✅ v4 (not v3)
+        uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: target/allure-results
@@ -47,20 +44,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download Allure Results
         uses: actions/download-artifact@v4
         with:
           name: allure-results
           path: allure-results
 
+      # ✅ Download previous history from gh-pages branch
+      - name: Download previous report history
+        run: |
+          git fetch origin gh-pages
+          git checkout gh-pages -- history || echo "No history found"
+
+      # ✅ Copy history into results before generating new report
+      - name: Prepare Allure History
+        run: |
+          mkdir -p allure-results/history
+          cp -r history/* allure-results/history/ || true
+
       - name: Generate Final Allure Report
         run: |
           mvn allure:report -Dallure.results.directory=allure-results
-          mkdir -p allure-report-history
-          cp -r target/allure-report/* allure-report-history/
+          mkdir -p allure-report
+          cp -r target/allure-report/* allure-report/
+
+      # ✅ Save new history for next runs
+      - name: Save history
+        run: |
+          mkdir -p allure-report/history
+          cp -r allure-report/history ./history || true
 
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-report-history
+          publish_dir: allure-report
