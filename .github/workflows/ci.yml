@@ -71,10 +71,8 @@ jobs:
         
     - name: Generate Allure Report
       run: |
-        mkdir -p target/allure-results
-        cp -r allure-results/* target/allure-results/ || true
         mvn io.qameta.allure:allure-maven:report
-            
+        
     - name: Prepare deployment directory
       run: |
         mkdir -p allure-report
@@ -90,3 +88,9 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: allure-report
+        
+    - name: Display Report URL
+      run: |
+        echo "🎉 Allure Report has been deployed!"
+        echo "📊 View your report at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+        echo "🔗 Direct link: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/index.html"
