@@ -114,18 +114,20 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '🎉 **Allure Test Report Generated!**\n\n📊 [View Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)\n\n*Report will be available in a few minutes after deployment completes.*'
+            body: '🎉 **Allure Test Report Generated!**\n\n📊 [View Report](https://Janeesha123.github.io/mmProAutomation/)\n\n*Report will be available in a few minutes after deployment completes.*'
           })
           
-    - name: Create deployment status
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.repos.createDeploymentStatus({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            deployment_id: context.payload.deployment?.id || 1,
-            state: 'success',
-            environment_url: 'https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/',
-            description: 'Allure Report deployed successfully'
-          })
+    - name: 🔗 Final Report Link
+      run: |
+        echo ""
+        echo "🎯 CLICK TO VIEW YOUR REPORT:"
+        echo "👉 https://Janeesha123.github.io/mmProAutomation/"
+        echo ""
+        
+    - name: Add to Job Summary
+      run: |
+        echo "## 🎉 Allure Report Generated Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 [Click here to view your Allure Report](https://Janeesha123.github.io/mmProAutomation/)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Report URL: \`https://Janeesha123.github.io/mmProAutomation/\`" >> $GITHUB_STEP_SUMMARY
