@@ -71,8 +71,10 @@ jobs:
         
     - name: Generate Allure Report
       run: |
+        mkdir -p target/allure-results
+        cp -r allure-results/* target/allure-results/ || true
         mvn io.qameta.allure:allure-maven:report
-        
+            
     - name: Prepare deployment directory
       run: |
         mkdir -p allure-report
