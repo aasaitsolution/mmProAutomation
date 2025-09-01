@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  test-and-report:
     runs-on: ubuntu-latest
     
     steps:
@@ -27,37 +27,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-m2
           
-    - name: Run Tests
-      run: mvn test || true # keep workflow running even if tests fail
-      
-    - name: Upload Allure Results
-      uses: actions/upload-artifact@v4
-      with:
-        name: allure-results
-        path: target/allure-results
-        
-    - name: Check allure results
-      run: ls -R target || echo "No results found"
-
-  deploy-report:
-    needs: test
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: 17
-        
-    - name: Download Allure Results
-      uses: actions/download-artifact@v4
-      with:
-        name: allure-results
-        path: target/allure-results  # Download directly to target/allure-results
+    - name: 🧪 Run Tests (Step 1)
+      run: |
+        echo "=============================================="
+        echo "🧪 RUNNING TESTS..."
+        echo "=============================================="
+        mvn test
+        echo "✅ Tests completed!"
         
     - name: Download previous history
       run: |
@@ -69,24 +45,18 @@ jobs:
         mkdir -p target/allure-results/history
         cp -r history/* target/allure-results/history/ || true
         
-    - name: Generate Allure Report
-      run: |
-        mvn io.qameta.allure:allure-maven:report
-        
-    - name: 🚀 Display Report URL
+    - name: 📊 Generate Allure Report (Step 2)
       run: |
         echo "=============================================="
-        echo "🎉 ALLURE REPORT READY!"
+        echo "📊 GENERATING ALLURE REPORT..."
         echo "=============================================="
-        echo "📊 Your report URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-        echo "=============================================="
-        echo "ℹ️  Report will be live in 2-3 minutes"
-        echo "=============================================="
+        mvn allure:report
+        echo "✅ Report generated successfully!"
         
     - name: Prepare deployment directory
       run: |
         mkdir -p allure-report
-        cp -r target/allure-report/* allure-report/ || echo "No report generated"
+        cp -r target/allure-report/* allure-report/
         
     - name: Save history for next run
       run: |
@@ -99,11 +69,31 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: allure-report
         
-    - name: Display Report URL
+    - name: 🎉 Show Allure Report Link (Step 3)
       run: |
-        echo "🎉 Allure Report has been deployed!"
-        echo "📊 View your report at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-        echo "🔗 Direct link: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/index.html"
+        echo ""
+        echo "=============================================="
+        echo "🎉 ALLURE REPORT READY!"
+        echo "=============================================="
+        echo "📊 Your report is available at:"
+        echo "👉 https://Janeesha123.github.io/mmProAutomation/"
+        echo "=============================================="
+        echo "ℹ️  Report will be live in 2-3 minutes"
+        echo "=============================================="
+        echo ""
+        
+    - name: Add to Job Summary
+      run: |
+        echo "## 🎉 Test Execution Complete!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 [🔗 Click here to view your Allure Report](https://Janeesha123.github.io/mmProAutomation/)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Report URL:** \`https://Janeesha123.github.io/mmProAutomation/\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Test Results:**" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Tests completed successfully" >> $GITHUB_STEP_SUMMARY
+        echo "- 📊 Allure report generated" >> $GITHUB_STEP_SUMMARY
+        echo "- 🚀 Report deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
         
     - name: Comment PR with Report Link
       if: github.event_name == 'pull_request'
@@ -114,20 +104,5 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '🎉 **Allure Test Report Generated!**\n\n📊 [View Report](https://Janeesha123.github.io/mmProAutomation/)\n\n*Report will be available in a few minutes after deployment completes.*'
+            body: '🎉 **Test Execution Complete!**\n\n📊 **[View Allure Report](https://Janeesha123.github.io/mmProAutomation/)**\n\n✅ All tests have been executed and the report is ready!\n\n*Report will be available in 2-3 minutes after deployment completes.*'
           })
-          
-    - name: 🔗 Final Report Link
-      run: |
-        echo ""
-        echo "🎯 CLICK TO VIEW YOUR REPORT:"
-        echo "👉 https://Janeesha123.github.io/mmProAutomation/"
-        echo ""
-        
-    - name: Add to Job Summary
-      run: |
-        echo "## 🎉 Allure Report Generated Successfully!" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📊 [Click here to view your Allure Report](https://Janeesha123.github.io/mmProAutomation/)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Report URL: \`https://Janeesha123.github.io/mmProAutomation/\`" >> $GITHUB_STEP_SUMMARY
