@@ -59,4 +59,4 @@ jobs:
           username: ${{ secrets.SLT_USER }}
           password: ${{ secrets.SLT_PASS }}
           source: "target/allure-report/*"
-          target: "/home/${{ secrets.SLT_USER }}/selenium-report"
+          target: "/var/www/html/selenium-report"
