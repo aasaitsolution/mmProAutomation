@@ -22,33 +22,27 @@ jobs:
       - name: Run Tests (ignore failures so report still generates)
         run: mvn clean test -Dmaven.test.failure.ignore=true
 
-      - name: Generate Allure Report
-        run: mvn allure:report
-
-      - name: Upload Allure Report as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: target/site/allure-maven-plugin
-
-      - name: Debug list files
-        run: ls -R target/site
-
       - name: Install Allure CLI
         run: |
           sudo apt-add-repository ppa:qameta/allure -y
           sudo apt-get update
           sudo apt-get install allure -y
 
-      - name: Generate Allure Report via CLI
+      - name: Generate Allure Report
         run: allure generate target/allure-results -o target/allure-report --clean
-       
+
+      - name: Upload Allure Report as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/allure-report
+
       - name: Deploy Allure Report to SLT server
-        if: always() # ensures deploy runs even if tests failed
+        if: always()
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SLT_HOST }}
           username: ${{ secrets.SLT_USER }}
           password: ${{ secrets.SLT_PASS }}
-          source: "target/site/allure-maven-plugin/*"
+          source: "target/allure-report/*"
           target: "/var/www/html/selenium-report"
