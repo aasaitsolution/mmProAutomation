@@ -32,13 +32,12 @@ jobs:
           wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
           tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
-          source $GITHUB_PATH
-          allure --version
+      - name: Check Allure version
+        run: allure --version
 
       # 5. Generate Allure report
       - name: Generate Allure Report
-        run: |
-          allure generate target/allure-results -o target/allure-report --clean
+        run: allure generate target/allure-results -o target/allure-report --clean
 
       # 6. Upload Allure report as GitHub artifact
       - name: Upload Allure Report
