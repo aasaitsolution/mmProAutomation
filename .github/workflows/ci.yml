@@ -31,6 +31,18 @@ jobs:
           name: allure-report
           path: target/site/allure-maven-plugin
 
+      - name: Debug list files
+        run: ls -R target/site
+
+      - name: Install Allure CLI
+        run: |
+          sudo apt-add-repository ppa:qameta/allure -y
+          sudo apt-get update
+          sudo apt-get install allure -y
+
+      - name: Generate Allure Report via CLI
+        run: allure generate target/allure-results -o target/allure-report --clean
+       
       - name: Deploy Allure Report to SLT server
         if: always() # ensures deploy runs even if tests failed
         uses: appleboy/scp-action@v0.1.7
