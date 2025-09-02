@@ -1,44 +1,63 @@
-name: Run Tests and Publish Allure Report
+name: Selenium CI with Allure Report
 
 on:
   push:
-    branches: [ "main" ]     # Runs on push to main
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]     # Runs on PR to main
 
 jobs:
-  test:
+  test-and-report:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up JDK
+      # 2. Set up Java
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '22'
+          java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Build with Maven
-        run: mvn clean install -DskipTests
-
+      # 3. Run Maven tests (ignore failures so report still generates)
       - name: Run Tests
-        run: mvn test
+        run: mvn clean test -Dmaven.test.failure.ignore=true
 
+      # 4. Install Allure CLI directly (bypassing PPA)
+      - name: Install Allure CLI
+        run: |
+          ALLURE_VERSION=2.26.0
+          wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
+          tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
+          echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
+      - name: Check Allure version
+        run: allure --version
+
+      # 5. Generate Allure report
       - name: Generate Allure Report
-        run: mvn allure:report
+        run: allure generate target/allure-results -o target/allure-report --clean
 
-      - name: Upload Allure Report Artifact
-        uses: actions/upload-artifact@v3
+      # 6. List report contents (for debugging / SCP safety)
+      - name: List Allure report contents
+        run: ls -R target/allure-report
+
+      # 7. Upload Allure report as GitHub artifact
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: target/site/allure-maven-plugin
+          path: target/allure-report
+
+      # 8. Deploy Allure report to SLT server (safe path)
+      - name: Deploy Allure Report to SLT
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SLT_HOST }}
+          username: ${{ secrets.SLT_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "target/allure-report/*"
+          target: "/var/www/html/selenium-report"
+          strip_components: 0
+          rm: false
