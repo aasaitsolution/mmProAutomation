@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -19,8 +19,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build and Run Tests
-        run: mvn clean test
+      - name: Run Tests (ignore failures so report still generates)
+        run: mvn clean test -Dmaven.test.failure.ignore=true
 
       - name: Generate Allure Report
         run: mvn allure:report
@@ -32,11 +32,11 @@ jobs:
           path: target/site/allure-maven-plugin
 
       - name: Deploy Allure Report to SLT server
+        if: always() # ensures deploy runs even if tests failed
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SLT_HOST }}
           username: ${{ secrets.SLT_USER }}
-          password: ${{ secrets.SLT_PASS }} # or use SSH key
+          password: ${{ secrets.SLT_PASS }}
           source: "target/site/allure-maven-plugin/*"
           target: "/var/www/html/selenium-report"
-
