@@ -32,6 +32,7 @@ jobs:
           wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
           tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
+          source $GITHUB_PATH
           allure --version
 
       # 5. Generate Allure report
