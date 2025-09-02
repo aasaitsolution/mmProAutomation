@@ -56,6 +56,6 @@ jobs:
         with:
           host: ${{ secrets.SLT_HOST }}
           username: ${{ secrets.SLT_USER }}
-          key: ${{ secrets.SLT_SSH_KEY }}
+          key: ${{ secrets.SLT_PASS }}
           source: "target/allure-report/*"
           target: "/var/www/html/selenium-report"
