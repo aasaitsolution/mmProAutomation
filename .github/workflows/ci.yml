@@ -1,108 +1,42 @@
-name: Run Tests and Deploy Allure Report
+name: Selenium Tests with Allure
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
 
 jobs:
-  test-and-report:
+  test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: 17
-        
-    - name: Cache Maven packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-m2
-          
-    - name: 🧪 Run Tests (Step 1)
-      run: |
-        echo "=============================================="
-        echo "🧪 RUNNING TESTS..."
-        echo "=============================================="
-        mvn test || true
-        echo "✅ Tests completed!"
-        
-    - name: Download previous history
-      run: |
-        git fetch origin gh-pages || true
-        git checkout gh-pages -- history || echo "No previous history found"
-        
-    - name: Prepare Allure History
-      run: |
-        mkdir -p target/allure-results/history
-        cp -r history/* target/allure-results/history/ || true
-        
-    - name: 📊 Generate Allure Report (Step 2)
-      run: |
-        echo "=============================================="
-        echo "📊 GENERATING ALLURE REPORT..."
-        echo "=============================================="
-        mvn allure:report
-        echo "✅ Report generated successfully!"
-        
-    - name: Prepare deployment directory
-      run: |
-        mkdir -p allure-report
-        cp -r target/allure-report/* allure-report/
-        
-    - name: Save history for next run
-      run: |
-        mkdir -p history
-        cp -r target/allure-report/history/* ./history/ || true
-        
-    - name: Deploy Allure Report to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: allure-report
-        
-    - name: 🎉 Show Allure Report Link (Step 3)
-      run: |
-        echo ""
-        echo "=============================================="
-        echo "🎉 ALLURE REPORT READY!"
-        echo "=============================================="
-        echo "📊 Your report is available at:"
-        echo "👉 https://Janeesha123.github.io/mmProAutomation/"
-        echo "=============================================="
-        echo "ℹ️  Report will be live in 2-3 minutes"
-        echo "=============================================="
-        echo ""
-        
-    - name: Add to Job Summary
-      run: |
-        echo "## 🎉 Test Execution Complete!" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📊 [🔗 Click here to view your Allure Report](https://Janeesha123.github.io/mmProAutomation/)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Report URL:** \`https://Janeesha123.github.io/mmProAutomation/\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Test Results:**" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Tests completed successfully" >> $GITHUB_STEP_SUMMARY
-        echo "- 📊 Allure report generated" >> $GITHUB_STEP_SUMMARY
-        echo "- 🚀 Report deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
-        
-    - name: Comment PR with Report Link
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '🎉 **Test Execution Complete!**\n\n📊 **[View Allure Report](https://Janeesha123.github.io/mmProAutomation/)**\n\n✅ All tests have been executed and the report is ready!\n\n*Report will be available in 2-3 minutes after deployment completes.*'
-          })
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build and Run Tests
+        run: mvn clean test
+
+      - name: Generate Allure Report
+        run: mvn allure:report
+
+      - name: Upload Allure Report as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: target/site/allure-maven-plugin
+
+      - name: Deploy Allure Report to SLT server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SLT_HOST }}
+          username: ${{ secrets.SLT_USER }}
+          password: ${{ secrets.SLT_PASS }} # or use SSH key
+          source: "target/site/allure-maven-plugin/*"
+          target: "/var/www/html/selenium-report"
+
