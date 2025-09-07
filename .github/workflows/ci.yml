@@ -1,63 +1,121 @@
-name: Selenium CI with Allure Report
+name: Selenium CI with Auto-Deploy to SLT Server
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 jobs:
-  test-and-report:
+  test-and-deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # 1. Checkout code
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # 2. Set up Java
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      # 3. Run Maven tests (ignore failures so report still generates)
-      - name: Run Tests
-        run: mvn clean test -Dmaven.test.failure.ignore=true
-
-      # 4. Install Allure CLI directly (bypassing PPA)
-      - name: Install Allure CLI
-        run: |
-          ALLURE_VERSION=2.26.0
-          wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
-          tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
-          echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
-      - name: Check Allure version
-        run: allure --version
-
-      # 5. Generate Allure report
-      - name: Generate Allure Report
-        run: allure generate target/allure-results -o target/allure-report --clean
-
-      # 6. List report contents (for debugging / SCP safety)
-      - name: List Allure report contents
-        run: ls -R target/allure-report
-
-      # 7. Upload Allure report as GitHub artifact
-      - name: Upload Allure Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: target/allure-report
-
-      # 8. Deploy Allure report to SLT server (safe path)
-      - name: Deploy Allure Report to SLT
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SLT_HOST }}
-          username: ${{ secrets.SLT_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "target/allure-report/*"
-          target: "/var/www/html/selenium-report"
-          strip_components: 0
-          rm: false
+    # 1. Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    # 2. Set up Java
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    # 3. Cache Maven dependencies for faster builds
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+          
+    # 4. Run Maven tests (ignore failures so report still generates)
+    - name: Run Tests
+      run: mvn clean test -Dmaven.test.failure.ignore=true
+      
+    # 5. Install Allure CLI
+    - name: Install Allure CLI
+      run: |
+        ALLURE_VERSION=2.26.0
+        wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
+        tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
+        echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
+        
+    - name: Check Allure version
+      run: allure --version
+      
+    # 6. Generate Allure report with timestamp
+    - name: Generate Allure Report
+      run: |
+        allure generate target/allure-results -o target/allure-report --clean
+        # Add build info to report
+        echo "Build: ${{ github.run_number }}" > target/allure-report/build-info.txt
+        echo "Commit: ${{ github.sha }}" >> target/allure-report/build-info.txt
+        echo "Date: $(date)" >> target/allure-report/build-info.txt
+        
+    # 7. Upload report as GitHub artifact
+    - name: Upload Allure Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: allure-report-${{ github.run_number }}
+        path: target/allure-report
+        retention-days: 30
+        
+    # 8. Deploy only on main branch pushes (not PRs)
+    - name: Clear old report and deploy new one
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SLT_HOST }}
+        username: ${{ secrets.SLT_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Create backup of current report (optional)
+          if [ -d "/var/www/html/selenium-report" ]; then
+            sudo mv /var/www/html/selenium-report /var/www/html/selenium-report-backup-$(date +%Y%m%d-%H%M%S)
+            # Keep only last 5 backups
+            sudo find /var/www/html/ -name "selenium-report-backup-*" -type d | sort | head -n -5 | sudo xargs rm -rf
+          fi
+          # Create fresh directory
+          sudo mkdir -p /var/www/html/selenium-report
+          sudo chown $USER:$USER /var/www/html/selenium-report
+          
+    - name: Deploy Allure Report to SLT Server
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SLT_HOST }}
+        username: ${{ secrets.SLT_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "target/allure-report/*"
+        target: "/var/www/html/selenium-report"
+        strip_components: 2  # This removes "target/allure-report/" from path
+        rm: false
+        
+    # 9. Set proper permissions on deployed files
+    - name: Set proper permissions
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SLT_HOST }}
+        username: ${{ secrets.SLT_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          sudo chown -R www-data:www-data /var/www/html/selenium-report
+          sudo find /var/www/html/selenium-report -type d -exec chmod 755 {} \;
+          sudo find /var/www/html/selenium-report -type f -exec chmod 644 {} \;
+          
+    # 10. Verify deployment
+    - name: Verify deployment
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SLT_HOST }}
+        username: ${{ secrets.SLT_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          echo "Deployment verification:"
+          ls -la /var/www/html/selenium-report/
+          echo "Report should be accessible at: http://irrigation.aasait.lk"
