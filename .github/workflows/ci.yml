@@ -21,48 +21,58 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-       # 2. Install Chrome & ChromeDriver
+      # 3. Install Chrome & ChromeDriver
       - name: Install Chrome & ChromeDriver
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
 
+      # 4. Download previous Allure history (if exists)
+      - name: Download previous Allure history
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-history
+          path: target/allure-report/
 
-      # 3. Run Maven tests (ignore failures so report still generates)
+      # 5. Run Maven tests (ignore failures so report still generates)
       - name: Run Tests
         run: mvn clean test -Dmaven.test.failure.ignore=true
 
-      # 4. Install Allure CLI directly (bypassing PPA)
+      # 6. Install Allure CLI
       - name: Install Allure CLI
         run: |
           ALLURE_VERSION=2.26.0
           wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
           tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
+
       - name: Check Allure version
         run: allure --version
 
-      # 5. Generate Allure report with history
+      # 7. Generate Allure report with history
       - name: Generate Allure Report with History
         run: |
           if [ -d target/allure-report/history ]; then
-            echo "History exists, copy to results"
+            echo "Copy history to results for trend graph"
             cp -r target/allure-report/history target/allure-results/
           fi
           allure generate target/allure-results -o target/allure-report --clean
 
-      # 6. List report contents (for debugging)
-      - name: List Allure report contents
-        run: ls -R target/allure-report
-
-      # 7. Upload Allure report as GitHub artifact
+      # 8. Upload Allure report as GitHub artifact
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: target/allure-report
 
-      # 8. Deploy Allure report to SLT server using rsync
+      # 9. Save history for next run
+      - name: Upload Allure history for next run
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: target/allure-report/history
+
+      # 10. Deploy Allure report to SLT server using rsync
       - name: Deploy Allure Report with rsync
         uses: burnett01/rsync-deployments@6.0.0
         with:
