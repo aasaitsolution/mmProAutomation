@@ -21,6 +21,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+       # 2. Install Chrome & ChromeDriver
+      - name: Install Chrome & ChromeDriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+
+
       # 3. Run Maven tests (ignore failures so report still generates)
       - name: Run Tests
         run: mvn clean test -Dmaven.test.failure.ignore=true
@@ -39,7 +46,7 @@ jobs:
       - name: Generate Allure Report
         run: allure generate target/allure-results -o target/allure-report --clean
 
-      # 6. List report contents (for debugging / SCP safety)
+      # 6. List report contents (for debugging)
       - name: List Allure report contents
         run: ls -R target/allure-report
 
@@ -50,14 +57,13 @@ jobs:
           name: allure-report
           path: target/allure-report
 
-      # 8. Deploy Allure report to SLT server (safe path)
-      - name: Deploy Allure Report to SLT
-        uses: appleboy/scp-action@v0.1.7
+      # 8. Deploy Allure report to SLT server using rsync
+      - name: Deploy Allure Report with rsync
+        uses: burnett01/rsync-deployments@6.0.0
         with:
-          host: ${{ secrets.SLT_HOST }}
-          username: ${{ secrets.SLT_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "target/allure-report/*"
-          target: "/var/www/html/selenium-report"
-          strip_components: 0
-          rm: false
+          switches: -avzr --delete
+          path: target/allure-report/
+          remote_path: /var/www/html/selenium-report
+          remote_host: ${{ secrets.SLT_HOST }}
+          remote_user: ${{ secrets.SLT_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
