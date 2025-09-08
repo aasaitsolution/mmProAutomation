@@ -8,38 +8,32 @@ on:
 jobs:
   test-and-report:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Java
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Install Chrome & ChromeDriver
       - name: Install Chrome & ChromeDriver
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
 
-      # 4. Download previous Allure history (if exists)
-      - name: Download previous Allure history
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-history
-          path: target/allure-report/
-        continue-on-error: true
-
-      # 5. Run Maven tests (ignore failures so report still generates)
       - name: Run Tests
         run: mvn clean test -Dmaven.test.failure.ignore=true
 
-      # 6. Install Allure CLI
+      # ⬇️ Restore history from last run
+      - name: Download Allure History
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-history
+          path: target/allure-results/history
+          if-no-files-found: ignore
+
       - name: Install Allure CLI
         run: |
           ALLURE_VERSION=2.26.0
@@ -47,33 +41,22 @@ jobs:
           tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
 
-      - name: Check Allure version
-        run: allure --version
+      - name: Generate Allure Report
+        run: allure generate target/allure-results -o target/allure-report --clean
 
-      # 7. Generate Allure report with history
-      - name: Generate Allure Report with History
-        run: |
-          if [ -d target/allure-report/history ]; then
-            echo "Copy history to results for trend graph"
-            cp -r target/allure-report/history target/allure-results/
-          fi
-          allure generate target/allure-results -o target/allure-report --clean
+      # ⬆️ Save history for next run
+      - name: Upload Allure History
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: target/allure-report/history
 
-      # 8. Upload Allure report as GitHub artifact
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: target/allure-report
 
-      # 9. Save history for next run
-      - name: Upload Allure history for next run
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-history
-          path: target/allure-report/history
-
-      # 10. Deploy Allure report to SLT server using rsync
       - name: Deploy Allure Report with rsync
         uses: burnett01/rsync-deployments@6.0.0
         with:
