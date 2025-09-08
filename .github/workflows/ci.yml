@@ -33,6 +33,7 @@ jobs:
         with:
           name: allure-history
           path: target/allure-report/
+        continue-on-error: true
 
       # 5. Run Maven tests (ignore failures so report still generates)
       - name: Run Tests
