@@ -7,34 +7,35 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.*;
+import base.BaseTest;
 
 import java.io.File;
 import java.time.Duration;
 import java.util.List;
 
-public class PhysicalMeeting {
-    private WebDriver driver;
-    private WebDriverWait wait;
+public class PhysicalMeeting extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
     private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String USERNAME = "nimal";
     private static final String PASSWORD = "12345678";
 
-    @BeforeClass
-    public void setupClass() {
-        System.out.println("Starting Physical Meeting Test Suite");
-    }
-
-    @BeforeMethod
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        options.addArguments("--disable-notifications");
-        options.addArguments("--disable-popup-blocking");
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-    }
+//    @BeforeClass
+//    public void setupClass() {
+//        System.out.println("Starting Physical Meeting Test Suite");
+//    }
+//
+//    @BeforeMethod
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        options.addArguments("--disable-notifications");
+//        options.addArguments("--disable-popup-blocking");
+//
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+//    }
 
     // ==================== LOGIN TESTS ====================
     @Test(priority = 1, groups = {"smoke", "login"})

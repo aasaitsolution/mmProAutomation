@@ -14,35 +14,36 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import java.time.Duration;
+import base.BaseTest;
 
-public class RequestMining {
+public class RequestMining extends BaseTest {
 
-    private WebDriver driver;
-    private WebDriverWait wait;
+//    private WebDriver driver;
+//    private WebDriverWait wait;
     private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String SIGNIN_URL = BASE_URL + "/signin";
     private static final String DASHBOARD_URL = BASE_URL + "/gsmb/dashboard";
     private static final String USERNAME = "nimal";
     private static final String PASSWORD = "12345678";
 
-    @BeforeMethod
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        options.addArguments("--disable-notifications");
-        options.addArguments("--disable-popup-blocking");
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(100));
-    }
-
-    @AfterMethod
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
-    }
+//    @BeforeMethod
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        options.addArguments("--disable-notifications");
+//        options.addArguments("--disable-popup-blocking");
+//
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(100));
+//    }
+//
+//    @AfterMethod
+//    public void tearDown() {
+//        if (driver != null) {
+//            driver.quit();
+//        }
+//    }
 
     @Test(priority = 1)
     public void testUserLogin() {
