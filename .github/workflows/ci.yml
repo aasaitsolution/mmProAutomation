@@ -21,6 +21,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+       # 2. Install Chrome & ChromeDriver
+      - name: Install Chrome & ChromeDriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+
+
       # 3. Run Maven tests (ignore failures so report still generates)
       - name: Run Tests
         run: mvn clean test -Dmaven.test.failure.ignore=true
