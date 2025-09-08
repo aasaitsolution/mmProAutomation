@@ -1,5 +1,6 @@
 package GSMBManagement;
 
+import base.BaseTest;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -15,20 +16,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GSMBManagementDashboard {
+public class GSMBManagementDashboard extends BaseTest {
 
-    WebDriver driver;
-    WebDriverWait wait;
-
-    @BeforeClass
-    public void setUp() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        System.out.println("🧪 Browser launched in incognito mode.");
-    }
+//    WebDriver driver;
+//    WebDriverWait wait;
+//
+//    @BeforeClass
+//    public void setUp() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//        System.out.println("🧪 Browser launched in incognito mode.");
+//    }
 
     @Test(priority = 1)
     public void loginToDashboard() {

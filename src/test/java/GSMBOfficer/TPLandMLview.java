@@ -1,5 +1,6 @@
 package GSMBOfficer;
 
+import base.BaseTest;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -11,30 +12,30 @@ import org.testng.annotations.*;
 
 import java.time.Duration;
 
-public class TPLandMLview {
-    private WebDriver driver;
-    private WebDriverWait wait;
+public class TPLandMLview extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
     private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String USERNAME = "nimal";
     private static final String PASSWORD = "12345678";
 
-    @BeforeMethod
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--remote-allow-origins=*");
-        options.setAcceptInsecureCerts(true);
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-
-        performLogin();
-    }
+//    @BeforeMethod
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        options.addArguments("--no-sandbox");
+//        options.addArguments("--disable-dev-shm-usage");
+//        options.addArguments("--remote-allow-origins=*");
+//        options.setAcceptInsecureCerts(true);
+//
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
+//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+//
+//        performLogin();
+//    }
 
     @Test(priority = 1)
     public void testViewMiningLicense() {

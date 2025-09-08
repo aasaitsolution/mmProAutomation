@@ -1,5 +1,6 @@
 package GSMBOfficer;
 
+import base.BaseTest;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -12,29 +13,29 @@ import java.io.File;
 import java.time.Duration;
 import java.util.List;
 
-public class ValidateLicense {
-    private WebDriver driver;
-    private WebDriverWait wait;
+public class ValidateLicense extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
     private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String USERNAME = "nimal";
     private static final String PASSWORD = "12345678";
 
-    @BeforeClass
-    public void setupClass() {
-        System.out.println("Starting License Validation Test Suite");
-    }
-
-    @BeforeMethod
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        options.addArguments("--disable-notifications");
-        options.addArguments("--disable-popup-blocking");
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-    }
+//    @BeforeClass
+//    public void setupClass() {
+//        System.out.println("Starting License Validation Test Suite");
+//    }
+//
+//    @BeforeMethod
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        options.addArguments("--disable-notifications");
+//        options.addArguments("--disable-popup-blocking");
+//
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+//    }
 
     // ==================== LOGIN TESTS ====================
     @Test(priority = 1, groups = {"smoke", "login"})

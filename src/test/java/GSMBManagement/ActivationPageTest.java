@@ -1,5 +1,6 @@
 package GSMBManagement;
 
+import base.BaseTest;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -9,18 +10,18 @@ import org.testng.annotations.*;
 import java.time.Duration;
 import java.util.List;
 
-public class ActivationPageTest {
-    private WebDriver driver;
-    private WebDriverWait wait;
-
-    @BeforeClass
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-    }
+public class ActivationPageTest extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
+//
+//    @BeforeClass
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//    }
 
     // Helper method to wait for the first valid data row (non-empty, not "No data")
     private WebElement waitForFirstValidRow() {

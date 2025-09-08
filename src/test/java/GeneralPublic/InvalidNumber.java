@@ -1,5 +1,6 @@
 package GeneralPublic;
 
+import base.BaseTest;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -17,21 +18,21 @@ import java.io.File;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.AfterClass;
 
-public class InvalidNumber {
-    private WebDriver driver;
-    private WebDriverWait wait;
+public class InvalidNumber extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
 
     private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String INVALID_LICENSE = "LA4550";
     private static final String PHONE_NUMBER = "0769025444";
     private static final String OTP_CODE = "123456";
 
-    @BeforeClass
-    public void setup() {
-        driver = new ChromeDriver();
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-    }
+//    @BeforeClass
+//    public void setup() {
+//        driver = new ChromeDriver();
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//    }
 
     @Test(priority = 1)
     public void navigateToPublicPage() {
