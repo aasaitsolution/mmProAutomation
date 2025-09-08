@@ -60,4 +60,15 @@ jobs:
           source: "target/allure-report/*"
           target: "/var/www/html/selenium-report"
           strip_components: 0
-          rm: false
+          rm: true   # <-- This removes the target folder before copying
+
+      - name: Deploy Allure Report with rsync
+        uses: burnett01/rsync-deployments@6.0.0
+        with:
+          switches: -avzr --delete
+          path: target/allure-report/
+          remote_path: /var/www/html/selenium-report
+          remote_host: ${{ secrets.SLT_HOST }}
+          remote_user: ${{ secrets.SLT_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
