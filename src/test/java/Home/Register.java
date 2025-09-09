@@ -1,46 +1,33 @@
 package Home;
 
+import base.BaseTest;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.Test;
 import org.testng.annotations.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 
-public class Register {
-
-    WebDriver driver;
-    WebDriverWait wait;
+public class Register extends BaseTest {
 
     String projectPath = System.getProperty("user.dir");
     String nicFrontPath = projectPath + "/src/test/resources/test_images/nic_front.jpg";
     String nicBackPath = projectPath + "/src/test/resources/test_images/nic_back.jpg";
     String workIdPath = projectPath + "/src/test/resources/test_images/work_id.jpg";
 
-    @BeforeClass
-    public void setup() {
-        driver = new ChromeDriver();
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+    @BeforeMethod
+    public void navigateToRegisterPage() {
+        super.setup(); // Call parent setup method
         driver.get("https://mmpro.aasait.lk/");
     }
 
-    @AfterClass
-    public void teardown() {
-        if (driver != null) {
-            driver.quit();
-        }
-    }
-
     @AfterMethod
-    public void afterEachTest() {
+    public void cleanupAfterTest() {
         navigateHome();
+        super.tearDown(); // Call parent teardown method
     }
 
     private void navigateHome() {
@@ -89,15 +76,9 @@ public class Register {
         }
 
         if (uploadFiles) {
-            try {
-                driver.findElement(By.id("nicFront")).sendKeys(nicFrontPath);
-            } catch (NoSuchElementException ignored) {}
-            try {
-                driver.findElement(By.id("nicBack")).sendKeys(nicBackPath);
-            } catch (NoSuchElementException ignored) {}
-            try {
-                driver.findElement(By.id("workId")).sendKeys(workIdPath);
-            } catch (NoSuchElementException ignored) {}
+            uploadFileIfFieldExists("nicFront", nicFrontPath);
+            uploadFileIfFieldExists("nicBack", nicBackPath);
+            uploadFileIfFieldExists("workId", workIdPath);
         }
 
         WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']")));
@@ -109,26 +90,47 @@ public class Register {
             System.out.println("✅ Registration successful for role: " + roles[roleIndex]);
             System.out.println("💬 Success message: " + messageBox.getText());
         } catch (Exception e) {
-            List<WebElement> errors = driver.findElements(By.cssSelector(".ant-form-item-explain-error"));
-            if (!errors.isEmpty()) {
-                System.out.println("⚠️ Validation errors for role " + roles[roleIndex] + ":");
-                for (WebElement error : errors) {
-                    System.out.println("- " + error.getText());
-                }
-            } else {
-                System.out.println("❌ Unknown error occurred for role: " + roles[roleIndex]);
-                File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-                FileUtils.copyFile(screenshot, new File("registration_error_" + roles[roleIndex] + ".png"));
-            }
+            handleRegistrationError(roles[roleIndex]);
             throw new RuntimeException("❌ Registration failed for role: " + roles[roleIndex]);
         }
     }
 
     private void fillFieldIfPresent(String id, String value) {
-        WebElement element = wait.until(ExpectedConditions.elementToBeClickable(By.id(id)));
-        element.clear();
-        element.sendKeys(value);
-        ((JavascriptExecutor) driver).executeScript("arguments[0].dispatchEvent(new Event('change'))", element);
+        try {
+            WebElement element = wait.until(ExpectedConditions.elementToBeClickable(By.id(id)));
+            element.clear();
+            element.sendKeys(value);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].dispatchEvent(new Event('change'))", element);
+        } catch (Exception e) {
+            System.out.println("⚠️ Field with ID '" + id + "' not found or not clickable");
+        }
+    }
+
+    private void uploadFileIfFieldExists(String fieldId, String filePath) {
+        try {
+            WebElement fileInput = driver.findElement(By.id(fieldId));
+            fileInput.sendKeys(filePath);
+        } catch (NoSuchElementException e) {
+            System.out.println("⚠️ File upload field '" + fieldId + "' not found");
+        }
+    }
+
+    private void handleRegistrationError(String role) {
+        List<WebElement> errors = driver.findElements(By.cssSelector(".ant-form-item-explain-error"));
+        if (!errors.isEmpty()) {
+            System.out.println("⚠️ Validation errors for role " + role + ":");
+            for (WebElement error : errors) {
+                System.out.println("- " + error.getText());
+            }
+        } else {
+            System.out.println("❌ Unknown error occurred for role: " + role);
+            try {
+                File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+                FileUtils.copyFile(screenshot, new File("registration_error_" + role.replaceAll(" ", "_") + ".png"));
+            } catch (IOException ioException) {
+                System.out.println("⚠️ Failed to capture screenshot: " + ioException.getMessage());
+            }
+        }
     }
 
     @Test(priority = 1)
@@ -168,6 +170,7 @@ public class Register {
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("form.ant-form")));
         Thread.sleep(1000);
 
+        // Fill all fields except email
         fillFieldIfPresent("firstName", "John");
         fillFieldIfPresent("lastName", "Doe");
         fillFieldIfPresent("username", "johndoe_missingemail" + System.currentTimeMillis());
@@ -177,15 +180,9 @@ public class Register {
         fillFieldIfPresent("confirmPassword", "Password@123");
         fillFieldIfPresent("designation", "GSMB Officer Tester");
 
-        try {
-            driver.findElement(By.id("nicFront")).sendKeys(nicFrontPath);
-        } catch (NoSuchElementException ignored) {}
-        try {
-            driver.findElement(By.id("nicBack")).sendKeys(nicBackPath);
-        } catch (NoSuchElementException ignored) {}
-        try {
-            driver.findElement(By.id("workId")).sendKeys(workIdPath);
-        } catch (NoSuchElementException ignored) {}
+        uploadFileIfFieldExists("nicFront", nicFrontPath);
+        uploadFileIfFieldExists("nicBack", nicBackPath);
+        uploadFileIfFieldExists("workId", workIdPath);
 
         WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']")));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
@@ -230,15 +227,9 @@ public class Register {
         fillFieldIfPresent("confirmPassword", "WrongPassword@123");
         fillFieldIfPresent("designation", "GSMB Officer Tester");
 
-        try {
-            driver.findElement(By.id("nicFront")).sendKeys(nicFrontPath);
-        } catch (NoSuchElementException ignored) {}
-        try {
-            driver.findElement(By.id("nicBack")).sendKeys(nicBackPath);
-        } catch (NoSuchElementException ignored) {}
-        try {
-            driver.findElement(By.id("workId")).sendKeys(workIdPath);
-        } catch (NoSuchElementException ignored) {}
+        uploadFileIfFieldExists("nicFront", nicFrontPath);
+        uploadFileIfFieldExists("nicBack", nicBackPath);
+        uploadFileIfFieldExists("workId", workIdPath);
 
         WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']")));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
@@ -248,7 +239,7 @@ public class Register {
         boolean pwMismatchFound = false;
         for (WebElement error : errors) {
             String text = error.getText().toLowerCase();
-            if (text.contains("password") && text.contains("match")) {
+            if (text.contains("password") && (text.contains("match") || text.contains("confirm"))) {
                 pwMismatchFound = true;
                 System.out.println("⚠️ Expected validation error found: " + error.getText());
             }

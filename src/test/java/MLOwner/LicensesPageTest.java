@@ -1,6 +1,7 @@
 //Done
 package MLOwner;
 
+import base.BaseTest;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -11,22 +12,22 @@ import org.testng.Assert;
 import java.time.Duration;
 import java.util.List;
 
-public class LicensesPageTest {
-    private WebDriver driver;
-    private WebDriverWait wait;
-
-    @BeforeClass
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        options.addArguments("--disable-blink-features=AutomationControlled");
-        options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-    }
+public class LicensesPageTest extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
+//
+//    @BeforeClass
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        options.addArguments("--disable-blink-features=AutomationControlled");
+//        options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+//
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+//    }
 
     @Test(priority = 0)
     public void loginWithInvalidCredentials() {
