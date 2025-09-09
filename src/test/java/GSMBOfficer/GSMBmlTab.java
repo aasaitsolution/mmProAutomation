@@ -10,23 +10,10 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.Test;
 import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import java.time.Duration;
 import java.util.List;
+import base.BaseTest;
 
-public class GSMBmlTab {
-    private WebDriver driver;
-    private WebDriverWait wait;
-
-    @BeforeMethod
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(100)); // Increased timeout
-    }
+public class GSMBmlTab extends BaseTest {
 
     @Test
     public void gsmbSignin() {

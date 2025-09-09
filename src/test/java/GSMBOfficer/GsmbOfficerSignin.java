@@ -12,30 +12,31 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import java.time.Duration;
+import base.BaseTest;
 
-public class GsmbOfficerSignin {
+public class GsmbOfficerSignin extends BaseTest {
 
-    private WebDriver driver;
-    private WebDriverWait wait;
-    private static final String BASE_URL = "https://mmpro.aasait.lk";
-    private static final String SIGNIN_URL = BASE_URL + "/signin";
-
-    @BeforeMethod
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(100)); // Increased timeout
-    }
-
-    @AfterMethod
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
-    }
+//    private WebDriver driver;
+//    private WebDriverWait wait;
+        private static final String BASE_URL = "https://mmpro.aasait.lk";
+        private static final String SIGNIN_URL = BASE_URL + "/signin";
+//
+//    @BeforeMethod
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(100)); // Increased timeout
+//    }
+//
+//    @AfterMethod
+//    public void tearDown() {
+//        if (driver != null) {
+//            driver.quit();
+//        }
+//    }
 
     @Test(priority = 1)
     public void testNavigateToSigninPage() {

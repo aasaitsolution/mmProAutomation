@@ -102,6 +102,7 @@
 
 package PoliceOfficer;
 
+import base.BaseTest;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -113,9 +114,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import java.time.Duration;
 
-public class policeofficersignin {
-    private WebDriver driver;
-    private WebDriverWait wait;
+public class policeofficersignin extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
 
     @BeforeClass
     public void setup() {

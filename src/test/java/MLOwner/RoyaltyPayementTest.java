@@ -1,5 +1,6 @@
 package MLOwner;
 
+import base.BaseTest;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -10,18 +11,18 @@ import org.testng.Assert;
 
 
 
-public class RoyaltyPayementTest {
-    private WebDriver driver;
-    private WebDriverWait wait;
-
-    @BeforeClass
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito"); 
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-    }
+public class RoyaltyPayementTest extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
+//
+//    @BeforeClass
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//    }
 
     @Test(priority = 0)
     public void invalidLoginShouldFail() {

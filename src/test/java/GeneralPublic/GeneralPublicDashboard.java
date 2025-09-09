@@ -1,6 +1,7 @@
 //Done
 package GeneralPublic;
 
+import base.BaseTest;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -14,19 +15,19 @@ import org.openqa.selenium.*;
 import java.time.Duration;
 import java.util.List;
 
-public class GeneralPublicDashboard {
-    private WebDriver driver;
-    private WebDriverWait wait;
-
-    @BeforeClass
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        driver = new ChromeDriver(options);  // Only create driver once with options
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        System.out.println("✅ Browser launched");
-    }
+public class GeneralPublicDashboard extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
+//
+//    @BeforeClass
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        driver = new ChromeDriver(options);  // Only create driver once with options
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//        System.out.println("✅ Browser launched");
+//    }
 
     @Test(priority = 1)
     public void openWebsite() {
@@ -48,7 +49,7 @@ public class GeneralPublicDashboard {
         WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.cssSelector("input[type='text']")));
         inputField.sendKeys("ABX1234");
-        System.out.println("✍️ Entered vehicle number: ABX1234");
+        System.out.println("✍️ Entered vehicle number: ACC1234");
 
         WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("button.check-button")));

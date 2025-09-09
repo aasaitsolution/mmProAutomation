@@ -2,6 +2,7 @@
 //Done
 package MLOwner;
 
+import base.BaseTest;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -15,22 +16,22 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import java.time.Duration;
 
-public class mlownersingin {
+public class mlownersingin extends BaseTest {
 
     // Declare WebDriver as a class variable so all test methods can access it
-    private WebDriver driver;
-    private WebDriverWait wait;
-
-
-    @BeforeClass
-    public void setUp() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-    }
+//    private WebDriver driver;
+//    private WebDriverWait wait;
+//
+//
+//    @BeforeClass
+//    public void setUp() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//
+//        driver = new ChromeDriver(options);
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+//    }
 
     @Test(priority = 0)
     public void testInvalidLogin() throws InterruptedException {

@@ -32,6 +32,9 @@ public class AppointmentsTestBase {
 
             // Configure Chrome options
             ChromeOptions options = new ChromeOptions();
+            options.addArguments("--headless=new"); // use new headless mode
+            options.addArguments("--no-sandbox");
+            options.addArguments("--disable-dev-shm-usage");
             options.addArguments("--incognito");
             options.addArguments("--start-maximized");
             options.addArguments("--disable-notifications");

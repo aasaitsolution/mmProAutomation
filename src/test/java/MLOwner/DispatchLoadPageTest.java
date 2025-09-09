@@ -1,6 +1,7 @@
 //Done
 package MLOwner;
 
+import base.BaseTest;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -13,20 +14,20 @@ import org.testng.annotations.Test;
 
 import java.time.Duration;
 
-public class DispatchLoadPageTest {
-    private WebDriver driver;
-    private WebDriverWait wait;
-
-    @BeforeClass
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        options.addArguments("--start-maximized");
-        options.addArguments("--disable-dev-shm-usage");
-
-        driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-    }
+public class DispatchLoadPageTest extends BaseTest {
+//    private WebDriver driver;
+//    private WebDriverWait wait;
+//
+//    @BeforeClass
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        options.addArguments("--start-maximized");
+//        options.addArguments("--disable-dev-shm-usage");
+//
+//        driver = new ChromeDriver(options);
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+//    }
 
     @Test(priority = 1)
     public void loginToMLDashboard() {
@@ -139,12 +140,12 @@ public class DispatchLoadPageTest {
         }
     }
 
-    @AfterClass
-    public void tearDown() throws InterruptedException {
-        Thread.sleep(5000);
-        if (driver != null) {
-            driver.quit(); 
-            System.out.println("🧹 Browser closed. Test cleanup complete.");
-        }
-    }
+//    @AfterClass
+//    public void tearDown() throws InterruptedException {
+//        Thread.sleep(5000);
+//        if (driver != null) {
+//            driver.quit();
+//            System.out.println("🧹 Browser closed. Test cleanup complete.");
+//        }
+//    }
 }

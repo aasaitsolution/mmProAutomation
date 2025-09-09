@@ -1,5 +1,6 @@
 package PoliceOfficer;
 
+import base.BaseTest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openqa.selenium.*;
@@ -17,22 +18,22 @@ import java.time.Duration;
 import java.util.List;
 
 
-public class invalidnumber {
+public class invalidnumber extends BaseTest {
     private static final Log log = LogFactory.getLog(invalidnumber.class);
-    private WebDriver driver;
-    private WebDriverWait wait;
+//    private WebDriver driver;
+//    private WebDriverWait wait;
     private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String INVALID_LICENSE = "ABP1234";
 
-    @BeforeClass
-    public void setup() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--incognito");
-        driver = new ChromeDriver(options);  // Only create driver once with options
-        driver.manage().window().maximize();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        System.out.println("✅ Browser started");
-    }
+//    @BeforeClass
+//    public void setup() {
+//        ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--incognito");
+//        driver = new ChromeDriver(options);  // Only create driver once with options
+//        driver.manage().window().maximize();
+//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//        System.out.println("✅ Browser started");
+//    }
 
     @Test(priority = 1)
     public void loginToPoliceDashboard() {

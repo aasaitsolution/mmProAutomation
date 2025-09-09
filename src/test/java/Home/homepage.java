@@ -1,33 +1,23 @@
 package Home;
 
+import base.BaseTest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
-import java.time.Duration;
-
-
-
-public class homepage {
+public class homepage extends BaseTest {
     private static final Log log = LogFactory.getLog(homepage.class);
-    WebDriver driver;
-    WebDriverWait wait;
 
-    @BeforeClass
-    public void setUp() {
-        driver = new ChromeDriver();
-        driver.manage().window().maximize();
-        driver.get("http://localhost:5173/");
-        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+    @BeforeMethod
+    public void navigateToHomepage() {
+        super.setup(); // Call parent setup method
+        driver.get("https://mmpro.aasait.lk/");
     }
 
     private void clickElement(By locator) {
@@ -48,7 +38,7 @@ public class homepage {
         } catch (InterruptedException ignored) {}
     }
 
-     private void slowDown(long milliseconds) {
+    private void slowDown(long milliseconds) {
         try {
             Thread.sleep(milliseconds);
         } catch (InterruptedException ignored) {}
@@ -81,12 +71,12 @@ public class homepage {
     @Test(priority = 3)
     public void testServiceSection() {
         WebElement serviceHeading = wait.until(ExpectedConditions.elementToBeClickable(
-            By.xpath("//h4[contains(text(), 'SERVICE') or contains(text(), 'සේවාව') or contains(text(), 'சேவை')]")
+                By.xpath("//h4[contains(text(), 'SERVICE') or contains(text(), 'සේවාව') or contains(text(), 'சேவை')]")
         ));
         serviceHeading.click();
 
         WebElement serviceSection = wait.until(ExpectedConditions.visibilityOfElementLocated(
-            By.xpath("//*[@id='service']")
+                By.xpath("//*[@id='service']")
         ));
 
         Assert.assertTrue(serviceSection.isDisplayed(), "Service section not displayed.");
@@ -114,7 +104,6 @@ public class homepage {
         By contactInfoLocator = By.cssSelector(".left-section.contact-info");
         WebElement contactInfo = wait.until(ExpectedConditions.presenceOfElementLocated(contactInfoLocator));
         Assert.assertTrue(contactInfo.isDisplayed(), "Contact info section is not displayed.");
-
     }
 
     @Test(priority = 6)
@@ -131,24 +120,8 @@ public class homepage {
         driver.navigate().back(); // Return to homepage
     }
 
-    
-
-
-    @AfterClass
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
+    @AfterMethod
+    public void cleanupAfterTest() {
+        super.tearDown(); // Call parent teardown method
     }
 }
-
-
-
-
-
-
-
-
-
-
-
