@@ -12,11 +12,10 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TimeoutException;
 import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
+
 import java.time.Duration;
 import java.io.File;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.AfterClass;
 
 public class InvalidNumber extends BaseTest {
 //    private WebDriver driver;
@@ -27,12 +26,16 @@ public class InvalidNumber extends BaseTest {
     private static final String PHONE_NUMBER = "0769025444";
     private static final String OTP_CODE = "123456";
 
-//    @BeforeClass
-//    public void setup() {
-//        driver = new ChromeDriver();
-//        driver.manage().window().maximize();
-//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-//    }
+    @BeforeMethod
+    public void navigateToApplication() {
+        super.setup();
+        driver.get(BASE_URL);
+    }
+
+    @AfterMethod
+    public void cleanupAfterTest() {
+        super.tearDown();
+    }
 
     @Test(priority = 1)
     public void navigateToPublicPage() {
@@ -59,26 +62,26 @@ public class InvalidNumber extends BaseTest {
     }
 
     @Test(priority = 3, dependsOnMethods = "enterInvalidLicenseAndCheck")
-public void handleInvalidAlertOrMessage() {
-    try {
-        WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        shortWait.until(ExpectedConditions.alertIsPresent());
-        String alertText = driver.switchTo().alert().getText();
-        driver.switchTo().alert().accept();
-        System.out.println("⚠️ Alert handled: " + alertText);
-    } catch (TimeoutException te) {
+    public void handleInvalidAlertOrMessage() {
         try {
-            // Fix: Find the input with class 'invalid-message' inside the modal
-            WebElement errorInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.cssSelector("div.gp-modal-body input.invalid-message")
-            ));
-            String message = errorInput.getAttribute("value");
-            System.out.println("❌ UI Message: " + message);
-        } catch (Exception e) {
-            System.out.println("🟡 No alert or visible error message");
+            WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            shortWait.until(ExpectedConditions.alertIsPresent());
+            String alertText = driver.switchTo().alert().getText();
+            driver.switchTo().alert().accept();
+            System.out.println("⚠️ Alert handled: " + alertText);
+        } catch (TimeoutException te) {
+            try {
+                // Fix: Find the input with class 'invalid-message' inside the modal
+                WebElement errorInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("div.gp-modal-body input.invalid-message")
+                ));
+                String message = errorInput.getAttribute("value");
+                System.out.println("❌ UI Message: " + message);
+            } catch (Exception e) {
+                System.out.println("🟡 No alert or visible error message");
+            }
         }
     }
-}
 
 
     // @Test(priority = 4, dependsOnMethods = "handleInvalidAlertOrMessage")

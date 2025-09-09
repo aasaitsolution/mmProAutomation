@@ -183,7 +183,7 @@ public class RequestMining extends BaseTest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-panel-container")));
 
             WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//td[@title='2025-08-17']/div[@class='ant-picker-cell-inner']")));
+                    By.xpath("//td[@title='2025-09-30']/div[@class='ant-picker-cell-inner']")));
             dateToSelect.click();
             Thread.sleep(2000);
 
@@ -368,7 +368,7 @@ public class RequestMining extends BaseTest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("ant-picker-panel-container")));
 
             WebElement dateToSelect = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//td[@title='2025-08-17']/div[@class='ant-picker-cell-inner']")));
+                    By.xpath("//td[@title='2025-09-30']/div[@class='ant-picker-cell-inner']")));
             dateToSelect.click();
         } catch (Exception e) {
             throw new RuntimeException("Filling date field failed: " + e.getMessage());
