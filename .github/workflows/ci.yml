@@ -1,3 +1,24 @@
+package MiningEngineer;
+
+import base.BaseTest;  // import the BaseTest package
+import org.testng.annotations.Test;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+
+public class gsmbml extends BaseTest {
+
+    @Test
+    public void gsmbSignin() {
+        driver.get("https://mmpro.aasait.lk/signin");
+
+        WebElement usernameField = driver.findElement(By.id("sign-in_username"));
+        usernameField.sendKeys("nimal");
+        // ... rest of your test code
+    }
+}
+
+
+
 name: Selenium CI with Allure Report
 
 on:
@@ -26,7 +47,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
-
       # ⬇️ Restore history from last run
       - name: Download Allure History
         uses: actions/download-artifact@v4
@@ -46,7 +66,6 @@ jobs:
           wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
           tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
-
       - name: Check Allure version
         run: allure --version
 
@@ -58,7 +77,6 @@ jobs:
             cp -r target/allure-report/history target/allure-results/
           fi
           allure generate target/allure-results -o target/allure-report --clean
-
       # 8. Upload Allure report as GitHub artifact
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
