@@ -1,24 +1,3 @@
-package MiningEngineer;
-
-import base.BaseTest;  // import the BaseTest package
-import org.testng.annotations.Test;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
-
-public class gsmbml extends BaseTest {
-
-    @Test
-    public void gsmbSignin() {
-        driver.get("https://mmpro.aasait.lk/signin");
-
-        WebElement usernameField = driver.findElement(By.id("sign-in_username"));
-        usernameField.sendKeys("nimal");
-        // ... rest of your test code
-    }
-}
-
-
-
 name: Selenium CI with Allure Report
 
 on:
