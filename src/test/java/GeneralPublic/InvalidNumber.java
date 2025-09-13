@@ -3,43 +3,35 @@ package GeneralPublic;
 import base.BaseTest;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.TakesScreenshot;
-import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TimeoutException;
 import org.testng.Assert;
 import org.testng.annotations.*;
-
 import java.time.Duration;
-import java.io.File;
 
 public class InvalidNumber extends BaseTest {
-//    private WebDriver driver;
-//    private WebDriverWait wait;
 
     private static final String BASE_URL = "https://mmpro.aasait.lk";
     private static final String INVALID_LICENSE = "LA4550";
     private static final String PHONE_NUMBER = "0769025444";
     private static final String OTP_CODE = "123456";
 
-    @BeforeMethod
-    public void navigateToApplication() {
+    @BeforeClass
+    public void setupClass() {
+        // Initialize the base test setup once for the entire class
         super.setup();
-        driver.get(BASE_URL);
     }
 
-    @AfterMethod
-    public void cleanupAfterTest() {
-        super.tearDown();
+    @BeforeMethod
+    public void navigateToApplication() {
+        // Navigate to base URL before each test method
+        driver.get(BASE_URL);
     }
 
     @Test(priority = 1)
     public void navigateToPublicPage() {
-        driver.get(BASE_URL);
         WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//*[@id=\"root\"]/div/main/h1/button")));
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", loginButton);
@@ -49,6 +41,9 @@ public class InvalidNumber extends BaseTest {
 
     @Test(priority = 2, dependsOnMethods = "navigateToPublicPage")
     public void enterInvalidLicenseAndCheck() throws InterruptedException {
+        // First navigate to public page since this depends on the previous test
+        navigateToPublicPage();
+
         WebElement input = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//*[@id=\"root\"]/div/main/div/main/div/input")));
         input.clear();
@@ -56,13 +51,37 @@ public class InvalidNumber extends BaseTest {
         Assert.assertEquals(input.getAttribute("value"), INVALID_LICENSE);
 
         WebElement checkBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("button.check-button")));
+                By.xpath("//*[@id=\"root\"]/div/main/div/main/div[2]/button")));
+        Thread.sleep(1000);
         checkBtn.click();
         System.out.println("🚗 Submitted invalid license: " + INVALID_LICENSE);
     }
 
     @Test(priority = 3, dependsOnMethods = "enterInvalidLicenseAndCheck")
     public void handleInvalidAlertOrMessage() {
+        // First navigate to public page and enter invalid license
+        navigateToPublicPage();
+
+        try {
+            WebElement input = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//*[@id=\"root\"]/div/main/div/main/div/input")));
+            input.clear();
+            input.sendKeys(INVALID_LICENSE);
+
+            WebElement checkBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("button.check-button")));
+
+            // Try multiple click methods for better reliability
+            try {
+                checkBtn.click();
+            } catch (Exception clickException) {
+                // If regular click fails, try JavaScript click
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", checkBtn);
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter license and click check button");
+        }
+
         try {
             WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(5));
             shortWait.until(ExpectedConditions.alertIsPresent());
@@ -83,9 +102,24 @@ public class InvalidNumber extends BaseTest {
         }
     }
 
-
     // @Test(priority = 4, dependsOnMethods = "handleInvalidAlertOrMessage")
     // public void clickReportAndVerifyPhone() {
+    //     // First navigate to public page and enter invalid license
+    //     navigateToPublicPage();
+    //
+    //     try {
+    //         WebElement input = wait.until(ExpectedConditions.elementToBeClickable(
+    //                 By.xpath("//*[@id=\"root\"]/div/main/div/main/div/input")));
+    //         input.clear();
+    //         input.sendKeys(INVALID_LICENSE);
+
+    //         WebElement checkBtn = wait.until(ExpectedConditions.elementToBeClickable(
+    //                 By.cssSelector("button.check-button")));
+    //         checkBtn.click();
+    //     } catch (Exception e) {
+    //         System.out.println("⚠️ Could not enter license and click check button");
+    //     }
+    //
     //     try {
     //         WebElement reportBtn = wait.until(ExpectedConditions.elementToBeClickable(
     //                 By.xpath("//button[contains(text(), 'Report') or contains(@class, 'report')]")));
@@ -117,10 +151,9 @@ public class InvalidNumber extends BaseTest {
     // }
 
     @AfterClass
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-            System.out.println("🧹 Browser closed");
-        }
+    public void cleanupClass() {
+        // Use BaseTest's teardown method instead of duplicating logic
+        super.tearDown();
+        System.out.println("🧹 Test class cleanup completed");
     }
 }
