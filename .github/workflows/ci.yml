@@ -67,10 +67,25 @@ jobs:
       - name: Check Allure version
         run: allure --version
 
-      # 7. Generate Allure report
+      # 7. Generate Allure report with debugging
       - name: Generate Allure Report
         run: |
+          echo "Contents of target/allure-results before generation:"
+          ls -la target/allure-results/
+          
+          # Generate report
           allure generate target/allure-results -o target/allure-report --clean
+          
+          echo "Contents of target/allure-report after generation:"
+          ls -la target/allure-report/
+          
+          # Check if history was generated
+          if [ -d "target/allure-report/history" ]; then
+            echo "History directory created in report:"
+            ls -la target/allure-report/history/
+          else
+            echo "No history directory in generated report"
+          fi
 
       # 8. Deploy to GitHub Pages with history
       - name: Deploy to GitHub Pages
