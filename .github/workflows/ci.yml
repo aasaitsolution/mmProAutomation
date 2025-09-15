@@ -73,6 +73,14 @@ jobs:
           echo "Contents of target/allure-results before generation:"
           ls -la target/allure-results/
           
+          # Check for history files specifically
+          if [ -f "target/allure-results/history.json" ]; then
+            echo "History.json found with content:"
+            head -n 10 target/allure-results/history.json
+          else
+            echo "No history.json found in results"
+          fi
+          
           # Generate report
           allure generate target/allure-results -o target/allure-report --clean
           
@@ -83,6 +91,18 @@ jobs:
           if [ -d "target/allure-report/history" ]; then
             echo "History directory created in report:"
             ls -la target/allure-report/history/
+            
+            # Check history-trend.json content
+            if [ -f "target/allure-report/history/history-trend.json" ]; then
+              echo "History trend data:"
+              cat target/allure-report/history/history-trend.json
+            fi
+            
+            # Check for data points
+            if [ -f "target/allure-report/history/history.json" ]; then
+              echo "Number of history entries:"
+              grep -o '"buildOrder"' target/allure-report/history/history.json | wc -l
+            fi
           else
             echo "No history directory in generated report"
           fi
