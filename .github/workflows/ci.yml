@@ -13,6 +13,8 @@ jobs:
       # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for gh-pages access
 
       # 2. Set up Java
       - name: Set up JDK 17
@@ -27,30 +29,34 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
 
-      # 4. Download previous Allure history (FIXED)
-      - name: Download Allure History
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-history
-          path: allure-history
+      # 4. Get Allure history from gh-pages branch
+      - name: Get Allure history
+        run: |
+          # Create results directory
+          mkdir -p target/allure-results
+          
+          # Check if gh-pages branch exists and get history
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "Found gh-pages branch, getting history..."
+            git worktree add gh-pages-dir gh-pages
+            if [ -d "gh-pages-dir/history" ]; then
+              echo "Copying history files..."
+              cp -r gh-pages-dir/history/* target/allure-results/
+              echo "History copied successfully"
+            else
+              echo "No history directory found in gh-pages"
+            fi
+            git worktree remove gh-pages-dir
+          else
+            echo "No gh-pages branch found - this will be the first run"
+          fi
         continue-on-error: true
 
-      # 5. Create results directory and copy history
-      - name: Setup Allure Results Directory
-        run: |
-          mkdir -p target/allure-results
-          if [ -d "allure-history" ]; then
-            echo "Copying existing history to results directory"
-            cp -r allure-history/* target/allure-results/ || echo "No history files to copy"
-          else
-            echo "No previous history found"
-          fi
-
-      # 6. Run Maven tests (ignore failures so report still generates)
+      # 5. Run Maven tests
       - name: Run Tests
         run: mvn clean test -Dmaven.test.failure.ignore=true
 
-      # 7. Install Allure CLI
+      # 6. Install Allure CLI
       - name: Install Allure CLI
         run: |
           ALLURE_VERSION=2.26.0
@@ -61,27 +67,30 @@ jobs:
       - name: Check Allure version
         run: allure --version
 
-      # 8. Generate Allure report with history
-      - name: Generate Allure Report with History
+      # 7. Generate Allure report
+      - name: Generate Allure Report
         run: |
           allure generate target/allure-results -o target/allure-report --clean
 
-      # 9. Upload Allure report as GitHub artifact
+      # 8. Deploy to GitHub Pages with history
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: target/allure-report
+          keep_files: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+
+      # 9. Upload Allure report as artifact
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report
+          name: allure-report-${{ github.run_number }}
           path: target/allure-report
 
-      # 10. Save history for next run (FIXED - correct path)
-      - name: Upload Allure history for next run
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-history
-          path: target/allure-report/history
-        if: always()
-
-      # 11. Deploy Allure report to SLT server using rsync
+      # 10. Deploy to your SLT server
       - name: Deploy Allure Report with rsync
         uses: burnett01/rsync-deployments@6.0.0
         with:
