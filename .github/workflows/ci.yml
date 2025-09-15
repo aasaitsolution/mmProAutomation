@@ -110,19 +110,34 @@ jobs:
           tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
 
-      # 8. Generate Allure Report
+      # 8. Generate Allure Report with Enhanced Debugging
       - name: Generate Allure Report
         run: |
           echo "=== Before Report Generation ==="
           echo "Results directory contents:"
           ls -la target/allure-results/
           
+          echo "Checking executor.json:"
+          if [ -f "target/allure-results/executor.json" ]; then
+            cat target/allure-results/executor.json
+          else
+            echo "No executor.json found!"
+          fi
+          
           if [ -d "target/allure-results/history" ]; then
             echo "History directory contents:"
             ls -la target/allure-results/history/
+            
+            if [ -f "target/allure-results/history/history-trend.json" ]; then
+              echo "Current history-trend.json content:"
+              cat target/allure-results/history/history-trend.json
+            fi
+            
             if [ -f "target/allure-results/history/history.json" ]; then
               echo "History.json entries count:"
               grep -c '"buildOrder"' target/allure-results/history/history.json || echo "0"
+              echo "Sample history.json content (first 500 chars):"
+              head -c 500 target/allure-results/history/history.json
             fi
           fi
           
@@ -135,15 +150,64 @@ jobs:
             ls -la target/allure-report/history/
             
             if [ -f "target/allure-report/history/history-trend.json" ]; then
-              echo "Trend data:"
+              echo "NEW Trend data:"
               cat target/allure-report/history/history-trend.json
             fi
             
             echo "History entries in generated report:"
             grep -c '"buildOrder"' target/allure-report/history/history.json || echo "0"
           fi
+          
+          # Check if Overview widgets exist
+          if [ -d "target/allure-report/widgets" ]; then
+            echo "Widgets directory contents:"
+            ls -la target/allure-report/widgets/
+          fi
 
-      # 9. Deploy to GitHub Pages (this preserves history automatically)
+      # 9. Verify Report Structure and Trend Data
+      - name: Verify Trend Graphs
+        run: |
+          echo "=== Verifying Allure Report Structure ==="
+          
+          # Check if the main files exist
+          if [ -f "target/allure-report/index.html" ]; then
+            echo "✅ index.html found"
+          else
+            echo "❌ index.html missing"
+          fi
+          
+          # Check for trend data in app.js or data directory
+          if [ -f "target/allure-report/app.js" ]; then
+            echo "✅ app.js found"
+            
+            # Check if trend data is embedded
+            if grep -q "history-trend" target/allure-report/app.js; then
+              echo "✅ Trend data found in app.js"
+            else
+              echo "❌ No trend data in app.js"
+            fi
+          fi
+          
+          # Check data directory structure
+          if [ -d "target/allure-report/data" ]; then
+            echo "✅ Data directory found:"
+            find target/allure-report/data -name "*.json" | head -5
+          fi
+          
+          # Final verification of trend files
+          echo "=== Final Trend Files Check ==="
+          for file in history-trend.json duration-trend.json categories-trend.json retry-trend.json; do
+            if [ -f "target/allure-report/history/$file" ]; then
+              echo "✅ $file exists ($(stat -c%s target/allure-report/history/$file) bytes)"
+              if [ -s "target/allure-report/history/$file" ]; then
+                echo "   Content: $(head -c 200 target/allure-report/history/$file)"
+              fi
+            else
+              echo "❌ $file missing"
+            fi
+          done
+
+      # 10. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: always()
@@ -154,14 +218,14 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
 
-      # 10. Upload artifact
+      # 11. Upload artifact
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
           name: allure-report-${{ github.run_number }}
           path: target/allure-report
 
-      # 11. Deploy to SLT server
+      # 12. Deploy to SLT server
       - name: Deploy Allure Report with rsync
         uses: burnett01/rsync-deployments@6.0.0
         with:
