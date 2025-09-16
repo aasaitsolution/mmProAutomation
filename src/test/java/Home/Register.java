@@ -133,25 +133,25 @@ public class Register extends BaseTest {
         }
     }
 
-    // @Test(priority = 1)
-    // public void testRegisterGSMBOfficer() throws InterruptedException, IOException {
-    //     registerUserByRole(0, String.valueOf(System.currentTimeMillis()), true, true);
-    // }
+    @Test(priority = 1)
+    public void testRegisterGSMBOfficer() throws InterruptedException, IOException {
+        registerUserByRole(0, String.valueOf(System.currentTimeMillis()), true, true);
+    }
 
-    // @Test(priority = 2)
-    // public void testRegisterPolice() throws InterruptedException, IOException {
-    //     registerUserByRole(1, String.valueOf(System.currentTimeMillis()), true, true);
-    // }
+    @Test(priority = 2)
+    public void testRegisterPolice() throws InterruptedException, IOException {
+        registerUserByRole(1, String.valueOf(System.currentTimeMillis()), true, true);
+    }
 
-    // @Test(priority = 3)
-    // public void testRegisterMiningLicenseOwner() throws InterruptedException, IOException {
-    //     registerUserByRole(2, String.valueOf(System.currentTimeMillis()), false, false);
-    // }
+    @Test(priority = 3)
+    public void testRegisterMiningLicenseOwner() throws InterruptedException, IOException {
+        registerUserByRole(2, String.valueOf(System.currentTimeMillis()), false, false);
+    }
 
-    // @Test(priority = 4)
-    // public void testRegisterMiningEngineer() throws InterruptedException, IOException {
-    //     registerUserByRole(3, String.valueOf(System.currentTimeMillis()), true, true);
-    // }
+    @Test(priority = 4)
+    public void testRegisterMiningEngineer() throws InterruptedException, IOException {
+        registerUserByRole(3, String.valueOf(System.currentTimeMillis()), true, true);
+    }
 
     @Test(priority = 5)
     public void testRegisterMissingRequiredField() throws InterruptedException, IOException {
