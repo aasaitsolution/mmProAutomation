@@ -2,24 +2,24 @@
   {
     "data": {
       "failed": 1,
-      "broken": 42,
+      "broken": 36,
       "skipped": 51,
-      "passed": 92,
+      "passed": 99,
       "unknown": 0,
-      "total": 186
+      "total": 187
     }
   },
   {
-    "buildOrder": 68,
-    "reportName": "Build #68",
-    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17755886332",
+    "buildOrder": 69,
+    "reportName": "Build #69",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17757521381",
     "data": {
-      "passed": 310,
+      "passed": 319,
       "failed": 1,
-      "broken": 76,
+      "broken": 70,
       "skipped": 51,
       "unknown": 0,
-      "total": 438
+      "total": 441
     }
   }
 ]
