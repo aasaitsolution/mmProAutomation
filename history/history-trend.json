@@ -1,1 +1,25 @@
-[{"data":{"failed":1,"broken":42,"skipped":55,"passed":92,"unknown":0,"total":190}}]
+[
+  {
+    "data": {
+      "failed": 1,
+      "broken": 42,
+      "skipped": 55,
+      "passed": 92,
+      "unknown": 0,
+      "total": 190
+    }
+  },
+  {
+    "buildOrder": 66,
+    "reportName": "Build #66",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17753979725",
+    "data": {
+      "passed": 310,
+      "failed": 1,
+      "broken": 92,
+      "skipped": 55,
+      "unknown": 0,
+      "total": 458
+    }
+  }
+]
