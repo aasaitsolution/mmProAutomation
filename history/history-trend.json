@@ -3,23 +3,23 @@
     "data": {
       "failed": 1,
       "broken": 36,
-      "skipped": 51,
+      "skipped": 55,
       "passed": 99,
       "unknown": 0,
-      "total": 187
+      "total": 191
     }
   },
   {
-    "buildOrder": 70,
-    "reportName": "Build #70",
-    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17757523546",
+    "buildOrder": 71,
+    "reportName": "Build #71",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17757550839",
     "data": {
       "passed": 319,
       "failed": 1,
-      "broken": 70,
-      "skipped": 51,
+      "broken": 86,
+      "skipped": 55,
       "unknown": 0,
-      "total": 441
+      "total": 461
     }
   }
 ]
