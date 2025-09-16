@@ -163,23 +163,55 @@ jobs:
               }]' > target/allure-report/history/history-trend.json
           fi
           
-          # Create duration-trend.json
-          DURATION=$(find target/allure-results -name "*.json" -exec grep -o '"duration":[0-9]*' {} \; | cut -d: -f2 | paste -sd+ | bc 2>/dev/null || echo "0")
-          jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson duration "$DURATION" \
-            '[{
-              "buildOrder": $buildOrder,
-              "reportName": $reportName,
-              "reportUrl": $reportUrl,
-              "data": {
-                "duration": $duration
-              }
-            }]' > target/allure-report/history/duration-trend.json
+          # Create duration-trend.json with better error handling
+          echo "Creating duration-trend.json..."
+          DURATION=0
+          if find target/allure-results -name "*.json" -type f | head -1 | xargs -I {} test -f {}; then
+            # Calculate total duration from test results
+            DURATION=$(find target/allure-results -name "*-result.json" -exec grep -o '"duration":[0-9]*' {} \; 2>/dev/null | cut -d: -f2 | awk '{sum += $1} END {print sum+0}')
+          fi
+          echo "Calculated duration: $DURATION"
+          
+          # Get existing duration trends
+          if [ -f "target/allure-report/history/duration-trend.json" ]; then
+            EXISTING_DURATION_TRENDS=$(cat target/allure-report/history/duration-trend.json)
+            NEW_DURATION_TREND=$(jq -n \
+              --argjson buildOrder "$BUILD_ORDER" \
+              --arg reportName "$REPORT_NAME" \
+              --arg reportUrl "$REPORT_URL" \
+              --argjson duration "$DURATION" \
+              '{
+                "buildOrder": $buildOrder,
+                "reportName": $reportName,
+                "reportUrl": $reportUrl,
+                "data": {"duration": $duration}
+              }')
+            
+            if [ "$EXISTING_DURATION_TRENDS" != "[]" ] && [ -n "$EXISTING_DURATION_TRENDS" ]; then
+              COMBINED_DURATION_TRENDS=$(echo "$EXISTING_DURATION_TRENDS" | jq --argjson newTrend "$NEW_DURATION_TREND" '. + [$newTrend]')
+            else
+              COMBINED_DURATION_TRENDS="[$NEW_DURATION_TREND]"
+            fi
+            echo "$COMBINED_DURATION_TRENDS" > target/allure-report/history/duration-trend.json
+          else
+            jq -n \
+              --argjson buildOrder "$BUILD_ORDER" \
+              --arg reportName "$REPORT_NAME" \
+              --arg reportUrl "$REPORT_URL" \
+              --argjson duration "$DURATION" \
+              '[{
+                "buildOrder": $buildOrder,
+                "reportName": $reportName,
+                "reportUrl": $reportUrl,
+                "data": {"duration": $duration}
+              }]' > target/allure-report/history/duration-trend.json
+          fi
           
           echo "Created trend files with buildOrder: $BUILD_ORDER"
+          echo "Final history-trend.json:"
+          cat target/allure-report/history/history-trend.json
+          echo "Final duration-trend.json:"  
+          cat target/allure-report/history/duration-trend.json
 
       # 9. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
