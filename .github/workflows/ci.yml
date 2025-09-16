@@ -1,4 +1,4 @@
-name: Selenium CI with Allure Report
+name: Selenium CI with Manual Trend Generation
 
 on:
   push:
@@ -37,27 +37,18 @@ jobs:
           path: gh-pages
         continue-on-error: true
 
-      # 5. Prepare history for current run
-      - name: Prepare Allure history
+      # 5. Prepare history and create proper trend data
+      - name: Prepare Allure history with manual trend generation
         run: |
-          # Create target directories
-          mkdir -p target/allure-results
+          mkdir -p target/allure-results/history
           
-          # Copy history from gh-pages if it exists
+          # Copy existing history
           if [ -d "gh-pages/history" ]; then
-            echo "Found history in gh-pages, copying..."
-            cp -r gh-pages/history target/allure-results/
-            echo "History files copied:"
-            ls -la target/allure-results/history/
-          else
-            echo "No history found - first run"
-            mkdir -p target/allure-results/history
+            echo "Copying existing history..."
+            cp -r gh-pages/history/* target/allure-results/history/
           fi
-
-      # 6. Run tests with unique build info
-      - name: Run Tests
-        run: |
-          # Create executor.json for proper build tracking
+          
+          # Create executor.json
           cat > target/allure-results/executor.json << EOF
           {
             "name": "GitHub Actions",
@@ -66,148 +57,131 @@ jobs:
             "buildOrder": ${{ github.run_number }},
             "buildName": "Build #${{ github.run_number }}",
             "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "reportName": "Allure Report",
+            "reportName": "Allure Report #${{ github.run_number }}",
             "reportUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }
           EOF
-          
-          # Create categories.json for better categorization
-          cat > target/allure-results/categories.json << EOF
-          [
-            {
-              "name": "Ignored tests", 
-              "matchedStatuses": ["skipped"]
-            },
-            {
-              "name": "Infrastructure problems",
-              "matchedStatuses": ["broken", "failed"],
-              "messageRegex": ".*bye-bye.*"
-            },
-            {
-              "name": "Outdated tests",
-              "matchedStatuses": ["broken"],
-              "traceRegex": ".*FileNotFoundException.*"
-            },
-            {
-              "name": "Product defects",
-              "matchedStatuses": ["failed"]
-            },
-            {
-              "name": "Test defects",
-              "matchedStatuses": ["broken"]
-            }
-          ]
-          EOF
-          
-          # Run Maven test with clean target to avoid interference
-          mvn clean test -Dmaven.test.failure.ignore=true -Dallure.results.directory=target/allure-results
 
-      # 7. Install Allure CLI
-      - name: Install Allure CLI
+      # 6. Run tests
+      - name: Run Tests
+        run: |
+          mvn clean test -Dmaven.test.failure.ignore=true
+
+      # 7. Install Allure and jq for JSON processing
+      - name: Install Allure CLI and jq
         run: |
           ALLURE_VERSION=2.25.0
           wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
           tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
+          sudo apt-get install -y jq
 
-      # 8. Generate Allure Report with Enhanced Debugging
-      - name: Generate Allure Report
+      # 8. Generate report and fix trend data
+      - name: Generate Report and Fix Trend Data
         run: |
-          echo "=== Before Report Generation ==="
-          echo "Results directory contents:"
-          ls -la target/allure-results/
-          
-          echo "Checking executor.json:"
-          if [ -f "target/allure-results/executor.json" ]; then
-            cat target/allure-results/executor.json
-          else
-            echo "No executor.json found!"
-          fi
-          
-          if [ -d "target/allure-results/history" ]; then
-            echo "History directory contents:"
-            ls -la target/allure-results/history/
-            
-            if [ -f "target/allure-results/history/history-trend.json" ]; then
-              echo "Current history-trend.json content:"
-              cat target/allure-results/history/history-trend.json
-            fi
-            
-            if [ -f "target/allure-results/history/history.json" ]; then
-              echo "History.json entries count:"
-              grep -c '"buildOrder"' target/allure-results/history/history.json || echo "0"
-              echo "Sample history.json content (first 500 chars):"
-              head -c 500 target/allure-results/history/history.json
-            fi
-          fi
-          
-          # Generate the report
+          # Generate initial report
           allure generate target/allure-results -o target/allure-report --clean
           
-          echo "=== After Report Generation ==="
-          if [ -d "target/allure-report/history" ]; then
-            echo "Generated history contents:"
-            ls -la target/allure-report/history/
+          # Get current test statistics
+          PASSED=$(find target/allure-results -name "*.json" -exec grep -l '"status":"passed"' {} \; | wc -l)
+          FAILED=$(find target/allure-results -name "*.json" -exec grep -l '"status":"failed"' {} \; | wc -l)
+          BROKEN=$(find target/allure-results -name "*.json" -exec grep -l '"status":"broken"' {} \; | wc -l)
+          SKIPPED=$(find target/allure-results -name "*.json" -exec grep -l '"status":"skipped"' {} \; | wc -l)
+          TOTAL=$((PASSED + FAILED + BROKEN + SKIPPED))
+          
+          echo "Current run stats: P=$PASSED, F=$FAILED, B=$BROKEN, S=$SKIPPED, T=$TOTAL"
+          
+          # Create proper trend data with buildOrder
+          BUILD_ORDER=${{ github.run_number }}
+          REPORT_NAME="Build #$BUILD_ORDER"
+          REPORT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          # Fix history-trend.json
+          echo "Fixing history-trend.json..."
+          if [ -f "target/allure-report/history/history-trend.json" ]; then
+            # Get existing trend data
+            EXISTING_TRENDS=$(cat target/allure-report/history/history-trend.json)
             
-            if [ -f "target/allure-report/history/history-trend.json" ]; then
-              echo "NEW Trend data:"
-              cat target/allure-report/history/history-trend.json
+            # Create new trend entry
+            NEW_TREND=$(jq -n \
+              --argjson buildOrder "$BUILD_ORDER" \
+              --arg reportName "$REPORT_NAME" \
+              --arg reportUrl "$REPORT_URL" \
+              --argjson passed "$PASSED" \
+              --argjson failed "$FAILED" \
+              --argjson broken "$BROKEN" \
+              --argjson skipped "$SKIPPED" \
+              --argjson total "$TOTAL" \
+              '{
+                "buildOrder": $buildOrder,
+                "reportName": $reportName,
+                "reportUrl": $reportUrl,
+                "data": {
+                  "passed": $passed,
+                  "failed": $failed,
+                  "broken": $broken,
+                  "skipped": $skipped,
+                  "unknown": 0,
+                  "total": $total
+                }
+              }')
+            
+            # Combine with existing trends
+            if [ "$EXISTING_TRENDS" != "[]" ] && [ -n "$EXISTING_TRENDS" ]; then
+              COMBINED_TRENDS=$(echo "$EXISTING_TRENDS" | jq --argjson newTrend "$NEW_TREND" '. + [$newTrend]')
+            else
+              COMBINED_TRENDS="[$NEW_TREND]"
             fi
             
-            echo "History entries in generated report:"
-            grep -c '"buildOrder"' target/allure-report/history/history.json || echo "0"
-          fi
-          
-          # Check if Overview widgets exist
-          if [ -d "target/allure-report/widgets" ]; then
-            echo "Widgets directory contents:"
-            ls -la target/allure-report/widgets/
-          fi
-
-      # 9. Verify Report Structure and Trend Data
-      - name: Verify Trend Graphs
-        run: |
-          echo "=== Verifying Allure Report Structure ==="
-          
-          # Check if the main files exist
-          if [ -f "target/allure-report/index.html" ]; then
-            echo "✅ index.html found"
+            # Write fixed trend data
+            echo "$COMBINED_TRENDS" > target/allure-report/history/history-trend.json
+            echo "Fixed history-trend.json:"
+            cat target/allure-report/history/history-trend.json
           else
-            echo "❌ index.html missing"
+            echo "Creating new history-trend.json..."
+            jq -n \
+              --argjson buildOrder "$BUILD_ORDER" \
+              --arg reportName "$REPORT_NAME" \
+              --arg reportUrl "$REPORT_URL" \
+              --argjson passed "$PASSED" \
+              --argjson failed "$FAILED" \
+              --argjson broken "$BROKEN" \
+              --argjson skipped "$SKIPPED" \
+              --argjson total "$TOTAL" \
+              '[{
+                "buildOrder": $buildOrder,
+                "reportName": $reportName,
+                "reportUrl": $reportUrl,
+                "data": {
+                  "passed": $passed,
+                  "failed": $failed,
+                  "broken": $broken,
+                  "skipped": $skipped,
+                  "unknown": 0,
+                  "total": $total
+                }
+              }]' > target/allure-report/history/history-trend.json
           fi
           
-          # Check for trend data in app.js or data directory
-          if [ -f "target/allure-report/app.js" ]; then
-            echo "✅ app.js found"
-            
-            # Check if trend data is embedded
-            if grep -q "history-trend" target/allure-report/app.js; then
-              echo "✅ Trend data found in app.js"
-            else
-              echo "❌ No trend data in app.js"
-            fi
-          fi
+          # Create duration-trend.json
+          DURATION=$(find target/allure-results -name "*.json" -exec grep -o '"duration":[0-9]*' {} \; | cut -d: -f2 | paste -sd+ | bc 2>/dev/null || echo "0")
+          jq -n \
+            --argjson buildOrder "$BUILD_ORDER" \
+            --arg reportName "$REPORT_NAME" \
+            --arg reportUrl "$REPORT_URL" \
+            --argjson duration "$DURATION" \
+            '[{
+              "buildOrder": $buildOrder,
+              "reportName": $reportName,
+              "reportUrl": $reportUrl,
+              "data": {
+                "duration": $duration
+              }
+            }]' > target/allure-report/history/duration-trend.json
           
-          # Check data directory structure
-          if [ -d "target/allure-report/data" ]; then
-            echo "✅ Data directory found:"
-            find target/allure-report/data -name "*.json" | head -5
-          fi
-          
-          # Final verification of trend files
-          echo "=== Final Trend Files Check ==="
-          for file in history-trend.json duration-trend.json categories-trend.json retry-trend.json; do
-            if [ -f "target/allure-report/history/$file" ]; then
-              echo "✅ $file exists ($(stat -c%s target/allure-report/history/$file) bytes)"
-              if [ -s "target/allure-report/history/$file" ]; then
-                echo "   Content: $(head -c 200 target/allure-report/history/$file)"
-              fi
-            else
-              echo "❌ $file missing"
-            fi
-          done
+          echo "Created trend files with buildOrder: $BUILD_ORDER"
 
-      # 10. Deploy to GitHub Pages
+      # 9. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: always()
@@ -215,17 +189,15 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: target/allure-report
           keep_files: false
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
 
-      # 11. Upload artifact
+      # 10. Upload artifact
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
           name: allure-report-${{ github.run_number }}
           path: target/allure-report
 
-      # 12. Deploy to SLT server
+      # 11. Deploy to SLT server
       - name: Deploy Allure Report with rsync
         uses: burnett01/rsync-deployments@6.0.0
         with:
