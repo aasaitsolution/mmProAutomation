@@ -10,16 +10,16 @@
     }
   },
   {
-    "buildOrder": 71,
-    "reportName": "Build #71",
-    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17757550839",
+    "buildOrder": 72,
+    "reportName": "Build #72",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17791680791",
     "data": {
-      "passed": 319,
+      "passed": 99,
       "failed": 1,
-      "broken": 86,
+      "broken": 36,
       "skipped": 55,
       "unknown": 0,
-      "total": 461
+      "total": 191
     }
   }
 ]

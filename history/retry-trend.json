@@ -1,1 +1,17 @@
-[{"data":{"run":191,"retry":0}}]
+[
+  {
+    "data": {
+      "run": 191,
+      "retry": 0
+    }
+  },
+  {
+    "buildOrder": 72,
+    "reportName": "Build #72",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17791680791",
+    "data": {
+      "run": 191,
+      "retry": 0
+    }
+  }
+]
