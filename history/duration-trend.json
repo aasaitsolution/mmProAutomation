@@ -1,15 +1,1 @@
-[
-  {
-    "data": {
-      "duration": 2538346
-    }
-  },
-  {
-    "buildOrder": 72,
-    "reportName": "Build #72",
-    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17791680791",
-    "data": {
-      "duration": 2291
-    }
-  }
-]
+[{"data":{"duration":2661357}},{"data":{"duration":2661357}},{"buildOrder":73,"reportUrl":"https://github.com/aasaitsolution/mmProAutomation/actions/runs/17832905384","reportName":"Build #73","data":{"duration":2392}}]
