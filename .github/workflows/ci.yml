@@ -243,8 +243,11 @@ jobs:
           jq '.[0:2]' target/allure-report/history/history-trend.json
           
           echo "=== STEP 5: Force Report Regeneration ==="
+          # Ensure target directories exist
+          mkdir -p target/allure-results/history
+          
           # Copy fixed history back to results
-          cp -r target/allure-report/history/* target/allure-results/history/
+          cp target/allure-report/history/* target/allure-results/history/
           
           # Regenerate report with fixed history
           allure generate target/allure-results -o target/allure-report-final --clean
