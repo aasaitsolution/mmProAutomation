@@ -1,10 +1,7 @@
-//Done
 package MLOwner;
 
 import base.BaseTest;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.*;
 import org.testng.annotations.*;
 import org.testng.Assert;
@@ -13,31 +10,50 @@ import java.time.Duration;
 import java.util.List;
 
 public class LicensesPageTest extends BaseTest {
-//    private WebDriver driver;
-//    private WebDriverWait wait;
-//
-//    @BeforeClass
-//    public void setup() {
-//        ChromeOptions options = new ChromeOptions();
-//        options.addArguments("--incognito");
-//        options.addArguments("--disable-blink-features=AutomationControlled");
-//        options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-//
-//        driver = new ChromeDriver(options);
-//        driver.manage().window().maximize();
-//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-//    }
+
+    /**
+     * Helper method to perform login before tests that require authentication
+     */
+    private void performLogin() throws InterruptedException {
+        driver.get("https://mmpro.aasait.lk/");
+        waitForPageLoadComplete();
+
+        WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("a[href='/signin'] button")));
+        loginBtn.click();
+        waitForPageLoadComplete();
+
+        WebElement username = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+        WebElement password = driver.findElement(By.id("sign-in_password"));
+
+        username.clear();
+        username.sendKeys("pasindu");
+        password.clear();
+        password.sendKeys("12345678");
+
+        WebElement signInBtn = driver.findElement(By.cssSelector("button[type='submit']"));
+        signInBtn.click();
+        waitForPageLoadComplete();
+
+        wait.until(ExpectedConditions.urlContains("/mlowner/home"));
+        System.out.println("✅ Login successful");
+    }
+
+    private void waitForPageLoadComplete() {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(
+                webDriver -> ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
+    }
 
     @Test(priority = 0)
-    public void loginWithInvalidCredentials() {
+    public void loginWithInvalidCredentials() throws InterruptedException {
         try {
             driver.get("https://mmpro.aasait.lk/");
-            wait.until(ExpectedConditions.jsReturnsValue("return document.readyState === 'complete'"));
+            waitForPageLoadComplete();
 
             WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector("a[href='/signin'] button")));
             loginBtn.click();
+            waitForPageLoadComplete();
 
             WebElement username = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
             WebElement password = driver.findElement(By.id("sign-in_password"));
@@ -49,6 +65,7 @@ public class LicensesPageTest extends BaseTest {
 
             WebElement signInBtn = driver.findElement(By.cssSelector("button[type='submit']"));
             signInBtn.click();
+            waitForPageLoadComplete();
 
             // Wait for error message or check login URL did not change
             WebElement errorMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
@@ -63,43 +80,15 @@ public class LicensesPageTest extends BaseTest {
         }
     }
 
-
     @Test(priority = 1)
-    public void loginToDashboard() {
-        try {
-            driver.get("https://mmpro.aasait.lk/");
-
-            // Wait for page to load completely
-            wait.until(ExpectedConditions.jsReturnsValue("return document.readyState === 'complete'"));
-
-            WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("a[href='/signin'] button")));
-            loginBtn.click();
-
-            WebElement username = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.id("sign-in_username")));
-            WebElement password = driver.findElement(By.id("sign-in_password"));
-
-            username.clear();
-            username.sendKeys("pasindu");
-            password.clear();
-            password.sendKeys("12345678");
-
-            WebElement signInBtn = driver.findElement(By.cssSelector("button[type='submit']"));
-            signInBtn.click();
-
-            // Wait for redirect to home page
-            wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-            System.out.println("✅ Login successful");
-
-        } catch (Exception e) {
-            System.err.println("❌ Login failed: " + e.getMessage());
-            throw e;
-        }
+    public void loginToDashboard() throws InterruptedException {
+        performLogin();
     }
 
-    @Test(priority = 2, dependsOnMethods = "loginToDashboard")
+    @Test(priority = 2)
     public void navigateToLicensesPage() throws InterruptedException {
+        performLogin();
+
         try {
             // Wait for page to load and find the View Licenses link
             WebElement viewLicensesLink = wait.until(ExpectedConditions.elementToBeClickable(
@@ -114,6 +103,7 @@ public class LicensesPageTest extends BaseTest {
 
             // Wait for navigation to licenses page
             wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
+            waitForPageLoadComplete();
 
             // Wait for page content to load
             wait.until(ExpectedConditions.presenceOfElementLocated(By.className("container")));
@@ -126,8 +116,17 @@ public class LicensesPageTest extends BaseTest {
         }
     }
 
-    @Test(priority = 3, dependsOnMethods = "navigateToLicensesPage")
+    @Test(priority = 3)
     public void testSearchFunctionality() throws InterruptedException {
+        performLogin();
+
+        // Navigate to licenses page first
+        WebElement viewLicensesLink = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[@href='/mlowner/home/viewlicenses']")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", viewLicensesLink);
+        wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
+        waitForPageLoadComplete();
+
         try {
             // Wait for search input to be available
             WebElement searchInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
@@ -158,8 +157,17 @@ public class LicensesPageTest extends BaseTest {
         }
     }
 
-    @Test(priority = 4, dependsOnMethods = "navigateToLicensesPage")
+    @Test(priority = 4)
     public void testSearchWithInvalidInput() throws InterruptedException {
+        performLogin();
+
+        // Navigate to licenses page first
+        WebElement viewLicensesLink = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[@href='/mlowner/home/viewlicenses']")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", viewLicensesLink);
+        wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
+        waitForPageLoadComplete();
+
         try {
             WebElement searchInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("input.search-input")));
@@ -182,12 +190,21 @@ public class LicensesPageTest extends BaseTest {
         }
     }
 
-
-    @Test(priority = 5, dependsOnMethods = "navigateToLicensesPage")
+    @Test(priority = 5)
     public void testCardContentsAndHistoryButton() throws InterruptedException {
+        performLogin();
+
+        // Navigate to licenses page first
+        WebElement viewLicensesLink = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[@href='/mlowner/home/viewlicenses']")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", viewLicensesLink);
+        wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
+        waitForPageLoadComplete();
+
         try {
             // Refresh the page to reset filters
             driver.navigate().refresh();
+            waitForPageLoadComplete();
             wait.until(ExpectedConditions.presenceOfElementLocated(By.className("container")));
 
             // Wait for license cards to load
@@ -228,11 +245,13 @@ public class LicensesPageTest extends BaseTest {
         }
     }
 
-    @Test(priority = 6, dependsOnMethods = "navigateToLicensesPage")
+    @Test(priority = 6)
     public void testBrokenHistoryNavigation() throws InterruptedException {
+        performLogin();
+
         try {
             driver.get("https://mmpro.aasait.lk/mlowner/history");
-            Thread.sleep(500);
+            waitForPageLoadComplete();
             wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
 
             List<WebElement> errorMessages = driver.findElements(By.xpath("//*[contains(text(),'not found') or contains(text(),'No license')]"));
@@ -246,17 +265,76 @@ public class LicensesPageTest extends BaseTest {
         }
     }
 
+    @Test(priority = 7)
+    public void testLicenseCardInteractions() throws InterruptedException {
+        performLogin();
 
-    @AfterClass
-    public void teardown() {
-        if (driver != null) {
-            try {
-                Thread.sleep(2000); // Brief pause before closing
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        // Navigate to licenses page
+        WebElement viewLicensesLink = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[@href='/mlowner/home/viewlicenses']")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", viewLicensesLink);
+        wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
+        waitForPageLoadComplete();
+
+        try {
+            List<WebElement> cards = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+                    By.cssSelector(".license-card")));
+
+            if (!cards.isEmpty()) {
+                WebElement card = cards.get(0);
+
+                // Test hover effect
+                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", card);
+                Thread.sleep(500);
+
+                // Check if card has interactive elements
+                List<WebElement> buttons = card.findElements(By.tagName("button"));
+                System.out.println("✅ Found " + buttons.size() + " interactive buttons in license card");
+
+                // Test clicking on different areas of the card
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", card);
+                Thread.sleep(1000);
+
+                System.out.println("✅ License card interaction test completed");
             }
-            driver.quit();
-            System.out.println("✅ Browser closed successfully");
+
+        } catch (Exception e) {
+            System.err.println("❌ License card interaction test failed: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Test(priority = 8)
+    public void testPageRefreshAndDataPersistence() throws InterruptedException {
+        performLogin();
+
+        // Navigate to licenses page
+        WebElement viewLicensesLink = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[@href='/mlowner/home/viewlicenses']")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", viewLicensesLink);
+        wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
+        waitForPageLoadComplete();
+
+        try {
+            // Count cards before refresh
+            List<WebElement> cardsBeforeRefresh = driver.findElements(By.cssSelector(".license-card"));
+            int cardCountBefore = cardsBeforeRefresh.size();
+
+            // Refresh page
+            driver.navigate().refresh();
+            waitForPageLoadComplete();
+
+            // Count cards after refresh
+            List<WebElement> cardsAfterRefresh = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+                    By.cssSelector(".license-card")));
+            int cardCountAfter = cardsAfterRefresh.size();
+
+            Assert.assertEquals(cardCountAfter, cardCountBefore, "Card count should remain same after refresh");
+            System.out.println("✅ Data persistence verified after page refresh");
+
+        } catch (Exception e) {
+            System.err.println("❌ Page refresh test failed: " + e.getMessage());
+            throw e;
         }
     }
 }

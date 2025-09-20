@@ -2,38 +2,50 @@ package MLOwner;
 
 import base.BaseTest;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.*;
 import org.testng.annotations.*;
 import java.time.Duration;
 import org.testng.Assert;
 
-
-
 public class RoyaltyPayementTest extends BaseTest {
-//    private WebDriver driver;
-//    private WebDriverWait wait;
-//
-//    @BeforeClass
-//    public void setup() {
-//        ChromeOptions options = new ChromeOptions();
-//        options.addArguments("--incognito");
-//        driver = new ChromeDriver(options);
-//        driver.manage().window().maximize();
-//        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-//    }
+
+    /**
+     * Helper method to perform login before tests that require authentication
+     */
+    private void performLogin() throws InterruptedException {
+        driver.get("https://mmpro.aasait.lk/");
+        WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("a[href='/signin'] button")));
+        loginButton.click();
+        waitForPageLoadComplete();
+
+        WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
+        usernameField.sendKeys("pasindu");
+
+        WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_password")));
+        passwordField.sendKeys("12345678");
+        System.out.println("👤 Entered username and password");
+
+        WebElement signInButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']")));
+        signInButton.click();
+        System.out.println("🚀 Submitted username and password");
+        waitForPageLoadComplete();
+
+        wait.until(ExpectedConditions.urlContains("/mlowner/home"));
+        System.out.println("🔐 Login successful.");
+    }
 
     @Test(priority = 0)
-    public void invalidLoginShouldFail() {
+    public void invalidLoginShouldFail() throws InterruptedException {
         try {
             driver.get("https://mmpro.aasait.lk/");
             WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("a[href='/signin'] button")));
             loginButton.click();
+            waitForPageLoadComplete();
 
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username"))).sendKeys("wrongUser");
             driver.findElement(By.id("sign-in_password")).sendKeys("wrongPass");
             driver.findElement(By.cssSelector("button[type='submit']")).click();
+            waitForPageLoadComplete();
 
             Thread.sleep(2000);
             String currentUrl = driver.getCurrentUrl();
@@ -45,44 +57,15 @@ public class RoyaltyPayementTest extends BaseTest {
         }
     }
 
-
-
     @Test(priority = 1)
-    public void login() {
-        try {
-        driver.get("https://mmpro.aasait.lk/");
-            // Wait and click on the 'Login' button
-            WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("a[href='/signin'] button")));
-            loginButton.click();
-
-            // Wait for the Sign-in page to load and the username field to be visible
-            WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_username")));
-            usernameField.sendKeys("pasindu");
-
-            // Wait for the password field to be visible
-            WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_password")));
-            passwordField.sendKeys("12345678");
-            System.out.println("👤 Entered username and password");
-
-            // Wait and click on the 'Sign in' button
-            WebElement signInButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']")));
-            signInButton.click();
-            System.out.println("🚀 Submitted username and password");
-
-            // Wait for login to complete - you might need to wait for a specific element that appears after successful login
-            wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-            System.out.println("🔐 Login successful.");
-
-        } catch (Exception e) {
-            System.out.println("❌ Error during sign in: ⚠️ " + e.getMessage());
-            e.printStackTrace();
-        }
+    public void login() throws InterruptedException {
+        performLogin();
     }
-        
 
+    @Test(priority = 2)
+    public void openRoyaltyModal() throws InterruptedException {
+        performLogin();
 
-    @Test(priority = 2, dependsOnMethods = "login")
-    public void openRoyaltyModal() {
         WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
         royaltyBtn.click();
@@ -92,8 +75,14 @@ public class RoyaltyPayementTest extends BaseTest {
         System.out.println("💰 Royalty modal opened.");
     }
 
-    @Test(priority = 3, dependsOnMethods = "openRoyaltyModal")
-    public void submitRoyaltyForm() {
+    @Test(priority = 3)
+    public void submitRoyaltyForm() throws InterruptedException {
+        performLogin();
+
+        WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
+        royaltyBtn.click();
+
         WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.cssSelector("input[placeholder*='Enter Payment Amount']")));
         input.sendKeys("1000");
@@ -105,8 +94,23 @@ public class RoyaltyPayementTest extends BaseTest {
         System.out.println("🧾 Payment submitted. Waiting for PayHere...");
     }
 
-    @Test(priority = 4, dependsOnMethods = "submitRoyaltyForm")
-    public void selectMasterCardAndPay() {
+    @Test(priority = 4)
+    public void selectMasterCardAndPay() throws InterruptedException {
+        performLogin();
+
+        // Open modal and submit form first
+        WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
+        royaltyBtn.click();
+
+        WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("input[placeholder*='Enter Payment Amount']")));
+        input.sendKeys("1000");
+
+        WebElement payNowBtn = driver.findElement(By.cssSelector(".pay-now-button"));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", payNowBtn);
+        payNowBtn.click();
+
         try {
             // Wait for iframe and switch
             wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(By.tagName("iframe")));
@@ -127,13 +131,13 @@ public class RoyaltyPayementTest extends BaseTest {
 
             // Fill the form with dummy test data
             driver.findElement(By.id("cardHolderName")).sendKeys("Sankavi");
-            driver.findElement(By.id("cardNo")).sendKeys("4916217501611292"); 
+            driver.findElement(By.id("cardNo")).sendKeys("4916217501611292");
             driver.findElement(By.id("cardSecureId")).sendKeys("123");
             driver.findElement(By.id("cardExpiry")).sendKeys("09/26");
 
             // Click Pay
             WebElement payButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("button.btn.btn-primary")
+                    By.cssSelector("button.btn.btn-primary")
             ));
             payButton.click();
 
@@ -153,10 +157,10 @@ public class RoyaltyPayementTest extends BaseTest {
     }
 
     @Test(priority = 5)
-    public void emptyAmountShouldShowError() {
-        try {
-            driver.get("https://mmpro.aasait.lk/mlowner/home");  // ✅ Clean start
+    public void emptyAmountShouldShowError() throws InterruptedException {
+        performLogin();
 
+        try {
             WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
             royaltyBtn.click();
@@ -176,18 +180,17 @@ public class RoyaltyPayementTest extends BaseTest {
         }
     }
 
-
     @Test(priority = 6)
-    public void invalidCardDetailsShouldFail() {
+    public void invalidCardDetailsShouldFail() throws InterruptedException {
+        performLogin();
+
         try {
-            driver.get("https://mmpro.aasait.lk/mlowner/home");
             WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
             royaltyBtn.click();
 
             wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.xpath("//div[contains(@class,'ant-modal-title') and contains(text(),'Royalty Payment')]")));
-            
 
             WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("input[placeholder*='Enter Payment Amount']")));
@@ -211,54 +214,53 @@ public class RoyaltyPayementTest extends BaseTest {
             driver.findElement(By.id("cardExpiry")).sendKeys("00/00"); // invalid expiry
 
             // Wait briefly for validation messages to appear
-        Thread.sleep(2000);
+            Thread.sleep(2000);
 
-        // Assert exact text of validation messages
+            // Assert exact text of validation messages
+            WebElement cardNumberError = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("small[data-bv-for='cardNo'][data-bv-result='INVALID']")));
+            Assert.assertEquals(cardNumberError.getText().trim(), "The card number is not valid",
+                    "❌ Card number validation message text mismatch!");
 
-        WebElement cardNumberError = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.cssSelector("small[data-bv-for='cardNo'][data-bv-result='INVALID']")));
-        Assert.assertEquals(cardNumberError.getText().trim(), "The card number is not valid",
-                "❌ Card number validation message text mismatch!");
+            WebElement cvvError = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("small[data-bv-for='cardSecureId'][data-bv-result='INVALID']")));
+            Assert.assertEquals(cvvError.getText().trim(), "The CVV is not valid",
+                    "❌ CVV validation message text mismatch!");
 
-        WebElement cvvError = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.cssSelector("small[data-bv-for='cardSecureId'][data-bv-result='INVALID']")));
-        Assert.assertEquals(cvvError.getText().trim(), "The CVV is not valid",
-                "❌ CVV validation message text mismatch!");
+            WebElement expiryError = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("small[data-bv-for='cardExpiry'][data-bv-result='INVALID']")));
+            Assert.assertEquals(expiryError.getText().trim(), "The card expiry is not valid",
+                    "❌ Expiry date validation message text mismatch!");
 
-        WebElement expiryError = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.cssSelector("small[data-bv-for='cardExpiry'][data-bv-result='INVALID']")));
-        Assert.assertEquals(expiryError.getText().trim(), "The card expiry is not valid",
-                "❌ Expiry date validation message text mismatch!");
+            System.out.println("✅ Payment failed with invalid card data and exact validation messages verified.");
 
-        System.out.println("✅ Payment failed with invalid card data and exact validation messages verified.");
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        //Assert.fail("Test failed due to unexpected exception: " + e.getMessage());
-    } finally {
-        driver.switchTo().defaultContent();
-    }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            driver.switchTo().defaultContent();
+        }
     }
 
-    @Test(priority = 7, dependsOnMethods = "login")
+    @Test(priority = 7)
     public void modalShouldNotOpenIfButtonMissing() throws InterruptedException {
+        performLogin();
+
         try {
             driver.get("https://mmpro.aasait.lk/nonexistent-page"); // fake URL to simulate missing button
-            Thread.sleep(2000);
+            waitForPageLoadComplete();
             driver.findElement(By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")).click();
             System.out.println("❌ Button was found on invalid page — test should fail.");
         } catch (NoSuchElementException e) {
             System.out.println("✅ Modal not opened because button was missing — expected behavior.");
         } finally {
-        // ✅ Navigate back to the main/expected page
-        driver.get("https://mmpro.aasait.lk/mlowner/home"); 
-        Thread.sleep(2000); // wait for it to fully load
-    }
+            driver.get("https://mmpro.aasait.lk/mlowner/home");
+            waitForPageLoadComplete();
+        }
     }
 
-    @Test(priority = 8, dependsOnMethods = "login")
+    @Test(priority = 8)
     public void enterNonNumericAmountShouldFail() throws InterruptedException {
-        // removePayHereIframeIfPresent(); 
+        performLogin();
 
         WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
         royaltyBtn.click();
@@ -274,10 +276,9 @@ public class RoyaltyPayementTest extends BaseTest {
         System.out.println("❌ Non-numeric amount should not be accepted.");
     }
 
-    @Test(priority = 9, dependsOnMethods = "login")
+    @Test(priority = 9)
     public void zeroAmountShouldTriggerValidation() throws InterruptedException {
-
-        driver.get("https://mmpro.aasait.lk/mlowner/home");
+        performLogin();
 
         WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
         royaltyBtn.click();
@@ -293,10 +294,9 @@ public class RoyaltyPayementTest extends BaseTest {
         System.out.println("✅ Validation triggered for zero amount.");
     }
 
-    @Test(priority = 10, dependsOnMethods = "login")
+    @Test(priority = 10)
     public void formShouldResetOnModalReopen() throws InterruptedException {
-
-        driver.get("https://mmpro.aasait.lk/mlowner/home");
+        performLogin();
 
         WebElement royaltyBtn = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[.//span[contains(text(),'Pay Royalty')]]")));
         royaltyBtn.click();
@@ -319,12 +319,19 @@ public class RoyaltyPayementTest extends BaseTest {
         System.out.println("✅ Form reset verified after modal reopen.");
     }
 
-    @Test(priority = 11, dependsOnMethods = "submitRoyaltyForm")
-    public void simulateSuccessPaymentCallback() {
+    @Test(priority = 11)
+    public void simulateSuccessPaymentCallback() throws InterruptedException {
+        performLogin();
+
         ((JavascriptExecutor) driver).executeScript(
-            "window.payhere && window.payhere.onCompleted && window.payhere.onCompleted('ORDER12345');"
+                "window.payhere && window.payhere.onCompleted && window.payhere.onCompleted('ORDER12345');"
         );
         System.out.println("✅ Simulated PayHere success callback.");
+    }
+
+    private void waitForPageLoadComplete() {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(
+                webDriver -> ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
     }
 
     public void waitForIframeToDisappear() {
@@ -342,14 +349,5 @@ public class RoyaltyPayementTest extends BaseTest {
                 waitForIframeToDisappear();
             }
         } catch (NoSuchElementException ignored) {}
-    }
-
-
-    @AfterClass
-    public void teardown() {
-        if (driver != null) {
-            driver.quit();
-            System.out.println("🚪 Browser closed.");
-        }
     }
 }
