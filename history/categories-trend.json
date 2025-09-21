@@ -1,15 +1,16 @@
 [
   {
     "data": {
+      "Product defects": 1,
       "Test defects": 25
     }
   },
   {
-    "buildOrder": 79,
-    "reportName": "Build #79",
-    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17889141134",
+    "buildOrder": 80,
+    "reportName": "Build #80",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17889662364",
     "data": {
-      "Product defects": 0,
+      "Product defects": 1,
       "Test defects": 25
     }
   }
