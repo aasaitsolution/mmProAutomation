@@ -147,6 +147,16 @@ jobs:
           echo "Test Results: P=$PASSED, F=$FAILED, B=$BROKEN, S=$SKIPPED, T=$TOTAL, D=${DURATION}ms"
           
           echo "=== STEP 3: FIXED History Management ==="
+          # CRITICAL: Clean up any corrupted existing history first
+          if [ -f "target/allure-report/history/history-trend.json" ]; then
+            echo "Cleaning up existing corrupted history..."
+            CLEAN_HISTORY=$(cat target/allure-report/history/history-trend.json | jq \
+              'map(select(.buildOrder != null and .reportName != null and .data != null)) | 
+               if length == 0 then [] else . end')
+            echo "$CLEAN_HISTORY" > target/allure-report/history/history-trend.json
+            echo "Cleaned history entries: $(echo "$CLEAN_HISTORY" | jq length)"
+          fi
+          
           BUILD_ORDER=${{ github.run_number }}
           REPORT_NAME="Build #$BUILD_ORDER"
           REPORT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
