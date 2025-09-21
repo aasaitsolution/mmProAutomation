@@ -14,9 +14,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aspectj.version>1.9.19</aspectj.version>
         <allure.version>2.25.0</allure.version>
+        <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+        <allure.report.directory>${project.build.directory}/allure-report</allure.report.directory>
     </properties>
 
     <dependencies>
+
         <!-- Selenium Java dependency -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
@@ -25,13 +28,14 @@
         </dependency>
 
         <!-- WebDriverManager dependency -->
+        <!-- https://mvnrepository.com/artifact/io.github.bonigarcia/webdrivermanager -->
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
             <version>5.5.3</version>
         </dependency>
 
-        <!-- TestNG -->
+        <!-- https://mvnrepository.com/artifact/org.testng/testng -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
@@ -39,14 +43,14 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Allure TestNG -->
+        <!-- Remove allure-junit5 as we're using TestNG -->
         <dependency>
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-testng</artifactId>
             <version>${allure.version}</version>
         </dependency>
 
-        <!-- AspectJ Weaver -->
+        <!-- Add AspectJ Weaver dependency -->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
@@ -58,10 +62,13 @@
             <artifactId>jakarta.mail</artifactId>
             <version>2.0.1</version>
         </dependency>
+
+
     </dependencies>
 
     <build>
         <plugins>
+
             <!-- Compiler plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -74,7 +81,30 @@
                 </configuration>
             </plugin>
 
-            <!-- Surefire plugin for test execution -->
+            <!-- Clean plugin - preserves history -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${allure.results.directory}</directory>
+                            <excludes>
+                                <exclude>history/**</exclude>
+                            </excludes>
+                        </fileset>
+                        <fileset>
+                            <directory>${allure.report.directory}</directory>
+                            <followSymlinks>false</followSymlinks>
+                            <excludes>
+                                <exclude>history/**</exclude>
+                            </excludes>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -89,10 +119,9 @@
                     <systemProperties>
                         <property>
                             <name>allure.results.directory</name>
-                            <value>${project.build.directory}/allure-results</value>
+                            <value>${allure.results.directory}</value>
                         </property>
                     </systemProperties>
-                    <testFailureIgnore>true</testFailureIgnore>
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -102,6 +131,93 @@
                     </dependency>
                 </dependencies>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-allure-history</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${allure.results.directory}/history</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${allure.report.directory}/history</directory>
+                                    <includes>
+                                        <include>*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Antrun plugin for history management -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>prepare-allure-history-before-tests</id>
+                        <phase>generate-test-resources</phase>
+                        <configuration>
+                            <target>
+                                <!-- Create directories -->
+                                <mkdir dir="${allure.results.directory}"/>
+                                <mkdir dir="${allure.results.directory}/history"/>
+                                <mkdir dir="${allure.report.directory}/history"/>
+
+                                <!-- Copy history from report to results -->
+                                <copy todir="${allure.results.directory}/history" failonerror="false" overwrite="true">
+                                    <fileset dir="${allure.report.directory}/history" includes="**/*"/>
+                                </copy>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+
+                    <!-- Copy history after report generation -->
+                    <execution>
+                        <id>preserve-allure-history</id>
+                        <phase>post-integration-test</phase>
+                        <configuration>
+                            <target>
+                                <!-- Copy history from results to report directory for next run -->
+                                <copy todir="${allure.report.directory}/history" failonerror="false" overwrite="true">
+                                    <fileset dir="${allure.results.directory}/history" includes="**/*"/>
+                                </copy>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Allure plugin -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>2.12.0</version>
+                <configuration>
+                    <reportVersion>${allure.version}</reportVersion>
+                    <resultsDirectory>${allure.results.directory}</resultsDirectory>
+                    <reportDirectory>${allure.report.directory}</reportDirectory>
+                    <!-- Important for history -->
+                    <allureDownloadUrl>https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/${allure.version}/allure-commandline-${allure.version}.zip</allureDownloadUrl>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
+
 </project>
