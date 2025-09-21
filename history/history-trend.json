@@ -1,18 +1,8 @@
 [
   {
-    "data": {
-      "failed": 0,
-      "broken": 25,
-      "skipped": 30,
-      "passed": 145,
-      "unknown": 0,
-      "total": 200
-    }
-  },
-  {
-    "buildOrder": 78,
-    "reportName": "Build #78",
-    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17888545545",
+    "buildOrder": 79,
+    "reportName": "Build #79",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17889141134",
     "data": {
       "passed": 145,
       "failed": 0,
@@ -22,9 +12,9 @@
       "total": 200
     },
     "time": {
-      "start": 1758429097000,
-      "stop": 1758429097000,
-      "duration": 2714137
+      "start": 1758432842000,
+      "stop": 1758432842000,
+      "duration": 2648537
     }
   }
 ]
