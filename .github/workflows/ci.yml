@@ -103,36 +103,95 @@ jobs:
           # Install jq for JSON processing
           sudo apt-get install -y jq
 
-      # 8. Generate Allure Report with History (following your local workflow)
-      - name: Generate Allure Report with History
+      # 8. Generate Allure Report with Complete History Fix
+      - name: Generate Allure Report with History Fix
         run: |
           echo "=== Step 1: Generate initial report ==="
           allure generate target/allure-results --clean -o target/allure-report
           
-          echo "=== Step 2: Copy history back to results (your local workflow) ==="
-          # This is the key step from your local workflow
+          echo "=== Step 2: Fix missing buildOrder and metadata in history files ==="
+          BUILD_ORDER=${{ github.run_number }}
+          REPORT_NAME="Build #$BUILD_ORDER"
+          REPORT_URL="https://aasaitsolution.github.io/mmProAutomation/"
+          CURRENT_TIME=$(date +%s)000
+          
+          # Fix history-trend.json with proper metadata
+          if [ -f "target/allure-report/history/history-trend.json" ]; then
+            echo "Fixing history-trend.json..."
+            jq --argjson buildOrder "$BUILD_ORDER" \
+               --arg reportName "$REPORT_NAME" \
+               --arg reportUrl "$REPORT_URL" \
+               --argjson timestamp "$CURRENT_TIME" \
+               'map(if .buildOrder == null or .buildOrder == "" then 
+                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl, time: {start: $timestamp, stop: $timestamp, duration: (.data.total * 1000)}} 
+                   else . end)' \
+               target/allure-report/history/history-trend.json > temp-history.json
+            mv temp-history.json target/allure-report/history/history-trend.json
+          fi
+          
+          # Fix duration-trend.json
+          if [ -f "target/allure-report/history/duration-trend.json" ]; then
+            echo "Fixing duration-trend.json..."
+            jq --argjson buildOrder "$BUILD_ORDER" \
+               --arg reportName "$REPORT_NAME" \
+               --arg reportUrl "$REPORT_URL" \
+               'map(if .buildOrder == null or .buildOrder == "" then 
+                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl} 
+                   else . end)' \
+               target/allure-report/history/duration-trend.json > temp-duration.json
+            mv temp-duration.json target/allure-report/history/duration-trend.json
+          fi
+          
+          # Fix categories-trend.json
+          if [ -f "target/allure-report/history/categories-trend.json" ]; then
+            echo "Fixing categories-trend.json..."
+            jq --argjson buildOrder "$BUILD_ORDER" \
+               --arg reportName "$REPORT_NAME" \
+               --arg reportUrl "$REPORT_URL" \
+               'map(if .buildOrder == null or .buildOrder == "" then 
+                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl} 
+                   else . end)' \
+               target/allure-report/history/categories-trend.json > temp-categories.json
+            mv temp-categories.json target/allure-report/history/categories-trend.json
+          fi
+          
+          # Fix retry-trend.json
+          if [ -f "target/allure-report/history/retry-trend.json" ]; then
+            echo "Fixing retry-trend.json..."
+            jq --argjson buildOrder "$BUILD_ORDER" \
+               --arg reportName "$REPORT_NAME" \
+               --arg reportUrl "$REPORT_URL" \
+               'map(if .buildOrder == null or .buildOrder == "" then 
+                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl} 
+                   else . end)' \
+               target/allure-report/history/retry-trend.json > temp-retry.json
+            mv temp-retry.json target/allure-report/history/retry-trend.json
+          fi
+          
+          echo "=== Step 3: Copy fixed history back to results ==="
           mkdir -p target/allure-results/history
           if [ -d "target/allure-report/history" ]; then
             cp -r target/allure-report/history/. target/allure-results/history/
-            echo "History copied from report to results"
-            ls -la target/allure-results/history/
+            echo "Fixed history copied from report to results"
           fi
           
-          echo "=== Step 3: Regenerate report with complete history ==="
+          echo "=== Step 4: Regenerate report with fixed history ==="
           allure generate target/allure-results --clean -o target/allure-report
           
-          echo "=== Step 4: Verify history preservation ==="
+          echo "=== Step 5: Verify history is now working ==="
           if [ -f "target/allure-report/history/history-trend.json" ]; then
             HISTORY_COUNT=$(jq length target/allure-report/history/history-trend.json)
             echo "✅ History preserved with $HISTORY_COUNT entries"
-            echo "Latest entries:"
-            jq '.[-2:]' target/allure-report/history/history-trend.json || echo "Could not display entries"
+            echo "Build orders in history:"
+            jq -r '.[] | "Build #" + (.buildOrder | tostring) + " - " + .reportName' target/allure-report/history/history-trend.json || echo "Could not read build orders"
+            echo ""
+            echo "Latest complete entry:"
+            jq '.[-1]' target/allure-report/history/history-trend.json || echo "Could not display latest entry"
           else
             echo "⚠️ No history-trend.json found"
           fi
           
           echo "=== Final report structure ==="
-          ls -la target/allure-report/
           ls -la target/allure-report/history/ 2>/dev/null || echo "No history directory in report"
 
       # 9. Create comprehensive history backup
