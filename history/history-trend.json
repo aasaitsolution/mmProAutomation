@@ -1,1 +1,30 @@
-[{"data":{"failed":0,"broken":25,"skipped":30,"passed":145,"unknown":0,"total":200}},{"data":{"failed":0,"broken":25,"skipped":30,"passed":145,"unknown":0,"total":200}},{"buildOrder":77,"reportUrl":"https://github.com/aasaitsolution/mmProAutomation/actions/runs/17888344168","reportName":"Build #77","data":{"failed":0,"broken":25,"skipped":30,"passed":145,"unknown":0,"total":200}}]
+[
+  {
+    "data": {
+      "failed": 0,
+      "broken": 25,
+      "skipped": 30,
+      "passed": 145,
+      "unknown": 0,
+      "total": 200
+    }
+  },
+  {
+    "buildOrder": 78,
+    "reportName": "Build #78",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/17888545545",
+    "data": {
+      "passed": 145,
+      "failed": 0,
+      "broken": 25,
+      "skipped": 30,
+      "unknown": 0,
+      "total": 200
+    },
+    "time": {
+      "start": 1758429097000,
+      "stop": 1758429097000,
+      "duration": 2714137
+    }
+  }
+]
