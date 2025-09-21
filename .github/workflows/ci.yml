@@ -186,15 +186,23 @@ jobs:
               }
             }')
           
-          # FIXED: Properly merge history-trend.json
+          # FIXED: Properly merge history-trend.json with data cleanup
           HISTORY_FILE="target/allure-report/history/history-trend.json"
           if [ -f "$HISTORY_FILE" ]; then
             echo "Merging with existing history..."
             EXISTING_HISTORY=$(cat "$HISTORY_FILE")
             
-            # Remove any entry with same buildOrder, then add new entry
+            # CRITICAL FIX: Clean up malformed entries and merge properly
             UPDATED_HISTORY=$(echo "$EXISTING_HISTORY" | jq --argjson new "$NEW_TREND_ENTRY" \
-              'map(select(.buildOrder != $new.buildOrder)) + [$new] | sort_by(.buildOrder) | if length > 20 then .[-20:] else . end')
+              '# Filter out entries missing required fields
+               map(select(.buildOrder != null and .reportName != null and .data != null)) |
+               # Remove any entry with same buildOrder
+               map(select(.buildOrder != $new.buildOrder)) + 
+               # Add new entry
+               [$new] | 
+               # Sort by buildOrder and keep last 20
+               sort_by(.buildOrder) | 
+               if length > 20 then .[-20:] else . end')
             echo "$UPDATED_HISTORY" > "$HISTORY_FILE"
           else
             echo "Creating new history file..."
