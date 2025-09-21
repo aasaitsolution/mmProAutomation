@@ -11,9 +11,6 @@ import java.util.List;
 
 public class DispatchHistoryTest extends BaseTest {
 
-    /**
-     * Helper method to perform login before tests that require authentication
-     */
     private void performLogin() throws InterruptedException {
         driver.get("https://mmpro.aasait.lk/");
         WebElement loginBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("a[href='/signin'] button")));

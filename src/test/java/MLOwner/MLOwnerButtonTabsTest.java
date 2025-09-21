@@ -1,59 +1,52 @@
-//Done
 package MLOwner;
 
 import base.BaseTest;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.*;
 import org.testng.annotations.*;
 
 import java.time.Duration;
 
 public class MLOwnerButtonTabsTest extends BaseTest {
-//    private WebDriver driver;
-//    private WebDriverWait wait;
-//
-//    @BeforeClass
-//    public void setup() {
-//        ChromeOptions options = new ChromeOptions();
-//        options.addArguments("--incognito");
-//        driver = new ChromeDriver(options);
-//        driver.manage().window().maximize();
-//        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-//    }
 
-    @Test(priority = 1)
-    public void testLogin() {
-        try {
-            driver.get("https://mmpro.aasait.lk/");
-            System.out.println("Navigated to application homepage");
+    private void performLogin() throws InterruptedException {
+        driver.get("https://mmpro.aasait.lk/");
+        waitForPageLoadComplete();
 
-            WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("a[href='/signin'] button")));
-            loginButton.click();
+        WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("a[href='/signin'] button")));
+        loginButton.click();
+        waitForPageLoadComplete();
 
-            WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.id("sign-in_username")));
-            usernameField.sendKeys("pasindu");
+        WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.id("sign-in_username")));
+        usernameField.sendKeys("pasindu");
 
-            WebElement passwordField = driver.findElement(By.id("sign-in_password"));
-            passwordField.sendKeys("12345678");
+        WebElement passwordField = driver.findElement(By.id("sign-in_password"));
+        passwordField.sendKeys("12345678");
 
-            WebElement signInButton = driver.findElement(By.cssSelector("button[type='submit']"));
-            signInButton.click();
+        WebElement signInButton = driver.findElement(By.cssSelector("button[type='submit']"));
+        signInButton.click();
+        waitForPageLoadComplete();
 
-            wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-            System.out.println("✅ Successfully logged in to ML Owner dashboard");
-
-        } catch (Exception e) {
-            System.err.println("❌ Login test failed: " + e.getMessage());
-            throw e;
-        }
+        wait.until(ExpectedConditions.urlContains("/mlowner/home"));
+        System.out.println("Successfully logged in to ML Owner dashboard");
     }
 
-    @Test(priority = 2, dependsOnMethods = "testLogin")
-    public void navigateToLicensesPage() {
+    private void waitForPageLoadComplete() {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(
+                webDriver -> ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
+    }
+
+    @Test(priority = 1)
+    public void testLogin() throws InterruptedException {
+        performLogin();
+    }
+
+    @Test(priority = 2)
+    public void navigateToLicensesPage() throws InterruptedException {
+        performLogin();
+
         try {
             WebElement viewLicensesLink = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//a[@href='/mlowner/home/viewlicenses']")));
@@ -70,24 +63,28 @@ public class MLOwnerButtonTabsTest extends BaseTest {
             }
 
             wait.until(ExpectedConditions.urlContains("/mlowner/home/viewlicenses"));
+            waitForPageLoadComplete();
             wait.until(ExpectedConditions.presenceOfElementLocated(By.className("container")));
-            System.out.println("✅ Navigated to Licenses page");
+            System.out.println("Navigated to Licenses page");
 
-            Thread.sleep(2000); // Reduced sleep time
+            Thread.sleep(2000);
 
             // Navigate back to dashboard
             driver.navigate().back();
             wait.until(ExpectedConditions.urlContains("/mlowner/home"));
-            System.out.println("🔙 Returned to ML Owner dashboard");
+            waitForPageLoadComplete();
+            System.out.println("Returned to ML Owner dashboard");
 
         } catch (Exception e) {
-            System.err.println("❌ Navigation to Licenses page failed: " + e.getMessage());
+            System.err.println("Navigation to Licenses page failed: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
 
-    @Test(priority = 3, dependsOnMethods = "testLogin")
-    public void testRequestedLicensesButton() {
+    @Test(priority = 3)
+    public void testRequestedLicensesButton() throws InterruptedException {
+        performLogin();
+
         try {
             System.out.println("=== Testing Requested Licenses Button ===");
             // Wait for the dashboard to be ready before interacting
@@ -95,12 +92,17 @@ public class MLOwnerButtonTabsTest extends BaseTest {
 
             WebElement requestedLicensesButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//span[contains(text(), 'Requested Licenses')]/ancestor::div[contains(@class, 'custom-card')]//button[contains(@class, 'ml-card-button')]")));
-            requestedLicensesButton.click();
+
+            // Use JavaScript click to avoid interception
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", requestedLicensesButton);
+            Thread.sleep(500);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", requestedLicensesButton);
+
             System.out.println("Clicked Requested Licenses button");
 
             WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.className("ant-modal-content")));
-            System.out.println("✅ Requested Licenses modal is visible");
+            System.out.println("Requested Licenses modal is visible");
 
             WebElement modalTitle = modal.findElement(By.className("ant-modal-title"));
             System.out.println("Modal title: " + modalTitle.getText());
@@ -108,31 +110,34 @@ public class MLOwnerButtonTabsTest extends BaseTest {
             // Use a more specific XPath for the close button inside the modal footer
             WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//div[@class='ant-modal-footer']//button[contains(.,'Close')]")));
-            closeButton.click();
+
+            // Use JavaScript click for close button as well
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", closeButton);
             System.out.println("Closed the modal");
 
             wait.until(ExpectedConditions.invisibilityOf(modal));
-            System.out.println("✅ Modal is no longer visible");
+            System.out.println("Modal is no longer visible");
 
         } catch (Exception e) {
-            System.err.println("❌ Requested Licenses test failed: " + e.getMessage());
+            System.err.println("Requested Licenses test failed: " + e.getMessage());
             throw e;
         }
     }
 
-    @Test(priority = 4, dependsOnMethods = "testLogin")
-    public void testMLRequestButton() {
+    @Test(priority = 4)
+    public void testMLRequestButton() throws InterruptedException {
+        performLogin();
+
         try {
             // Wait for the ML Request button to be clickable
             WebElement mlRequestButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//a[@href='/mlowner/home/mlrequest']")));
 
-            // Scroll into view
+            // Scroll into view and use JavaScript click
             ((JavascriptExecutor) driver).executeScript(
                     "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", mlRequestButton);
-            Thread.sleep(500); // slight delay
+            Thread.sleep(500);
 
-            // Click using fallback JS if needed
             try {
                 mlRequestButton.click();
             } catch (ElementClickInterceptedException e) {
@@ -141,30 +146,16 @@ public class MLOwnerButtonTabsTest extends BaseTest {
 
             // Wait for URL to change
             wait.until(ExpectedConditions.urlContains("/mlowner/home/mlrequest"));
+            waitForPageLoadComplete();
 
-//            // ✅ Wait for a reliable input field (exploration_nb) to confirm page load
-//            wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                    By.name("exploration_nb")));
+            System.out.println("Successfully navigated to ML Request page");
 
-            System.out.println("✅ Successfully navigated to ML Request page");
-
-            Thread.sleep(2000); // Optional pause
+            Thread.sleep(1000); // Brief pause
 
         } catch (Exception e) {
-            System.err.println("❌ Navigation to or validation of ML Request page failed: " + e.getMessage());
+            System.err.println("Navigation to ML Request page failed: " + e.getMessage());
             throw new RuntimeException(e);
-        } finally {
-            // Always close the browser
-            driver.quit();
-            System.out.println("🧹 Browser closed successfully");
         }
     }
 
-    @AfterClass
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-            System.out.println("🧹 Browser closed successfully");
-        }
-    }
 }
