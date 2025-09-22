@@ -70,7 +70,7 @@ public class GsmbOfficerSignin extends BaseTest {
 
             WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("sign-in_password")));
             passwordField.clear();
-            passwordField.sendKeys("12345678");
+            passwordField.sendKeys("123456");
 
             // Click sign in button
             WebElement signInButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".ant-btn-primary")));
