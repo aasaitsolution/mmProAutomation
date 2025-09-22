@@ -35,23 +35,51 @@ jobs:
           echo "=== Downloading previous Allure history ==="
           mkdir -p allure-history
           
+          # Store the current commit/branch info
+          CURRENT_REF="${{ github.sha }}"
+          echo "Current commit: $CURRENT_REF"
+          echo "Current ref: ${{ github.ref }}"
+          echo "Current ref name: ${{ github.ref_name }}"
+          
           # Try to download history from gh-pages branch
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             echo "gh-pages branch exists, downloading history..."
-            git fetch origin gh-pages:gh-pages 2>/dev/null || true
-            git checkout gh-pages -- history 2>/dev/null || {
-              echo "No history directory in gh-pages branch"
-              mkdir -p history
-            }
-            git checkout main 2>/dev/null || git checkout ${{ github.ref_name }}
             
-            # Copy history if it exists
-            if [ -d "history" ]; then
-              cp -r history/* allure-history/ 2>/dev/null || echo "No history files to copy"
-              echo "Previous history restored:"
-              ls -la allure-history/ || echo "No files in allure-history"
+            # Create a temporary worktree for gh-pages to avoid checkout conflicts
+            if git worktree add ../gh-pages-temp gh-pages 2>/dev/null; then
+              echo "Created temporary worktree for gh-pages"
+              
+              # Copy history from the temporary worktree
+              if [ -d "../gh-pages-temp/history" ]; then
+                cp -r ../gh-pages-temp/history/* allure-history/ 2>/dev/null || echo "No history files to copy"
+                echo "Previous history restored:"
+                ls -la allure-history/ || echo "No files in allure-history"
+              else
+                echo "No history directory found in gh-pages branch"
+              fi
+              
+              # Clean up the temporary worktree
+              git worktree remove ../gh-pages-temp 2>/dev/null || true
             else
-              echo "No history directory found, starting fresh"
+              echo "Could not create worktree, trying alternative method..."
+              
+              # Alternative: use git show to extract files
+              if git show gh-pages:history/ >/dev/null 2>&1; then
+                echo "Extracting history files from gh-pages branch..."
+                mkdir -p temp-history
+                
+                # Extract each history file individually
+                for file in history-trend.json duration-trend.json categories-trend.json retry-trend.json history.json; do
+                  if git show "gh-pages:history/$file" > "allure-history/$file" 2>/dev/null; then
+                    echo "Extracted $file"
+                  fi
+                done
+                
+                echo "History files extracted:"
+                ls -la allure-history/ || echo "No files extracted"
+              else
+                echo "No history directory in gh-pages branch"
+              fi
             fi
           else
             echo "No gh-pages branch exists yet, starting fresh"
@@ -263,61 +291,88 @@ jobs:
         run: |
           echo "=== Preserving history in gh-pages branch ==="
           
-          # Store current branch
-          CURRENT_BRANCH="${{ github.ref_name }}"
-          echo "Current branch: $CURRENT_BRANCH"
-          
-          # Configure git
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
           # Check if we have history to preserve
           if [ ! -d "history" ] || [ -z "$(ls -A history 2>/dev/null)" ]; then
             echo "No history to preserve, skipping"
             exit 0
           fi
           
-          # Switch to gh-pages and add history directory
-          git fetch origin gh-pages:gh-pages 2>/dev/null || echo "No existing gh-pages branch"
+          # Configure git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
           
-          # Try to checkout gh-pages
-          if git checkout gh-pages 2>/dev/null; then
-            echo "Checked out gh-pages branch"
-            
-            # Ensure history directory exists and copy current history
-            if [ -d "history" ]; then
-              echo "Updating existing history directory"
-            else
-              echo "Creating new history directory"
-              mkdir -p history
-            fi
-            
-            # Copy from our backup (use absolute path to avoid confusion)
-            WORKSPACE_DIR=$(pwd)
-            if [ -d "${WORKSPACE_DIR}/history" ]; then
-              cp -r "${WORKSPACE_DIR}/history"/* history/ 2>/dev/null || echo "No history files to copy"
-            fi
-            
-            # Commit history if there are changes
-            git add history/ 2>/dev/null || true
-            if git diff --staged --quiet; then
-              echo "No history changes to commit"
-            else
-              git commit -m "Update Allure history for build #${{ github.run_number }}" || echo "Commit failed"
-              git push origin gh-pages || echo "Push failed"
-            fi
-            
-            # Switch back to original branch with better error handling
-            git checkout "$CURRENT_BRANCH" 2>/dev/null || {
-              echo "Failed to checkout $CURRENT_BRANCH, trying alternatives"
-              git checkout main 2>/dev/null || {
-                git checkout master 2>/dev/null || {
-                  echo "Could not return to original branch, staying on gh-pages"
-                }
-              }
-            }
+          echo "Current branch/ref info:"
+          echo "  SHA: ${{ github.sha }}"
+          echo "  Ref: ${{ github.ref }}"
+          echo "  Ref name: ${{ github.ref_name }}"
+          echo "  Head ref: ${{ github.head_ref }}"
+          echo "  Base ref: ${{ github.base_ref }}"
+          
+          # Store current state
+          CURRENT_COMMIT="${{ github.sha }}"
+          
+          # Try to create/update gh-pages branch using worktree
+          if git worktree add ../gh-pages-work gh-pages 2>/dev/null; then
+            echo "Using existing gh-pages branch via worktree"
+            cd ../gh-pages-work
+          elif git worktree add ../gh-pages-work --orphan gh-pages 2>/dev/null; then
+            echo "Created new orphan gh-pages branch via worktree"
+            cd ../gh-pages-work
+            # Initialize the branch with a README
+            echo "# Allure History" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
           else
-            echo "Could not checkout gh-pages branch, it might not exist yet"
+            echo "Could not create worktree for gh-pages, using checkout method"
+            
+            # Fallback to checkout method with better error handling
+            if git checkout gh-pages 2>/dev/null; then
+              echo "Checked out existing gh-pages branch"
+            elif git checkout --orphan gh-pages 2>/dev/null; then
+              echo "Created new orphan gh-pages branch"
+              git rm -rf . 2>/dev/null || true
+              echo "# Allure History" > README.md
+              git add README.md
+              git commit -m "Initialize gh-pages branch"
+            else
+              echo "Could not checkout gh-pages, skipping history preservation"
+              exit 0
+            fi
+          fi
+          
+          # Ensure we're in the right directory and create history dir
+          mkdir -p history
+          
+          # Copy history from the main workspace
+          WORKSPACE_DIR="/github/workspace"
+          if [ -d "${WORKSPACE_DIR}/history" ]; then
+            cp -r "${WORKSPACE_DIR}/history"/* history/ 2>/dev/null || echo "No history files to copy"
+            echo "History files copied:"
+            ls -la history/
+          else
+            echo "No history directory found in workspace"
+          fi
+          
+          # Commit and push changes
+          git add history/ 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No history changes to commit"
+          else
+            echo "Committing history changes..."
+            git commit -m "Update Allure history for build #${{ github.run_number }}" || echo "Commit failed"
+            git push origin gh-pages || echo "Push failed"
+            echo "History successfully preserved"
+          fi
+          
+          # Clean up worktree if we used it
+          if [ -d "../gh-pages-work" ]; then
+            cd "$WORKSPACE_DIR"
+            git worktree remove ../gh-pages-work 2>/dev/null || true
+          else
+            # Return to original commit if we used checkout
+            git checkout "$CURRENT_COMMIT" 2>/dev/null || {
+              echo "Could not return to original commit"
+            }
           fi
 
       # 13. Deploy to SLT Server (only if report exists)
