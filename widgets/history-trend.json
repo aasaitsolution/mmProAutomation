@@ -1,1 +1,1 @@
-[{"data":{"failed":0,"broken":19,"skipped":28,"passed":157,"unknown":0,"total":204}}]
+[{"data":{"failed":1,"broken":25,"skipped":30,"passed":144,"unknown":0,"total":200}},{"buildOrder":92,"reportUrl":"https://aasaitsolution.github.io/mmProAutomation/","reportName":"Build #92","data":{"failed":1,"broken":25,"skipped":30,"passed":144,"unknown":0,"total":200}}]

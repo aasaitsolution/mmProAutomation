@@ -1,11 +1,1 @@
-[
-  {
-    "data": {
-      "run": 204,
-      "retry": 0
-    },
-    "buildOrder": 91,
-    "reportName": "Build #91",
-    "reportUrl": "https://aasaitsolution.github.io/mmProAutomation/"
-  }
-]
+[{"data":{"run":200,"retry":0}},{"buildOrder":92,"reportUrl":"https://aasaitsolution.github.io/mmProAutomation/","reportName":"Build #92","data":{"run":200,"retry":0}}]
