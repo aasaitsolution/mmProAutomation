@@ -11,11 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code with full history
+      # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       # 2. Set up Java
       - name: Set up JDK 17
@@ -33,30 +31,48 @@ jobs:
 
       # 4. Download previous Allure history from gh-pages
       - name: Download Allure History
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages-history
-        continue-on-error: true
+        run: |
+          echo "=== Downloading previous Allure history ==="
+          mkdir -p allure-history
+          
+          # Try to download history from gh-pages branch
+          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            echo "gh-pages branch exists, downloading history..."
+            git fetch origin gh-pages:gh-pages 2>/dev/null || true
+            git checkout gh-pages -- history 2>/dev/null || {
+              echo "No history directory in gh-pages branch"
+              mkdir -p history
+            }
+            git checkout main 2>/dev/null || git checkout ${{ github.ref_name }}
+          
+            # Copy history if it exists
+            if [ -d "history" ]; then
+              cp -r history/* allure-history/ 2>/dev/null || echo "No history files to copy"
+              echo "Previous history restored:"
+              ls -la allure-history/ || echo "No files in allure-history"
+            else
+              echo "No history directory found, starting fresh"
+            fi
+          else
+            echo "No gh-pages branch exists yet, starting fresh"
+          fi
 
-      # 5. Prepare Allure directories and restore history
-      - name: Setup Allure Directories and History
+      # 5. Prepare Allure directories with history
+      - name: Setup Allure Directories
         run: |
           echo "=== Setting up Allure directories ==="
           mkdir -p target/allure-results/history
-          mkdir -p target/allure-report/history
           
-          # Copy history from previous runs if available
-          if [ -d "gh-pages-history/history" ]; then
-            echo "Restoring Allure history from previous runs..."
-            cp -r gh-pages-history/history/* target/allure-results/history/ 2>/dev/null || true
-            echo "History files restored:"
-            ls -la target/allure-results/history/ || echo "No history files found"
+          # Copy existing history to results directory
+          if [ -d "allure-history" ] && [ "$(ls -A allure-history)" ]; then
+            cp -r allure-history/* target/allure-results/history/ 2>/dev/null || true
+            echo "History files copied to results:"
+            ls -la target/allure-results/history/ || echo "No history files"
           else
-            echo "No previous history found, starting fresh"
+            echo "No previous history found"
           fi
           
-          # Create environment.properties for this build
+          # Create environment.properties
           cat > target/allure-results/environment.properties << EOF
           Browser=Chrome
           Environment=GitHub Actions
@@ -68,7 +84,7 @@ jobs:
           Timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           EOF
           
-          # Create executor.json for build information
+          # Create executor.json
           cat > target/allure-results/executor.json << EOF
           {
             "name": "GitHub Actions",
@@ -78,7 +94,7 @@ jobs:
             "buildName": "Build #${{ github.run_number }}",
             "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
             "reportName": "Allure Report #${{ github.run_number }}",
-            "reportUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           }
           EOF
 
@@ -91,9 +107,10 @@ jobs:
           echo "=== Test Results Generated ==="
           ls -la target/allure-results/
 
-      # 7. Install Allure CLI
+      # 7. Install Allure CLI and jq
       - name: Install Allure CLI
         run: |
+          # Install Allure
           ALLURE_VERSION=2.25.0
           echo "Installing Allure CLI version $ALLURE_VERSION"
           wget -q https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
@@ -103,299 +120,88 @@ jobs:
           # Install jq for JSON processing
           sudo apt-get install -y jq
 
-      # 8. Generate Allure Report with Complete History Fix
-      - name: Generate Allure Report with History Fix
+      # 8. Generate Allure Report (single generation with proper history)
+      - name: Generate Allure Report
         run: |
-          echo "=== Step 1: Generate initial report ==="
+          echo "=== Generating Allure Report ==="
           allure generate target/allure-results --clean -o target/allure-report
           
-          echo "=== Step 2: Fix missing buildOrder and metadata in history files ==="
-          BUILD_ORDER=${{ github.run_number }}
-          REPORT_NAME="Build #$BUILD_ORDER"
-          REPORT_URL="https://aasaitsolution.github.io/mmProAutomation/"
-          CURRENT_TIME=$(date +%s)000
-          
-          # Fix history-trend.json with proper metadata
-          if [ -f "target/allure-report/history/history-trend.json" ]; then
-            echo "Fixing history-trend.json..."
-            jq --argjson buildOrder "$BUILD_ORDER" \
-               --arg reportName "$REPORT_NAME" \
-               --arg reportUrl "$REPORT_URL" \
-               --argjson timestamp "$CURRENT_TIME" \
-               'map(if .buildOrder == null or .buildOrder == "" then 
-                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl, time: {start: $timestamp, stop: $timestamp, duration: (.data.total * 1000)}} 
-                   else . end)' \
-               target/allure-report/history/history-trend.json > temp-history.json
-            mv temp-history.json target/allure-report/history/history-trend.json
-          fi
-          
-          # Fix duration-trend.json
-          if [ -f "target/allure-report/history/duration-trend.json" ]; then
-            echo "Fixing duration-trend.json..."
-            jq --argjson buildOrder "$BUILD_ORDER" \
-               --arg reportName "$REPORT_NAME" \
-               --arg reportUrl "$REPORT_URL" \
-               'map(if .buildOrder == null or .buildOrder == "" then 
-                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl} 
-                   else . end)' \
-               target/allure-report/history/duration-trend.json > temp-duration.json
-            mv temp-duration.json target/allure-report/history/duration-trend.json
-          fi
-          
-          # Fix categories-trend.json
-          if [ -f "target/allure-report/history/categories-trend.json" ]; then
-            echo "Fixing categories-trend.json..."
-            jq --argjson buildOrder "$BUILD_ORDER" \
-               --arg reportName "$REPORT_NAME" \
-               --arg reportUrl "$REPORT_URL" \
-               'map(if .buildOrder == null or .buildOrder == "" then 
-                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl} 
-                   else . end)' \
-               target/allure-report/history/categories-trend.json > temp-categories.json
-            mv temp-categories.json target/allure-report/history/categories-trend.json
-          fi
-          
-          # Fix retry-trend.json
-          if [ -f "target/allure-report/history/retry-trend.json" ]; then
-            echo "Fixing retry-trend.json..."
-            jq --argjson buildOrder "$BUILD_ORDER" \
-               --arg reportName "$REPORT_NAME" \
-               --arg reportUrl "$REPORT_URL" \
-               'map(if .buildOrder == null or .buildOrder == "" then 
-                     . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl} 
-                   else . end)' \
-               target/allure-report/history/retry-trend.json > temp-retry.json
-            mv temp-retry.json target/allure-report/history/retry-trend.json
-          fi
-          
-          echo "=== Step 3: Copy fixed history back to results ==="
-          mkdir -p target/allure-results/history
-          if [ -d "target/allure-report/history" ]; then
-            cp -r target/allure-report/history/. target/allure-results/history/
-            echo "Fixed history copied from report to results"
-          fi
-          
-          echo "=== Step 4: Regenerate report with fixed history ==="
-          allure generate target/allure-results --clean -o target/allure-report
-          
-          echo "=== Step 5: Verify history is now working ==="
+          echo "=== Verifying generated history ==="
           if [ -f "target/allure-report/history/history-trend.json" ]; then
             HISTORY_COUNT=$(jq length target/allure-report/history/history-trend.json)
-            echo "✅ History preserved with $HISTORY_COUNT entries"
-            echo "Build orders in history:"
-            jq -r '.[] | "Build #" + (.buildOrder | tostring) + " - " + .reportName' target/allure-report/history/history-trend.json || echo "Could not read build orders"
-            echo ""
-            echo "Latest complete entry:"
-            jq '.[-1]' target/allure-report/history/history-trend.json || echo "Could not display latest entry"
+            echo "✅ History generated with $HISTORY_COUNT entries"
+          
+            # Show current history
+            echo "Build numbers in history:"
+            jq -r '.[] | "Build #" + (.buildOrder // "unknown" | tostring) + " - " + (.reportName // "Unknown")' target/allure-report/history/history-trend.json 2>/dev/null || echo "Could not parse history entries"
           else
-            echo "⚠️ No history-trend.json found"
+            echo "⚠️ No history-trend.json generated"
           fi
-          
-          echo "=== Final report structure ==="
-          ls -la target/allure-report/history/ 2>/dev/null || echo "No history directory in report"
 
-      # 9. Manual History Creation (Fallback Solution)
-      - name: Create Manual History for Trend Graphs
+      # 9. Fix history metadata (ensure buildOrder is properly set)
+      - name: Fix History Metadata
         run: |
-          echo "=== Creating manual history entries for reliable trend graphs ==="
-          mkdir -p target/allure-report/history
-          
+          echo "=== Fixing history metadata ==="
           BUILD_ORDER=${{ github.run_number }}
           REPORT_NAME="Build #$BUILD_ORDER"
-          REPORT_URL="https://aasaitsolution.github.io/mmProAutomation/"
-          CURRENT_TIME=$(date +%s)000
+          REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           
-          # Get test statistics from current run
-          if [ -f "target/allure-report/widgets/summary.json" ]; then
-            PASSED=$(jq -r '.statistic.passed // 0' target/allure-report/widgets/summary.json)
-            FAILED=$(jq -r '.statistic.failed // 0' target/allure-report/widgets/summary.json)
-            BROKEN=$(jq -r '.statistic.broken // 0' target/allure-report/widgets/summary.json)
-            SKIPPED=$(jq -r '.statistic.skipped // 0' target/allure-report/widgets/summary.json)
-            TOTAL=$(jq -r '.statistic.total // 0' target/allure-report/widgets/summary.json)
-            DURATION=$(jq -r '.time.duration // 1000' target/allure-report/widgets/summary.json)
-          else
-            # Fallback: count from results files
-            PASSED=0; FAILED=0; BROKEN=0; SKIPPED=0; DURATION=1000
-            for file in target/allure-results/*-result.json; do
-              if [ -f "$file" ]; then
-                status=$(jq -r '.status // "unknown"' "$file" 2>/dev/null)
-                case "$status" in
-                  "passed") PASSED=$((PASSED + 1)) ;;
-                  "failed") FAILED=$((FAILED + 1)) ;;
-                  "broken") BROKEN=$((BROKEN + 1)) ;;
-                  "skipped") SKIPPED=$((SKIPPED + 1)) ;;
-                esac
-                dur=$(jq -r '(.stop // .start) - (.start // 0)' "$file" 2>/dev/null)
-                if [ "$dur" -gt 0 ]; then
-                  DURATION=$((DURATION + dur))
-                fi
-              fi
-            done
-            TOTAL=$((PASSED + FAILED + BROKEN + SKIPPED))
-          fi
-          
-          echo "Current build stats: P=$PASSED, F=$FAILED, B=$BROKEN, S=$SKIPPED, T=$TOTAL, D=$DURATION"
-          
-          # Create new trend entry with all required fields
-          NEW_ENTRY=$(jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson passed "$PASSED" \
-            --argjson failed "$FAILED" \
-            --argjson broken "$BROKEN" \
-            --argjson skipped "$SKIPPED" \
-            --argjson total "$TOTAL" \
-            --argjson duration "$DURATION" \
-            --argjson timestamp "$CURRENT_TIME" \
-            '{
-              buildOrder: $buildOrder,
-              reportName: $reportName,
-              reportUrl: $reportUrl,
-              data: {
-                passed: $passed,
-                failed: $failed,
-                broken: $broken,
-                skipped: $skipped,
-                unknown: 0,
-                total: $total
-              },
-              time: {
-                start: $timestamp,
-                stop: ($timestamp + $duration),
-                duration: $duration
-              }
-            }')
-          
-          # Load existing history and merge properly
-          HISTORY_FILE="target/allure-report/history/history-trend.json"
-          if [ -f "$HISTORY_FILE" ]; then
-            EXISTING=$(cat "$HISTORY_FILE")
-            # Remove any entries with null buildOrder and add new entry
-            UPDATED=$(echo "$EXISTING" | jq --argjson new "$NEW_ENTRY" \
-              'map(select(.buildOrder != null and .buildOrder != "null")) | 
-               map(select(.buildOrder != $new.buildOrder)) + 
-               [$new] | 
-               sort_by(.buildOrder) | 
-               if length > 20 then .[-20:] else . end')
-          else
-            UPDATED="[$NEW_ENTRY]"
-          fi
-          echo "$UPDATED" > "$HISTORY_FILE"
-          
-          # Create duration-trend.json
-          DURATION_ENTRY=$(echo "$NEW_ENTRY" | jq '{buildOrder, reportName, reportUrl, data: {duration: .time.duration}}')
-          DURATION_FILE="target/allure-report/history/duration-trend.json"
-          if [ -f "$DURATION_FILE" ]; then
-            EXISTING_DUR=$(cat "$DURATION_FILE")
-            UPDATED_DUR=$(echo "$EXISTING_DUR" | jq --argjson new "$DURATION_ENTRY" \
-              'map(select(.buildOrder != null and .buildOrder != "null")) | 
-               map(select(.buildOrder != $new.buildOrder)) + [$new] | 
-               sort_by(.buildOrder) | 
-               if length > 20 then .[-20:] else . end')
-          else
-            UPDATED_DUR="[$DURATION_ENTRY]"
-          fi
-          echo "$UPDATED_DUR" > "$DURATION_FILE"
-          
-          # Create categories-trend.json
-          CATEGORIES_ENTRY=$(jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson failed "$FAILED" \
-            --argjson broken "$BROKEN" \
-            '{
-              buildOrder: $buildOrder,
-              reportName: $reportName,
-              reportUrl: $reportUrl,
-              data: {
-                "Product defects": $failed,
-                "Test defects": $broken
-              }
-            }')
-          CATEGORIES_FILE="target/allure-report/history/categories-trend.json"
-          if [ -f "$CATEGORIES_FILE" ]; then
-            EXISTING_CAT=$(cat "$CATEGORIES_FILE")
-            UPDATED_CAT=$(echo "$EXISTING_CAT" | jq --argjson new "$CATEGORIES_ENTRY" \
-              'map(select(.buildOrder != null and .buildOrder != "null")) | 
-               map(select(.buildOrder != $new.buildOrder)) + [$new] | 
-               sort_by(.buildOrder) | 
-               if length > 20 then .[-20:] else . end')
-          else
-            UPDATED_CAT="[$CATEGORIES_ENTRY]"
-          fi
-          echo "$UPDATED_CAT" > "$CATEGORIES_FILE"
-          
-          # Create retry-trend.json
-          RETRY_ENTRY=$(jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson total "$TOTAL" \
-            '{
-              buildOrder: $buildOrder,
-              reportName: $reportName,
-              reportUrl: $reportUrl,
-              data: {
-                run: $total,
-                retry: 0
-              }
-            }')
-          RETRY_FILE="target/allure-report/history/retry-trend.json"
-          if [ -f "$RETRY_FILE" ]; then
-            EXISTING_RET=$(cat "$RETRY_FILE")
-            UPDATED_RET=$(echo "$EXISTING_RET" | jq --argjson new "$RETRY_ENTRY" \
-              'map(select(.buildOrder != null and .buildOrder != "null")) | 
-               map(select(.buildOrder != $new.buildOrder)) + [$new] | 
-               sort_by(.buildOrder) | 
-               if length > 20 then .[-20:] else . end')
-          else
-            UPDATED_RET="[$RETRY_ENTRY]"
-          fi
-          echo "$UPDATED_RET" > "$RETRY_FILE"
-          
-          echo "=== Manual History Creation Complete ==="
-          echo "History entries: $(jq length "$HISTORY_FILE")"
-          echo "Build numbers:"
-          jq -r '.[] | "Build #" + (.buildOrder | tostring) + " (" + .reportName + ")"' "$HISTORY_FILE"
-          
-          # Copy back to results for next run
-          cp -r target/allure-report/history/* target/allure-results/history/ 2>/dev/null || true
-          
-          echo "=== Final regeneration with manual history ==="
-          allure generate target/allure-results --clean -o target/allure-report
-          
-          echo "Final verification:"
-          jq '.[-2:]' target/allure-report/history/history-trend.json
-
-      # 10. Create comprehensive history backup
-      - name: Backup Complete History
-        run: |
-          echo "=== Creating comprehensive history backup ==="
-          mkdir -p history-backup
-          
-          # Copy all history files
-          if [ -d "target/allure-report/history" ]; then
-            cp -r target/allure-report/history/* history-backup/ 2>/dev/null || true
-          fi
-          
-          # Also backup from results directory
-          if [ -d "target/allure-results/history" ]; then
-            cp -r target/allure-results/history/* history-backup/ 2>/dev/null || true
-          fi
-          
-          echo "History backup contents:"
-          ls -la history-backup/ || echo "No history backup created"
-          
-          # Verify history files
-          for file in history-backup/*.json; do
+          # Fix history files that might have missing buildOrder
+          for file in target/allure-report/history/*.json; do
             if [ -f "$file" ]; then
-              echo "$(basename $file): $(jq length "$file" 2>/dev/null || echo "invalid") entries"
+              filename=$(basename "$file")
+              echo "Processing $filename..."
+          
+              # Fix entries with missing or null buildOrder
+              jq --argjson buildOrder "$BUILD_ORDER" \
+                 --arg reportName "$REPORT_NAME" \
+                 --arg reportUrl "$REPORT_URL" \
+                 'map(if (.buildOrder == null or .buildOrder == "" or .buildOrder == "null") and (.data != null) then
+                      . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl}
+                    else . end)' \
+                 "$file" > "temp_$filename"
+          
+              # Only replace if the temp file is valid JSON
+              if jq empty "temp_$filename" 2>/dev/null; then
+                mv "temp_$filename" "$file"
+                echo "✅ Fixed $filename"
+              else
+                rm -f "temp_$filename"
+                echo "⚠️ Could not fix $filename, keeping original"
+              fi
             fi
           done
+          
+          echo "=== Final history verification ==="
+          if [ -f "target/allure-report/history/history-trend.json" ]; then
+            echo "Final history entries:"
+            jq -r '.[] | "Build #" + (.buildOrder // "?" | tostring) + " (" + (.data.total // 0 | tostring) + " tests)"' target/allure-report/history/history-trend.json
+          fi
 
-      # 10. Enhanced Deploy to GitHub Pages with history preservation
+      # 10. Backup history for next run
+      - name: Prepare History for Next Run
+        run: |
+          echo "=== Preparing history for preservation ==="
+          mkdir -p history
+          
+          # Copy current history to preservation directory
+          if [ -d "target/allure-report/history" ]; then
+            cp -r target/allure-report/history/* history/ 2>/dev/null || true
+            echo "History backed up:"
+            ls -la history/
+          
+            # Verify the backup
+            for file in history/*.json; do
+              if [ -f "$file" ]; then
+                entries=$(jq length "$file" 2>/dev/null || echo "0")
+                echo "$(basename $file): $entries entries"
+              fi
+            done
+          else
+            echo "No history to backup"
+          fi
+
+      # 11. Deploy to GitHub Pages (preserving history directory)
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: always()
@@ -404,11 +210,52 @@ jobs:
           publish_dir: target/allure-report
           keep_files: false
           force_orphan: false
-          # Ensure history is preserved by copying it to the publish directory
 
-      # 11. Deploy to SLT Server
-      - name: Deploy to SLT Server
+      # 12. Preserve history in gh-pages branch
+      - name: Preserve History in gh-pages
         if: always()
+        run: |
+          echo "=== Preserving history in gh-pages branch ==="
+          
+          # Configure git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Switch to gh-pages and add history directory
+          git fetch origin gh-pages:gh-pages 2>/dev/null || echo "No existing gh-pages branch"
+          git checkout gh-pages 2>/dev/null || {
+            echo "Could not checkout gh-pages, it might not exist yet"
+            exit 0
+          }
+          
+          # Ensure history directory exists and copy current history
+          if [ -d "history" ]; then
+            echo "Updating existing history directory"
+          else
+            echo "Creating new history directory"
+            mkdir -p history
+          fi
+          
+          # Copy from our backup
+          if [ -d "../history" ]; then
+            cp -r ../history/* history/ 2>/dev/null || echo "No history files to copy"
+          fi
+          
+          # Commit history if there are changes
+          git add history/ 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No history changes to commit"
+          else
+            git commit -m "Update Allure history for build #${{ github.run_number }}" || echo "Commit failed"
+            git push origin gh-pages || echo "Push failed"
+          fi
+          
+          # Switch back to main branch
+          git checkout main 2>/dev/null || git checkout ${{ github.ref_name }}
+
+      # 13. Deploy to SLT Server
+      - name: Deploy to SLT Server
+        if: always() && secrets.SLT_HOST != ''
         uses: burnett01/rsync-deployments@6.0.0
         with:
           switches: -avzr --delete --exclude='.git*' --exclude='*.log'
@@ -418,7 +265,7 @@ jobs:
           remote_user: ${{ secrets.SLT_USER }}
           remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # 12. Upload Allure Report as Artifact
+      # 14. Upload Artifacts
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -427,16 +274,15 @@ jobs:
           path: target/allure-report
           retention-days: 30
 
-      # 13. Upload History Backup as Artifact
       - name: Upload History Backup
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: allure-history-build-${{ github.run_number }}
-          path: history-backup
+          path: history
           retention-days: 90
 
-      # 14. Create Detailed Status Report
+      # 15. Generate Status Report
       - name: Generate Status Report
         if: always()
         run: |
@@ -444,105 +290,91 @@ jobs:
           echo "Build Number: ${{ github.run_number }}"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
-          echo "Timestamp: $(date)"
+          echo "Timestamp: $(date -u)"
           echo ""
           
-          echo "=== DIRECTORY STRUCTURE ==="
-          echo "Results directory:"
-          ls -la target/allure-results/ || echo "No results directory"
-          echo ""
-          echo "Results history:"
-          ls -la target/allure-results/history/ || echo "No results history"
-          echo ""
-          echo "Report directory:"
-          ls -la target/allure-report/ || echo "No report directory"
-          echo ""
-          echo "Report history:"
-          ls -la target/allure-report/history/ || echo "No report history"
-          echo ""
-          
-          echo "=== HISTORY ANALYSIS ==="
           if [ -f "target/allure-report/history/history-trend.json" ]; then
             TOTAL_ENTRIES=$(jq length target/allure-report/history/history-trend.json)
-            echo "✅ History trend entries: $TOTAL_ENTRIES"
+            echo "✅ History entries: $TOTAL_ENTRIES"
           
             if [ "$TOTAL_ENTRIES" -gt 1 ]; then
-              echo "✅ Multi-build history detected!"
-              echo "Build numbers in history:"
-              jq -r '.[] | "Build #" + (.buildOrder | tostring)' target/allure-report/history/history-trend.json
+              echo "✅ Historical data available!"
+              echo ""
+              echo "Build history:"
+              jq -r '.[] | "Build #" + (.buildOrder // "?" | tostring) + 
+                     " | Tests: " + (.data.total // 0 | tostring) + 
+                     " | Passed: " + (.data.passed // 0 | tostring) + 
+                     " | Failed: " + (.data.failed // 0 | tostring)' \
+                     target/allure-report/history/history-trend.json | tail -10
             else
-              echo "⚠️ Only current build in history"
+              echo "⚠️ Only current build in history (first run or history not preserved)"
             fi
-          
-            echo ""
-            echo "Latest entry:"
-            jq '.[-1]' target/allure-report/history/history-trend.json
           else
-            echo "❌ No history-trend.json found"
+            echo "❌ No history data found"
           fi
           
           echo ""
-          echo "=== TEST SUMMARY ==="
+          echo "=== CURRENT BUILD RESULTS ==="
           if [ -f "target/allure-report/widgets/summary.json" ]; then
-            jq -r '"Total: " + (.statistic.total | tostring) + 
-                   " | Passed: " + (.statistic.passed | tostring) + 
-                   " | Failed: " + (.statistic.failed | tostring) + 
-                   " | Skipped: " + (.statistic.skipped | tostring)' target/allure-report/widgets/summary.json
-          else
-            echo "No summary available"
+            jq -r '"📊 Total: " + (.statistic.total | tostring) + 
+                   " | ✅ Passed: " + (.statistic.passed | tostring) + 
+                   " | ❌ Failed: " + (.statistic.failed | tostring) + 
+                   " | ⏭️ Skipped: " + (.statistic.skipped | tostring) + 
+                   " | 🕒 Duration: " + ((.time.duration // 0) / 1000 | floor | tostring) + "s"' \
+                   target/allure-report/widgets/summary.json
           fi
           
           echo ""
-          echo "=== REPORT URLS ==="
-          echo "GitHub Pages: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          echo "GitHub Actions: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
-          # Save status to file for potential future use
-          cat > target/allure-report/build-status.json << EOF
-          {
-            "buildNumber": ${{ github.run_number }},
-            "commit": "${{ github.sha }}",
-            "branch": "${{ github.ref_name }}",
-            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-            "historyEntries": $(jq length target/allure-report/history/history-trend.json 2>/dev/null || echo 0),
-            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/",
-            "actionUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          }
-          EOF
+          echo "🔗 Report: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "🔗 Action: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-      # 15. Comment on PR with results (if this is a PR)
+      # 16. Comment on PR with results
       - name: Comment PR with Test Results
         uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && always()
         with:
           script: |
             const fs = require('fs');
             
             try {
               const summaryPath = 'target/allure-report/widgets/summary.json';
-              const statusPath = 'target/allure-report/build-status.json';
             
-              if (fs.existsSync(summaryPath) && fs.existsSync(statusPath)) {
+              if (fs.existsSync(summaryPath)) {
                 const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
-                const status = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
             
-                const body = `## 🧪 Test Results - Build #${status.buildNumber}
+                // Check for history
+                let historyInfo = '';
+                const historyPath = 'target/allure-report/history/history-trend.json';
+                if (fs.existsSync(historyPath)) {
+                  const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+                  historyInfo = `📈 Historical builds: ${history.length}`;
+                } else {
+                  historyInfo = '📈 First build (no history yet)';
+                }
+            
+                const passed = summary.statistic.passed || 0;
+                const failed = summary.statistic.failed || 0;
+                const skipped = summary.statistic.skipped || 0;
+                const total = summary.statistic.total || 0;
+                const duration = Math.round((summary.time.duration || 0) / 1000);
+            
+                const status = failed > 0 ? '❌' : '✅';
+            
+                const body = `## ${status} Test Results - Build #${{ github.run_number }}
             
             | Status | Count |
             |--------|-------|
-            | ✅ Passed | ${summary.statistic.passed} |
-            | ❌ Failed | ${summary.statistic.failed} |
-            | 🔶 Broken | ${summary.statistic.broken || 0} |
-            | ⏭️ Skipped | ${summary.statistic.skipped} |
-            | **📊 Total** | **${summary.statistic.total}** |
+            | ✅ Passed | ${passed} |
+            | ❌ Failed | ${failed} |
+            | ⏭️ Skipped | ${skipped} |
+            | **📊 Total** | **${total}** |
             
-            🕒 Duration: ${Math.round(summary.time.duration / 1000)}s
-            📈 History Entries: ${status.historyEntries}
+            🕒 Duration: ${duration}s  
+            ${historyInfo}
             
-            📋 [View Full Report](${status.reportUrl})
-            🔗 [GitHub Action](${status.actionUrl})`;
+            📋 [View Full Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)`;
             
-                github.rest.issues.createComment({
+                await github.rest.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
