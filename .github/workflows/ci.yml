@@ -44,7 +44,7 @@ jobs:
               mkdir -p history
             }
             git checkout main 2>/dev/null || git checkout ${{ github.ref_name }}
-          
+            
             # Copy history if it exists
             if [ -d "history" ]; then
               cp -r history/* allure-history/ 2>/dev/null || echo "No history files to copy"
@@ -130,7 +130,7 @@ jobs:
           if [ -f "target/allure-report/history/history-trend.json" ]; then
             HISTORY_COUNT=$(jq length target/allure-report/history/history-trend.json)
             echo "✅ History generated with $HISTORY_COUNT entries"
-          
+            
             # Show current history
             echo "Build numbers in history:"
             jq -r '.[] | "Build #" + (.buildOrder // "unknown" | tostring) + " - " + (.reportName // "Unknown")' target/allure-report/history/history-trend.json 2>/dev/null || echo "Could not parse history entries"
@@ -151,7 +151,7 @@ jobs:
             if [ -f "$file" ]; then
               filename=$(basename "$file")
               echo "Processing $filename..."
-          
+              
               # Fix entries with missing or null buildOrder
               jq --argjson buildOrder "$BUILD_ORDER" \
                  --arg reportName "$REPORT_NAME" \
@@ -160,7 +160,7 @@ jobs:
                       . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl}
                     else . end)' \
                  "$file" > "temp_$filename"
-          
+              
               # Only replace if the temp file is valid JSON
               if jq empty "temp_$filename" 2>/dev/null; then
                 mv "temp_$filename" "$file"
@@ -189,7 +189,7 @@ jobs:
             cp -r target/allure-report/history/* history/ 2>/dev/null || true
             echo "History backed up:"
             ls -la history/
-          
+            
             # Verify the backup
             for file in history/*.json; do
               if [ -f "$file" ]; then
@@ -210,7 +210,7 @@ jobs:
           publish_dir: target/allure-report
           keep_files: false
           force_orphan: false
-
+          
       # 12. Preserve history in gh-pages branch
       - name: Preserve History in gh-pages
         if: always()
@@ -255,7 +255,7 @@ jobs:
 
       # 13. Deploy to SLT Server
       - name: Deploy to SLT Server
-        if: always() && secrets.SLT_HOST != ''
+        if: always()
         uses: burnett01/rsync-deployments@6.0.0
         with:
           switches: -avzr --delete --exclude='.git*' --exclude='*.log'
@@ -273,7 +273,7 @@ jobs:
           name: allure-report-build-${{ github.run_number }}
           path: target/allure-report
           retention-days: 30
-
+          
       - name: Upload History Backup
         uses: actions/upload-artifact@v4
         if: always()
@@ -296,7 +296,7 @@ jobs:
           if [ -f "target/allure-report/history/history-trend.json" ]; then
             TOTAL_ENTRIES=$(jq length target/allure-report/history/history-trend.json)
             echo "✅ History entries: $TOTAL_ENTRIES"
-          
+            
             if [ "$TOTAL_ENTRIES" -gt 1 ]; then
               echo "✅ Historical data available!"
               echo ""
@@ -338,10 +338,10 @@ jobs:
             
             try {
               const summaryPath = 'target/allure-report/widgets/summary.json';
-            
+              
               if (fs.existsSync(summaryPath)) {
                 const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
-            
+                
                 // Check for history
                 let historyInfo = '';
                 const historyPath = 'target/allure-report/history/history-trend.json';
@@ -351,15 +351,15 @@ jobs:
                 } else {
                   historyInfo = '📈 First build (no history yet)';
                 }
-            
+                
                 const passed = summary.statistic.passed || 0;
                 const failed = summary.statistic.failed || 0;
                 const skipped = summary.statistic.skipped || 0;
                 const total = summary.statistic.total || 0;
                 const duration = Math.round((summary.time.duration || 0) / 1000);
-            
+                
                 const status = failed > 0 ? '❌' : '✅';
-            
+                
                 const body = `## ${status} Test Results - Build #${{ github.run_number }}
             
             | Status | Count |
