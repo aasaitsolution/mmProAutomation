@@ -35,23 +35,51 @@ jobs:
           echo "=== Downloading previous Allure history ==="
           mkdir -p allure-history
           
+          # Store the current commit/branch info
+          CURRENT_REF="${{ github.sha }}"
+          echo "Current commit: $CURRENT_REF"
+          echo "Current ref: ${{ github.ref }}"
+          echo "Current ref name: ${{ github.ref_name }}"
+          
           # Try to download history from gh-pages branch
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             echo "gh-pages branch exists, downloading history..."
-            git fetch origin gh-pages:gh-pages 2>/dev/null || true
-            git checkout gh-pages -- history 2>/dev/null || {
-              echo "No history directory in gh-pages branch"
-              mkdir -p history
-            }
-            git checkout main 2>/dev/null || git checkout ${{ github.ref_name }}
-          
-            # Copy history if it exists
-            if [ -d "history" ]; then
-              cp -r history/* allure-history/ 2>/dev/null || echo "No history files to copy"
-              echo "Previous history restored:"
-              ls -la allure-history/ || echo "No files in allure-history"
+            
+            # Create a temporary worktree for gh-pages to avoid checkout conflicts
+            if git worktree add ../gh-pages-temp gh-pages 2>/dev/null; then
+              echo "Created temporary worktree for gh-pages"
+              
+              # Copy history from the temporary worktree
+              if [ -d "../gh-pages-temp/history" ]; then
+                cp -r ../gh-pages-temp/history/* allure-history/ 2>/dev/null || echo "No history files to copy"
+                echo "Previous history restored:"
+                ls -la allure-history/ || echo "No files in allure-history"
+              else
+                echo "No history directory found in gh-pages branch"
+              fi
+              
+              # Clean up the temporary worktree
+              git worktree remove ../gh-pages-temp 2>/dev/null || true
             else
-              echo "No history directory found, starting fresh"
+              echo "Could not create worktree, trying alternative method..."
+              
+              # Alternative: use git show to extract files
+              if git show gh-pages:history/ >/dev/null 2>&1; then
+                echo "Extracting history files from gh-pages branch..."
+                mkdir -p temp-history
+                
+                # Extract each history file individually
+                for file in history-trend.json duration-trend.json categories-trend.json retry-trend.json history.json; do
+                  if git show "gh-pages:history/$file" > "allure-history/$file" 2>/dev/null; then
+                    echo "Extracted $file"
+                  fi
+                done
+                
+                echo "History files extracted:"
+                ls -la allure-history/ || echo "No files extracted"
+              else
+                echo "No history directory in gh-pages branch"
+              fi
             fi
           else
             echo "No gh-pages branch exists yet, starting fresh"
@@ -120,22 +148,68 @@ jobs:
           # Install jq for JSON processing
           sudo apt-get install -y jq
 
-      # 8. Generate Allure Report (single generation with proper history)
+      # 8. Generate Allure Report (with error handling)
       - name: Generate Allure Report
         run: |
           echo "=== Generating Allure Report ==="
-          allure generate target/allure-results --clean -o target/allure-report
           
-          echo "=== Verifying generated history ==="
-          if [ -f "target/allure-report/history/history-trend.json" ]; then
-            HISTORY_COUNT=$(jq length target/allure-report/history/history-trend.json)
-            echo "✅ History generated with $HISTORY_COUNT entries"
+          # Check if we have test results
+          if [ ! -d "target/allure-results" ] || [ -z "$(ls -A target/allure-results/*.json 2>/dev/null)" ]; then
+            echo "⚠️ No test results found, creating minimal report"
+            mkdir -p target/allure-results
+            mkdir -p target/allure-report
+            
+            # Create a minimal index.html for the report
+            cat > target/allure-report/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>No Tests Found</title></head>
+          <body>
+            <h1>No test results found</h1>
+            <p>The test execution may have failed or no tests were executed.</p>
+          </body>
+          </html>
+          EOF
+            echo "Minimal report created"
+            exit 0
+          fi
           
-            # Show current history
-            echo "Build numbers in history:"
-            jq -r '.[] | "Build #" + (.buildOrder // "unknown" | tostring) + " - " + (.reportName // "Unknown")' target/allure-report/history/history-trend.json 2>/dev/null || echo "Could not parse history entries"
+          # Generate the report
+          if allure generate target/allure-results --clean -o target/allure-report; then
+            echo "✅ Allure report generated successfully"
           else
-            echo "⚠️ No history-trend.json generated"
+            echo "❌ Allure report generation failed, creating fallback"
+            mkdir -p target/allure-report
+            cat > target/allure-report/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Report Generation Failed</title></head>
+          <body>
+            <h1>Report generation failed</h1>
+            <p>There was an error generating the Allure report.</p>
+          </body>
+          </html>
+          EOF
+          fi
+          
+          echo "=== Verifying generated report ==="
+          if [ -f "target/allure-report/index.html" ]; then
+            echo "✅ Report generated at target/allure-report/"
+            ls -la target/allure-report/
+            
+            if [ -f "target/allure-report/history/history-trend.json" ]; then
+              HISTORY_COUNT=$(jq length target/allure-report/history/history-trend.json 2>/dev/null || echo "0")
+              echo "✅ History generated with $HISTORY_COUNT entries"
+              
+              if [ "$HISTORY_COUNT" -gt 0 ]; then
+                echo "Build numbers in history:"
+                jq -r '.[] | "Build #" + (.buildOrder // "unknown" | tostring) + " - " + (.reportName // "Unknown")' target/allure-report/history/history-trend.json 2>/dev/null || echo "Could not parse history entries"
+              fi
+            else
+              echo "⚠️ No history-trend.json generated"
+            fi
+          else
+            echo "❌ No report index.html found"
           fi
 
       # 9. Fix history metadata (ensure buildOrder is properly set)
@@ -151,7 +225,7 @@ jobs:
             if [ -f "$file" ]; then
               filename=$(basename "$file")
               echo "Processing $filename..."
-          
+              
               # Fix entries with missing or null buildOrder
               jq --argjson buildOrder "$BUILD_ORDER" \
                  --arg reportName "$REPORT_NAME" \
@@ -160,7 +234,7 @@ jobs:
                       . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl}
                     else . end)' \
                  "$file" > "temp_$filename"
-          
+              
               # Only replace if the temp file is valid JSON
               if jq empty "temp_$filename" 2>/dev/null; then
                 mv "temp_$filename" "$file"
@@ -189,7 +263,7 @@ jobs:
             cp -r target/allure-report/history/* history/ 2>/dev/null || true
             echo "History backed up:"
             ls -la history/
-          
+            
             # Verify the backup
             for file in history/*.json; do
               if [ -f "$file" ]; then
@@ -210,53 +284,112 @@ jobs:
           publish_dir: target/allure-report
           keep_files: false
           force_orphan: false
-
+          
       # 12. Preserve history in gh-pages branch
       - name: Preserve History in gh-pages
         if: always()
         run: |
           echo "=== Preserving history in gh-pages branch ==="
           
+          # Check if we have history to preserve
+          if [ ! -d "history" ] || [ -z "$(ls -A history 2>/dev/null)" ]; then
+            echo "No history to preserve, skipping"
+            exit 0
+          fi
+          
           # Configure git
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # Switch to gh-pages and add history directory
-          git fetch origin gh-pages:gh-pages 2>/dev/null || echo "No existing gh-pages branch"
-          git checkout gh-pages 2>/dev/null || {
-            echo "Could not checkout gh-pages, it might not exist yet"
-            exit 0
-          }
+          echo "Current branch/ref info:"
+          echo "  SHA: ${{ github.sha }}"
+          echo "  Ref: ${{ github.ref }}"
+          echo "  Ref name: ${{ github.ref_name }}"
+          echo "  Head ref: ${{ github.head_ref }}"
+          echo "  Base ref: ${{ github.base_ref }}"
           
-          # Ensure history directory exists and copy current history
-          if [ -d "history" ]; then
-            echo "Updating existing history directory"
+          # Store current state
+          CURRENT_COMMIT="${{ github.sha }}"
+          
+          # Try to create/update gh-pages branch using worktree
+          if git worktree add ../gh-pages-work gh-pages 2>/dev/null; then
+            echo "Using existing gh-pages branch via worktree"
+            cd ../gh-pages-work
+          elif git worktree add ../gh-pages-work --orphan gh-pages 2>/dev/null; then
+            echo "Created new orphan gh-pages branch via worktree"
+            cd ../gh-pages-work
+            # Initialize the branch with a README
+            echo "# Allure History" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
           else
-            echo "Creating new history directory"
-            mkdir -p history
+            echo "Could not create worktree for gh-pages, using checkout method"
+            
+            # Fallback to checkout method with better error handling
+            if git checkout gh-pages 2>/dev/null; then
+              echo "Checked out existing gh-pages branch"
+            elif git checkout --orphan gh-pages 2>/dev/null; then
+              echo "Created new orphan gh-pages branch"
+              git rm -rf . 2>/dev/null || true
+              echo "# Allure History" > README.md
+              git add README.md
+              git commit -m "Initialize gh-pages branch"
+            else
+              echo "Could not checkout gh-pages, skipping history preservation"
+              exit 0
+            fi
           fi
           
-          # Copy from our backup
-          if [ -d "../history" ]; then
-            cp -r ../history/* history/ 2>/dev/null || echo "No history files to copy"
+          # Ensure we're in the right directory and create history dir
+          mkdir -p history
+          
+          # Copy history from the main workspace
+          WORKSPACE_DIR="/github/workspace"
+          if [ -d "${WORKSPACE_DIR}/history" ]; then
+            cp -r "${WORKSPACE_DIR}/history"/* history/ 2>/dev/null || echo "No history files to copy"
+            echo "History files copied:"
+            ls -la history/
+          else
+            echo "No history directory found in workspace"
           fi
           
-          # Commit history if there are changes
+          # Commit and push changes
           git add history/ 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "No history changes to commit"
           else
+            echo "Committing history changes..."
             git commit -m "Update Allure history for build #${{ github.run_number }}" || echo "Commit failed"
             git push origin gh-pages || echo "Push failed"
+            echo "History successfully preserved"
           fi
           
-          # Switch back to main branch
-          git checkout main 2>/dev/null || git checkout ${{ github.ref_name }}
+          # Clean up worktree if we used it
+          if [ -d "../gh-pages-work" ]; then
+            cd "$WORKSPACE_DIR"
+            git worktree remove ../gh-pages-work 2>/dev/null || true
+          else
+            # Return to original commit if we used checkout
+            git checkout "$CURRENT_COMMIT" 2>/dev/null || {
+              echo "Could not return to original commit"
+            }
+          fi
 
-      # 13. Deploy to SLT Server
+      # 13. Deploy to SLT Server (only if report exists)
       - name: Deploy to SLT Server
-        if: always() && secrets.SLT_HOST != ''
+        if: always()
+        run: |
+          if [ -d "target/allure-report" ] && [ -n "${{ secrets.SLT_HOST }}" ]; then
+            echo "Deploying to SLT server..."
+          else
+            echo "Skipping SLT deployment - either report missing or SLT_HOST not configured"
+            exit 0
+          fi
+        
+      - name: Execute SLT Deployment
+        if: always()
         uses: burnett01/rsync-deployments@6.0.0
+        continue-on-error: true
         with:
           switches: -avzr --delete --exclude='.git*' --exclude='*.log'
           path: target/allure-report/
@@ -273,7 +406,7 @@ jobs:
           name: allure-report-build-${{ github.run_number }}
           path: target/allure-report
           retention-days: 30
-
+          
       - name: Upload History Backup
         uses: actions/upload-artifact@v4
         if: always()
@@ -296,7 +429,7 @@ jobs:
           if [ -f "target/allure-report/history/history-trend.json" ]; then
             TOTAL_ENTRIES=$(jq length target/allure-report/history/history-trend.json)
             echo "✅ History entries: $TOTAL_ENTRIES"
-          
+            
             if [ "$TOTAL_ENTRIES" -gt 1 ]; then
               echo "✅ Historical data available!"
               echo ""
@@ -338,10 +471,10 @@ jobs:
             
             try {
               const summaryPath = 'target/allure-report/widgets/summary.json';
-            
+              
               if (fs.existsSync(summaryPath)) {
                 const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
-            
+                
                 // Check for history
                 let historyInfo = '';
                 const historyPath = 'target/allure-report/history/history-trend.json';
@@ -351,15 +484,15 @@ jobs:
                 } else {
                   historyInfo = '📈 First build (no history yet)';
                 }
-            
+                
                 const passed = summary.statistic.passed || 0;
                 const failed = summary.statistic.failed || 0;
                 const skipped = summary.statistic.skipped || 0;
                 const total = summary.statistic.total || 0;
                 const duration = Math.round((summary.time.duration || 0) / 1000);
-            
+                
                 const status = failed > 0 ? '❌' : '✅';
-            
+                
                 const body = `## ${status} Test Results - Build #${{ github.run_number }}
             
             | Status | Count |
