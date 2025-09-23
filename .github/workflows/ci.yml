@@ -14,6 +14,8 @@ jobs:
       # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for better git operations
 
       # 2. Set up Java
       - name: Set up JDK 17
@@ -35,52 +37,42 @@ jobs:
           echo "=== Downloading previous Allure history ==="
           mkdir -p allure-history
           
-          # Store the current commit/branch info
-          CURRENT_REF="${{ github.sha }}"
-          echo "Current commit: $CURRENT_REF"
-          echo "Current ref: ${{ github.ref }}"
-          echo "Current ref name: ${{ github.ref_name }}"
-          
-          # Try to download history from gh-pages branch
-          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+          # Check if gh-pages branch exists
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             echo "gh-pages branch exists, downloading history..."
             
-            # Create a temporary worktree for gh-pages to avoid checkout conflicts
-            if git worktree add ../gh-pages-temp gh-pages 2>/dev/null; then
-              echo "Created temporary worktree for gh-pages"
+            # Download history files directly using raw GitHub API
+            REPO_OWNER="${{ github.repository_owner }}"
+            REPO_NAME="${{ github.event.repository.name }}"
+            
+            # List of history files to download
+            HISTORY_FILES=(
+              "history-trend.json"
+              "duration-trend.json"
+              "categories-trend.json" 
+              "retry-trend.json"
+              "history.json"
+            )
+            
+            echo "Attempting to download history files..."
+            for file in "${HISTORY_FILES[@]}"; do
+              URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/gh-pages/history/${file}"
+              echo "Downloading: $URL"
               
-              # Copy history from the temporary worktree
-              if [ -d "../gh-pages-temp/history" ]; then
-                cp -r ../gh-pages-temp/history/* allure-history/ 2>/dev/null || echo "No history files to copy"
-                echo "Previous history restored:"
-                ls -la allure-history/ || echo "No files in allure-history"
+              if curl -sL "$URL" -o "allure-history/${file}" --fail; then
+                echo "✅ Downloaded ${file}"
+                # Validate JSON
+                if ! jq empty "allure-history/${file}" 2>/dev/null; then
+                  echo "⚠️ Invalid JSON in ${file}, removing"
+                  rm -f "allure-history/${file}"
+                fi
               else
-                echo "No history directory found in gh-pages branch"
+                echo "⚠️ Could not download ${file} (might not exist yet)"
               fi
-              
-              # Clean up the temporary worktree
-              git worktree remove ../gh-pages-temp 2>/dev/null || true
-            else
-              echo "Could not create worktree, trying alternative method..."
-              
-              # Alternative: use git show to extract files
-              if git show gh-pages:history/ >/dev/null 2>&1; then
-                echo "Extracting history files from gh-pages branch..."
-                mkdir -p temp-history
-                
-                # Extract each history file individually
-                for file in history-trend.json duration-trend.json categories-trend.json retry-trend.json history.json; do
-                  if git show "gh-pages:history/$file" > "allure-history/$file" 2>/dev/null; then
-                    echo "Extracted $file"
-                  fi
-                done
-                
-                echo "History files extracted:"
-                ls -la allure-history/ || echo "No files extracted"
-              else
-                echo "No history directory in gh-pages branch"
-              fi
-            fi
+            done
+            
+            echo "Downloaded history files:"
+            ls -la allure-history/ || echo "No files downloaded"
           else
             echo "No gh-pages branch exists yet, starting fresh"
           fi
@@ -92,10 +84,23 @@ jobs:
           mkdir -p target/allure-results/history
           
           # Copy existing history to results directory
-          if [ -d "allure-history" ] && [ "$(ls -A allure-history)" ]; then
-            cp -r allure-history/* target/allure-results/history/ 2>/dev/null || true
+          if [ -d "allure-history" ] && [ "$(ls -A allure-history 2>/dev/null)" ]; then
+            cp allure-history/*.json target/allure-results/history/ 2>/dev/null || true
             echo "History files copied to results:"
             ls -la target/allure-results/history/ || echo "No history files"
+            
+            # Validate each history file
+            for file in target/allure-results/history/*.json; do
+              if [ -f "$file" ]; then
+                if jq empty "$file" 2>/dev/null; then
+                  entries=$(jq length "$file" 2>/dev/null || echo "0")
+                  echo "✅ $(basename "$file"): $entries entries"
+                else
+                  echo "❌ Invalid JSON: $(basename "$file"), removing"
+                  rm -f "$file"
+                fi
+              fi
+            done
           else
             echo "No previous history found"
           fi
@@ -146,9 +151,9 @@ jobs:
           echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
           
           # Install jq for JSON processing
-          sudo apt-get install -y jq
+          sudo apt-get install -y jq curl
 
-      # 8. Generate Allure Report (with error handling)
+      # 8. Generate Allure Report
       - name: Generate Allure Report
         run: |
           echo "=== Generating Allure Report ==="
@@ -156,40 +161,33 @@ jobs:
           # Check if we have test results
           if [ ! -d "target/allure-results" ] || [ -z "$(ls -A target/allure-results/*.json 2>/dev/null)" ]; then
             echo "⚠️ No test results found, creating minimal report"
-            mkdir -p target/allure-results
-            mkdir -p target/allure-report
+            mkdir -p target/allure-results target/allure-report
             
-            # Create a minimal index.html for the report
-            cat > target/allure-report/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head><title>No Tests Found</title></head>
-          <body>
-            <h1>No test results found</h1>
-            <p>The test execution may have failed or no tests were executed.</p>
-          </body>
-          </html>
+            # Create a minimal test result for report generation
+            cat > target/allure-results/dummy-result.json << 'EOF'
+          {
+            "uuid": "dummy",
+            "name": "Dummy Test",
+            "fullName": "DummyTest.dummyTest",
+            "status": "skipped",
+            "statusDetails": {
+              "message": "No real tests executed"
+            },
+            "stage": "finished",
+            "start": 0,
+            "stop": 1000,
+            "labels": []
+          }
           EOF
-            echo "Minimal report created"
-            exit 0
+            echo "Created dummy test result for report generation"
           fi
           
           # Generate the report
           if allure generate target/allure-results --clean -o target/allure-report; then
             echo "✅ Allure report generated successfully"
           else
-            echo "❌ Allure report generation failed, creating fallback"
-            mkdir -p target/allure-report
-            cat > target/allure-report/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head><title>Report Generation Failed</title></head>
-          <body>
-            <h1>Report generation failed</h1>
-            <p>There was an error generating the Allure report.</p>
-          </body>
-          </html>
-          EOF
+            echo "❌ Allure report generation failed"
+            exit 1
           fi
           
           echo "=== Verifying generated report ==="
@@ -210,9 +208,10 @@ jobs:
             fi
           else
             echo "❌ No report index.html found"
+            exit 1
           fi
 
-      # 9. Fix history metadata (ensure buildOrder is properly set)
+      # 9. Fix history metadata
       - name: Fix History Metadata
         run: |
           echo "=== Fixing history metadata ==="
@@ -226,6 +225,9 @@ jobs:
               filename=$(basename "$file")
               echo "Processing $filename..."
               
+              # Create a backup
+              cp "$file" "${file}.bak"
+              
               # Fix entries with missing or null buildOrder
               jq --argjson buildOrder "$BUILD_ORDER" \
                  --arg reportName "$REPORT_NAME" \
@@ -233,14 +235,14 @@ jobs:
                  'map(if (.buildOrder == null or .buildOrder == "" or .buildOrder == "null") and (.data != null) then
                       . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl}
                     else . end)' \
-                 "$file" > "temp_$filename"
+                 "${file}.bak" > "$file"
               
-              # Only replace if the temp file is valid JSON
-              if jq empty "temp_$filename" 2>/dev/null; then
-                mv "temp_$filename" "$file"
+              # Verify the result
+              if jq empty "$file" 2>/dev/null; then
+                rm "${file}.bak"
                 echo "✅ Fixed $filename"
               else
-                rm -f "temp_$filename"
+                mv "${file}.bak" "$file"
                 echo "⚠️ Could not fix $filename, keeping original"
               fi
             fi
@@ -252,30 +254,42 @@ jobs:
             jq -r '.[] | "Build #" + (.buildOrder // "?" | tostring) + " (" + (.data.total // 0 | tostring) + " tests)"' target/allure-report/history/history-trend.json
           fi
 
-      # 10. Backup history for next run
-      - name: Prepare History for Next Run
+      # 10. Prepare history for preservation
+      - name: Prepare History for Preservation
         run: |
           echo "=== Preparing history for preservation ==="
-          mkdir -p history
+          mkdir -p history-backup
           
           # Copy current history to preservation directory
           if [ -d "target/allure-report/history" ]; then
-            cp -r target/allure-report/history/* history/ 2>/dev/null || true
-            echo "History backed up:"
-            ls -la history/
+            cp target/allure-report/history/*.json history-backup/ 2>/dev/null || true
+            echo "History backed up to history-backup/:"
+            ls -la history-backup/
             
             # Verify the backup
-            for file in history/*.json; do
+            for file in history-backup/*.json; do
               if [ -f "$file" ]; then
                 entries=$(jq length "$file" 2>/dev/null || echo "0")
-                echo "$(basename $file): $entries entries"
+                echo "$(basename "$file"): $entries entries"
+                
+                # Show sample of what's being preserved
+                if [ "$entries" -gt 0 ] && [ "$(basename "$file")" = "history-trend.json" ]; then
+                  echo "Sample entries being preserved:"
+                  jq -r '.[-3:] | .[] | "  Build #" + (.buildOrder // "?" | tostring) + " (" + (.data.total // 0 | tostring) + " tests)"' "$file" 2>/dev/null || echo "  Could not parse entries"
+                fi
               fi
             done
           else
-            echo "No history to backup"
+            echo "No history directory found to backup"
+            # Create empty history files to prevent errors
+            echo "[]" > history-backup/history-trend.json
+            echo "[]" > history-backup/duration-trend.json
+            echo "[]" > history-backup/categories-trend.json
+            echo "[]" > history-backup/retry-trend.json
+            echo "{}" > history-backup/history.json
           fi
 
-      # 11. Deploy to GitHub Pages (preserving history directory)
+      # 11. Deploy report to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: always()
@@ -284,110 +298,74 @@ jobs:
           publish_dir: target/allure-report
           keep_files: false
           force_orphan: false
-          
-      # 12. Preserve history in gh-pages branch
+
+      # 12. Preserve history in gh-pages branch (critical step)
       - name: Preserve History in gh-pages
         if: always()
         run: |
           echo "=== Preserving history in gh-pages branch ==="
           
+          # Wait a moment for the previous deployment to complete
+          sleep 10
+          
           # Check if we have history to preserve
-          if [ ! -d "history" ] || [ -z "$(ls -A history 2>/dev/null)" ]; then
+          if [ ! -d "history-backup" ] || [ -z "$(ls -A history-backup/*.json 2>/dev/null)" ]; then
             echo "No history to preserve, skipping"
             exit 0
           fi
           
           # Configure git
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          echo "Current branch/ref info:"
-          echo "  SHA: ${{ github.sha }}"
-          echo "  Ref: ${{ github.ref }}"
-          echo "  Ref name: ${{ github.ref_name }}"
-          echo "  Head ref: ${{ github.head_ref }}"
-          echo "  Base ref: ${{ github.base_ref }}"
+          # Fetch the latest gh-pages branch
+          git fetch origin gh-pages:gh-pages 2>/dev/null || {
+            echo "Could not fetch gh-pages branch, it might not exist yet"
+            exit 0
+          }
           
-          # Store current state
-          CURRENT_COMMIT="${{ github.sha }}"
+          # Switch to gh-pages branch
+          git checkout gh-pages || {
+            echo "Could not checkout gh-pages branch"
+            exit 0
+          }
           
-          # Try to create/update gh-pages branch using worktree
-          if git worktree add ../gh-pages-work gh-pages 2>/dev/null; then
-            echo "Using existing gh-pages branch via worktree"
-            cd ../gh-pages-work
-          elif git worktree add ../gh-pages-work --orphan gh-pages 2>/dev/null; then
-            echo "Created new orphan gh-pages branch via worktree"
-            cd ../gh-pages-work
-            # Initialize the branch with a README
-            echo "# Allure History" > README.md
-            git add README.md
-            git commit -m "Initialize gh-pages branch"
-          else
-            echo "Could not create worktree for gh-pages, using checkout method"
-            
-            # Fallback to checkout method with better error handling
-            if git checkout gh-pages 2>/dev/null; then
-              echo "Checked out existing gh-pages branch"
-            elif git checkout --orphan gh-pages 2>/dev/null; then
-              echo "Created new orphan gh-pages branch"
-              git rm -rf . 2>/dev/null || true
-              echo "# Allure History" > README.md
-              git add README.md
-              git commit -m "Initialize gh-pages branch"
-            else
-              echo "Could not checkout gh-pages, skipping history preservation"
-              exit 0
-            fi
-          fi
-          
-          # Ensure we're in the right directory and create history dir
+          # Create history directory
           mkdir -p history
           
-          # Copy history from the main workspace
-          WORKSPACE_DIR="/github/workspace"
-          if [ -d "${WORKSPACE_DIR}/history" ]; then
-            cp -r "${WORKSPACE_DIR}/history"/* history/ 2>/dev/null || echo "No history files to copy"
-            echo "History files copied:"
-            ls -la history/
-          else
-            echo "No history directory found in workspace"
-          fi
+          # Copy preserved history files
+          cp history-backup/*.json history/ 2>/dev/null || {
+            echo "No history files to copy"
+            exit 0
+          }
           
-          # Commit and push changes
-          git add history/ 2>/dev/null || true
+          echo "History files copied to gh-pages:"
+          ls -la history/
+          
+          # Add and commit changes
+          git add history/
           if git diff --staged --quiet; then
-            echo "No history changes to commit"
+            echo "No changes to commit"
           else
-            echo "Committing history changes..."
-            git commit -m "Update Allure history for build #${{ github.run_number }}" || echo "Commit failed"
-            git push origin gh-pages || echo "Push failed"
-            echo "History successfully preserved"
-          fi
-          
-          # Clean up worktree if we used it
-          if [ -d "../gh-pages-work" ]; then
-            cd "$WORKSPACE_DIR"
-            git worktree remove ../gh-pages-work 2>/dev/null || true
-          else
-            # Return to original commit if we used checkout
-            git checkout "$CURRENT_COMMIT" 2>/dev/null || {
-              echo "Could not return to original commit"
+            git commit -m "📈 Preserve Allure history for build #${{ github.run_number }}
+
+            - Updated history files with latest test results
+            - Build: ${{ github.run_number }}
+            - Commit: ${{ github.sha }}
+            - Branch: ${{ github.ref_name }}" || echo "Commit failed"
+            
+            # Push changes
+            git push origin gh-pages || {
+              echo "Push failed, trying force push"
+              git push -f origin gh-pages || echo "Force push also failed"
             }
+            
+            echo "✅ History successfully preserved in gh-pages branch"
           fi
 
-      # 13. Deploy to SLT Server (only if report exists)
+      # 13. Deploy to SLT Server (optional)
       - name: Deploy to SLT Server
-        if: always()
-        run: |
-          if [ -d "target/allure-report" ] && [ -n "${{ secrets.SLT_HOST }}" ]; then
-            echo "Deploying to SLT server..."
-          else
-            echo "Skipping SLT deployment - either report missing or SLT_HOST not configured"
-            exit 0
-          fi
-        
-      - name: Execute SLT Deployment
-        if: always()
+        if: always() && vars.DEPLOY_TO_SLT == 'true'
         uses: burnett01/rsync-deployments@6.0.0
         continue-on-error: true
         with:
@@ -398,7 +376,7 @@ jobs:
           remote_user: ${{ secrets.SLT_USER }}
           remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # 14. Upload Artifacts
+      # 14. Upload artifacts
       - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -412,10 +390,10 @@ jobs:
         if: always()
         with:
           name: allure-history-build-${{ github.run_number }}
-          path: history
+          path: history-backup
           retention-days: 90
 
-      # 15. Generate Status Report
+      # 15. Generate detailed status report
       - name: Generate Status Report
         if: always()
         run: |
@@ -426,24 +404,34 @@ jobs:
           echo "Timestamp: $(date -u)"
           echo ""
           
+          # Check current report
           if [ -f "target/allure-report/history/history-trend.json" ]; then
             TOTAL_ENTRIES=$(jq length target/allure-report/history/history-trend.json)
-            echo "✅ History entries: $TOTAL_ENTRIES"
+            echo "✅ Current report history entries: $TOTAL_ENTRIES"
             
             if [ "$TOTAL_ENTRIES" -gt 1 ]; then
-              echo "✅ Historical data available!"
+              echo "✅ Historical trend data available!"
               echo ""
-              echo "Build history:"
-              jq -r '.[] | "Build #" + (.buildOrder // "?" | tostring) + 
+              echo "Recent build history:"
+              jq -r '.[-5:] | .[] | "  Build #" + (.buildOrder // "?" | tostring) + 
                      " | Tests: " + (.data.total // 0 | tostring) + 
-                     " | Passed: " + (.data.passed // 0 | tostring) + 
-                     " | Failed: " + (.data.failed // 0 | tostring)' \
-                     target/allure-report/history/history-trend.json | tail -10
+                     " | ✅ " + (.data.passed // 0 | tostring) + 
+                     " | ❌ " + (.data.failed // 0 | tostring) + 
+                     " | ⏭️ " + (.data.skipped // 0 | tostring)' \
+                     target/allure-report/history/history-trend.json
             else
               echo "⚠️ Only current build in history (first run or history not preserved)"
             fi
           else
-            echo "❌ No history data found"
+            echo "❌ No history data found in current report"
+          fi
+          
+          # Check preserved history
+          if [ -f "history-backup/history-trend.json" ]; then
+            PRESERVED_ENTRIES=$(jq length history-backup/history-trend.json)
+            echo "✅ Preserved history entries: $PRESERVED_ENTRIES"
+          else
+            echo "⚠️ No preserved history found"
           fi
           
           echo ""
@@ -481,6 +469,28 @@ jobs:
                 if (fs.existsSync(historyPath)) {
                   const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
                   historyInfo = `📈 Historical builds: ${history.length}`;
+                  
+                  if (history.length > 1) {
+                    const previousBuild = history[history.length - 2];
+                    const currentBuild = history[history.length - 1];
+                    
+                    if (previousBuild && currentBuild) {
+                      const prevTotal = previousBuild.data?.total || 0;
+                      const currTotal = currentBuild.data?.total || 0;
+                      const prevPassed = previousBuild.data?.passed || 0;
+                      const currPassed = currentBuild.data?.passed || 0;
+                      
+                      const testChange = currTotal - prevTotal;
+                      const passedChange = currPassed - prevPassed;
+                      
+                      if (testChange !== 0) {
+                        historyInfo += `\n📊 Tests: ${testChange > 0 ? '+' : ''}${testChange} vs previous build`;
+                      }
+                      if (passedChange !== 0) {
+                        historyInfo += `\n✅ Passed: ${passedChange > 0 ? '+' : ''}${passedChange} vs previous build`;
+                      }
+                    }
+                  }
                 } else {
                   historyInfo = '📈 First build (no history yet)';
                 }
@@ -491,7 +501,7 @@ jobs:
                 const total = summary.statistic.total || 0;
                 const duration = Math.round((summary.time.duration || 0) / 1000);
                 
-                const status = failed > 0 ? '❌' : '✅';
+                const status = failed > 0 ? '❌' : (total > 0 ? '✅' : '⚠️');
                 
                 const body = `## ${status} Test Results - Build #${{ github.run_number }}
             
@@ -505,7 +515,7 @@ jobs:
             🕒 Duration: ${duration}s  
             ${historyInfo}
             
-            📋 [View Full Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)`;
+            📋 [View Full Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/) | 🔄 [View Action](https://${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
             
                 await github.rest.issues.createComment({
                   issue_number: context.issue.number,
@@ -513,7 +523,11 @@ jobs:
                   repo: context.repo.repo,
                   body: body
                 });
+                
+                console.log('✅ PR comment created successfully');
+              } else {
+                console.log('⚠️ No summary file found, skipping PR comment');
               }
             } catch (error) {
-              console.log('Could not create PR comment:', error.message);
+              console.log('❌ Could not create PR comment:', error.message);
             }
