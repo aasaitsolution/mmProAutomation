@@ -45,36 +45,88 @@ jobs:
             REPO_OWNER="${{ github.repository_owner }}"
             REPO_NAME="${{ github.event.repository.name }}"
             
-            # List of history files to download
+            # List of history files to download (exact names from Allure documentation)
             HISTORY_FILES=(
               "history-trend.json"
               "duration-trend.json"
-              "categories-trend.json" 
+              "categories-trend.json"
               "retry-trend.json"
               "history.json"
             )
             
             echo "Attempting to download history files..."
+            DOWNLOADED_COUNT=0
+            
             for file in "${HISTORY_FILES[@]}"; do
               URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/gh-pages/history/${file}"
               echo "Downloading: $URL"
               
-              if curl -sL "$URL" -o "allure-history/${file}" --fail; then
+              if curl -sL "$URL" -o "allure-history/${file}" --fail --max-time 30; then
                 echo "✅ Downloaded ${file}"
-                # Validate JSON
-                if ! jq empty "allure-history/${file}" 2>/dev/null; then
-                  echo "⚠️ Invalid JSON in ${file}, removing"
-                  rm -f "allure-history/${file}"
-                fi
+                
+                # Validate JSON structure based on Allure documentation
+                case $file in
+                  "history-trend.json"|"duration-trend.json"|"categories-trend.json"|"retry-trend.json")
+                    # These should be arrays
+                    if jq -e '. | type == "array"' "allure-history/${file}" >/dev/null 2>&1; then
+                      entries=$(jq length "allure-history/${file}")
+                      echo "  ✅ Valid array with $entries entries"
+                      DOWNLOADED_COUNT=$((DOWNLOADED_COUNT + 1))
+                    else
+                      echo "  ❌ Invalid format (should be array), removing"
+                      rm -f "allure-history/${file}"
+                    fi
+                    ;;
+                  "history.json")
+                    # This should be an object
+                    if jq -e '. | type == "object"' "allure-history/${file}" >/dev/null 2>&1; then
+                      test_count=$(jq 'keys | length' "allure-history/${file}")
+                      echo "  ✅ Valid object with $test_count test histories"
+                      DOWNLOADED_COUNT=$((DOWNLOADED_COUNT + 1))
+                    else
+                      echo "  ❌ Invalid format (should be object), removing"
+                      rm -f "allure-history/${file}"
+                    fi
+                    ;;
+                esac
               else
                 echo "⚠️ Could not download ${file} (might not exist yet)"
+                
+                # Create empty valid structure for missing files
+                case $file in
+                  "history-trend.json"|"duration-trend.json"|"categories-trend.json"|"retry-trend.json")
+                    echo "[]" > "allure-history/${file}"
+                    echo "  📝 Created empty array for ${file}"
+                    ;;
+                  "history.json")
+                    echo "{}" > "allure-history/${file}"
+                    echo "  📝 Created empty object for ${file}"
+                    ;;
+                esac
               fi
             done
             
-            echo "Downloaded history files:"
-            ls -la allure-history/ || echo "No files downloaded"
+            echo "📊 Successfully processed ${DOWNLOADED_COUNT}/5 history files"
+            echo "Downloaded/created history files:"
+            ls -la allure-history/
+            
+            # Show sample content from trend files
+            if [ -f "allure-history/history-trend.json" ]; then
+              TREND_COUNT=$(jq length "allure-history/history-trend.json" 2>/dev/null || echo "0")
+              if [ "$TREND_COUNT" -gt 0 ]; then
+                echo "📈 Previous builds found:"
+                jq -r '.[-3:] | .[] | "  Build #" + (.buildOrder // "?" | tostring) + " - " + (.data.total // 0 | tostring) + " tests"' "allure-history/history-trend.json" 2>/dev/null || echo "  Could not parse trend data"
+              fi
+            fi
           else
             echo "No gh-pages branch exists yet, starting fresh"
+            # Create empty history files
+            echo "[]" > "allure-history/history-trend.json"
+            echo "[]" > "allure-history/duration-trend.json" 
+            echo "[]" > "allure-history/categories-trend.json"
+            echo "[]" > "allure-history/retry-trend.json"
+            echo "{}" > "allure-history/history.json"
+            echo "📝 Created empty history files for first run"
           fi
 
       # 5. Prepare Allure directories with history
@@ -87,22 +139,48 @@ jobs:
           if [ -d "allure-history" ] && [ "$(ls -A allure-history 2>/dev/null)" ]; then
             cp allure-history/*.json target/allure-results/history/ 2>/dev/null || true
             echo "History files copied to results:"
-            ls -la target/allure-results/history/ || echo "No history files"
+            ls -la target/allure-results/history/
             
-            # Validate each history file
+            # Validate each history file according to Allure spec
             for file in target/allure-results/history/*.json; do
               if [ -f "$file" ]; then
-                if jq empty "$file" 2>/dev/null; then
-                  entries=$(jq length "$file" 2>/dev/null || echo "0")
-                  echo "✅ $(basename "$file"): $entries entries"
-                else
-                  echo "❌ Invalid JSON: $(basename "$file"), removing"
-                  rm -f "$file"
-                fi
+                filename=$(basename "$file")
+                case $filename in
+                  "history-trend.json"|"duration-trend.json"|"categories-trend.json"|"retry-trend.json")
+                    if jq -e '. | type == "array"' "$file" >/dev/null 2>&1; then
+                      entries=$(jq length "$file" 2>/dev/null || echo "0")
+                      echo "✅ $filename: $entries entries (array)"
+                      
+                      # Show sample data for history-trend.json
+                      if [ "$filename" = "history-trend.json" ] && [ "$entries" -gt 0 ]; then
+                        echo "   Recent builds:"
+                        jq -r '.[-2:] | .[] | "     Build #" + (.buildOrder // "?" | tostring) + ": " + (.data.total // 0 | tostring) + " tests"' "$file" 2>/dev/null || echo "     Could not parse entries"
+                      fi
+                    else
+                      echo "❌ $filename: Invalid format (should be array), recreating"
+                      echo "[]" > "$file"
+                    fi
+                    ;;
+                  "history.json")
+                    if jq -e '. | type == "object"' "$file" >/dev/null 2>&1; then
+                      test_count=$(jq 'keys | length' "$file" 2>/dev/null || echo "0")
+                      echo "✅ $filename: $test_count test histories (object)"
+                    else
+                      echo "❌ $filename: Invalid format (should be object), recreating"
+                      echo "{}" > "$file"
+                    fi
+                    ;;
+                esac
               fi
             done
           else
-            echo "No previous history found"
+            echo "No previous history found, creating empty files"
+            # Create empty history files with correct structure
+            echo "[]" > target/allure-results/history/history-trend.json
+            echo "[]" > target/allure-results/history/duration-trend.json
+            echo "[]" > target/allure-results/history/categories-trend.json
+            echo "[]" > target/allure-results/history/retry-trend.json
+            echo "{}" > target/allure-results/history/history.json
           fi
           
           # Create environment.properties
@@ -117,7 +195,7 @@ jobs:
           Timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           EOF
           
-          # Create executor.json
+          # Create executor.json with proper structure for Allure
           cat > target/allure-results/executor.json << EOF
           {
             "name": "GitHub Actions",
@@ -130,6 +208,8 @@ jobs:
             "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           }
           EOF
+          
+          echo "✅ Allure directories prepared successfully"
 
       # 6. Run Maven tests
       - name: Run Tests
@@ -211,15 +291,20 @@ jobs:
             exit 1
           fi
 
-      # 9. Fix history metadata
-      - name: Fix History Metadata
+      # 9. Fix history metadata and validate structure
+      - name: Fix History Metadata and Validate
         run: |
-          echo "=== Fixing history metadata ==="
+          echo "=== Fixing history metadata and validating structure ==="
           BUILD_ORDER=${{ github.run_number }}
           REPORT_NAME="Build #$BUILD_ORDER"
           REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           
-          # Fix history files that might have missing buildOrder
+          if [ ! -d "target/allure-report/history" ]; then
+            echo "❌ No history directory found in report"
+            exit 1
+          fi
+          
+          # Process each history file according to Allure specification
           for file in target/allure-report/history/*.json; do
             if [ -f "$file" ]; then
               filename=$(basename "$file")
@@ -228,30 +313,76 @@ jobs:
               # Create a backup
               cp "$file" "${file}.bak"
               
-              # Fix entries with missing or null buildOrder
-              jq --argjson buildOrder "$BUILD_ORDER" \
-                 --arg reportName "$REPORT_NAME" \
-                 --arg reportUrl "$REPORT_URL" \
-                 'map(if (.buildOrder == null or .buildOrder == "" or .buildOrder == "null") and (.data != null) then
-                      . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl}
-                    else . end)' \
-                 "${file}.bak" > "$file"
-              
-              # Verify the result
-              if jq empty "$file" 2>/dev/null; then
-                rm "${file}.bak"
-                echo "✅ Fixed $filename"
-              else
-                mv "${file}.bak" "$file"
-                echo "⚠️ Could not fix $filename, keeping original"
-              fi
+              case $filename in
+                "history-trend.json"|"duration-trend.json"|"categories-trend.json"|"retry-trend.json")
+                  # These are arrays of build data
+                  if ! jq -e '. | type == "array"' "$file" >/dev/null 2>&1; then
+                    echo "❌ $filename is not an array, converting"
+                    echo "[]" > "$file"
+                  fi
+                  
+                  # For trend files, ensure proper structure and fix missing buildOrder
+                  if [ "$filename" = "history-trend.json" ]; then
+                    jq --argjson buildOrder "$BUILD_ORDER" \
+                       --arg reportName "$REPORT_NAME" \
+                       --arg reportUrl "$REPORT_URL" \
+                       'map(if (.buildOrder == null or .buildOrder == "" or .buildOrder == "null") and (.data != null) then
+                            . + {buildOrder: $buildOrder, reportName: $reportName, reportUrl: $reportUrl}
+                          else . end)' \
+                       "${file}.bak" > "$file"
+                  fi
+                  
+                  # Validate final structure
+                  if jq empty "$file" 2>/dev/null; then
+                    rm "${file}.bak"
+                    entries=$(jq length "$file")
+                    echo "✅ Fixed $filename ($entries entries)"
+                    
+                    # Show recent entries for history-trend.json
+                    if [ "$filename" = "history-trend.json" ] && [ "$entries" -gt 0 ]; then
+                      echo "   Recent builds:"
+                      jq -r '.[-3:] | .[] | "     Build #" + (.buildOrder // "?" | tostring) + " (" + (.data.total // 0 | tostring) + " tests, " + (.data.passed // 0 | tostring) + " passed)"' "$file" 2>/dev/null || echo "     Could not parse entries"
+                    fi
+                  else
+                    mv "${file}.bak" "$file"
+                    echo "⚠️ Could not fix $filename, keeping original"
+                  fi
+                  ;;
+                  
+                "history.json")
+                  # This is an object with test historyId as keys
+                  if ! jq -e '. | type == "object"' "$file" >/dev/null 2>&1; then
+                    echo "❌ $filename is not an object, converting"
+                    echo "{}" > "$file"
+                  fi
+                  
+                  # Validate structure - each key should have statistic and items
+                  test_count=$(jq 'keys | length' "$file" 2>/dev/null || echo "0")
+                  echo "✅ $filename has $test_count test histories"
+                  rm -f "${file}.bak"
+                  ;;
+              esac
             fi
           done
           
           echo "=== Final history verification ==="
+          echo "📁 History directory contents:"
+          ls -la target/allure-report/history/
+          
+          # Detailed validation of key files
           if [ -f "target/allure-report/history/history-trend.json" ]; then
-            echo "Final history entries:"
-            jq -r '.[] | "Build #" + (.buildOrder // "?" | tostring) + " (" + (.data.total // 0 | tostring) + " tests)"' target/allure-report/history/history-trend.json
+            TREND_ENTRIES=$(jq length "target/allure-report/history/history-trend.json")
+            echo "📈 History trend: $TREND_ENTRIES builds"
+            
+            if [ "$TREND_ENTRIES" -gt 0 ]; then
+              echo "   Build progression:"
+              jq -r '.[] | "     Build #" + (.buildOrder // "?" | tostring) + " (" + (.reportName // "Unknown" | tostring) + "): " + (.data.total // 0 | tostring) + " tests"' "target/allure-report/history/history-trend.json"
+            fi
+          fi
+          
+          if [ -f "target/allure-report/history/history.json" ]; then
+            TEST_HISTORIES=$(jq 'keys | length' "target/allure-report/history/history.json")
+            echo "🧪 Individual test histories: $TEST_HISTORIES tests"
           fi
 
       # 10. Prepare history for preservation
@@ -306,48 +437,181 @@ jobs:
           echo "=== Preserving history in gh-pages branch ==="
           
           # Wait a moment for the previous deployment to complete
-          sleep 10
+          echo "Waiting for GitHub Pages deployment to complete..."
+          sleep 15
           
           # Check if we have history to preserve
           if [ ! -d "history-backup" ] || [ -z "$(ls -A history-backup/*.json 2>/dev/null)" ]; then
-            echo "No history to preserve, skipping"
+            echo "⚠️ No history to preserve, skipping"
             exit 0
           fi
+          
+          # Validate history files before preserving
+          echo "Validating history files before preservation..."
+          VALID_FILES=0
+          for file in history-backup/*.json; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              case $filename in
+                "history-trend.json"|"duration-trend.json"|"categories-trend.json"|"retry-trend.json")
+                  if jq -e '. | type == "array"' "$file" >/dev/null 2>&1; then
+                    entries=$(jq length "$file")
+                    echo "✅ $filename: valid array with $entries entries"
+                    VALID_FILES=$((VALID_FILES + 1))
+                  else
+                    echo "❌ $filename: invalid format, fixing..."
+                    echo "[]" > "$file"
+                    VALID_FILES=$((VALID_FILES + 1))
+                  fi
+                  ;;
+                "history.json")
+                  if jq -e '. | type == "object"' "$file" >/dev/null 2>&1; then
+                    test_count=$(jq 'keys | length' "$file")
+                    echo "✅ $filename: valid object with $test_count test histories"
+                    VALID_FILES=$((VALID_FILES + 1))
+                  else
+                    echo "❌ $filename: invalid format, fixing..."
+                    echo "{}" > "$file"
+                    VALID_FILES=$((VALID_FILES + 1))
+                  fi
+                  ;;
+              esac
+            fi
+          done
+          
+          echo "📊 Validated $VALID_FILES/5 history files"
           
           # Configure git
           git config user.name "GitHub Actions Bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
+          # Get current branch info
+          CURRENT_BRANCH=$(git branch --show-current)
+          CURRENT_COMMIT="${{ github.sha }}"
+          echo "Current branch: $CURRENT_BRANCH"
+          echo "Current commit: $CURRENT_COMMIT"
+          
           # Fetch the latest gh-pages branch
-          git fetch origin gh-pages:gh-pages 2>/dev/null || {
-            echo "Could not fetch gh-pages branch, it might not exist yet"
-            exit 0
-          }
+          echo "Fetching gh-pages branch..."
+          if git fetch origin gh-pages:gh-pages 2>/dev/null; then
+            echo "✅ Fetched existing gh-pages branch"
+          else
+            echo "⚠️ Could not fetch gh-pages branch, it might not exist yet"
+          fi
           
           # Switch to gh-pages branch
-          git checkout gh-pages || {
-            echo "Could not checkout gh-pages branch"
+          echo "Switching to gh-pages branch..."
+          if git checkout gh-pages 2>/dev/null; then
+            echo "✅ Switched to gh-pages branch"
+          elif git checkout --orphan gh-pages 2>/dev/null; then
+            echo "✅ Created new gh-pages branch"
+            # Clean up any files from main branch
+            git rm -rf . 2>/dev/null || true
+            echo "# Allure Test Reports" > README.md
+            echo "This branch contains Allure test report history." >> README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch for Allure reports" 2>/dev/null || true
+          else
+            echo "❌ Could not checkout gh-pages branch"
             exit 0
-          }
+          fi
+          
+          # Ensure we're on gh-pages
+          CURRENT_BRANCH_AFTER=$(git branch --show-current)
+          echo "Now on branch: $CURRENT_BRANCH_AFTER"
           
           # Create history directory
           mkdir -p history
           
           # Copy preserved history files
+          echo "Copying history files..."
           cp history-backup/*.json history/ 2>/dev/null || {
-            echo "No history files to copy"
+            echo "❌ Failed to copy history files"
             exit 0
           }
           
-          echo "History files copied to gh-pages:"
+          echo "✅ History files copied to gh-pages:"
           ls -la history/
           
+          # Show what we're about to commit
+          echo "📊 History summary:"
+          if [ -f "history/history-trend.json" ]; then
+            BUILDS=$(jq length history/history-trend.json 2>/dev/null || echo "0")
+            echo "   📈 Build trends: $BUILDS builds tracked"
+            if [ "$BUILDS" -gt 0 ]; then
+              echo "   Recent builds in history:"
+              jq -r '.[-3:] | .[] | "     #" + (.buildOrder // "?" | tostring) + ": " + (.data.total // 0 | tostring) + " tests"' history/history-trend.json 2>/dev/null || echo "     Could not parse build data"
+            fi
+          fi
+          
+          if [ -f "history/history.json" ]; then
+            TESTS=$(jq 'keys | length' history/history.json 2>/dev/null || echo "0") 
+            echo "   🧪 Individual test histories: $TESTS tests"
+          fi
+          
           # Add and commit changes
-          git add history/
+          git add history/ README.md 2>/dev/null || git add history/
+          
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "ℹ️ No changes to commit"
           else
-            git commit -m "📈 Preserve Allure history for build #${{ github.run_number }}
+            # Create detailed commit message
+            COMMIT_MSG="📈 Update Allure history for build #${{ github.run_number }}
+
+            🔄 Build Info:
+            - Build Number: ${{ github.run_number }}
+            - Commit: ${{ github.sha }}
+            - Branch: ${{ github.ref_name }}
+            - Workflow: ${{ github.workflow }}
+            
+            📊 History Summary:"
+            
+            if [ -f "history/history-trend.json" ]; then
+              BUILDS=$(jq length history/history-trend.json 2>/dev/null || echo "0")
+              COMMIT_MSG="${COMMIT_MSG}
+            - Total builds tracked: $BUILDS"
+              
+              if [ "$BUILDS" -gt 0 ]; then
+                LATEST_BUILD=$(jq -r '.[-1] | "Build #" + (.buildOrder // "?" | tostring) + " (" + (.data.total // 0 | tostring) + " tests)"' history/history-trend.json 2>/dev/null || echo "Latest build info unavailable")
+                COMMIT_MSG="${COMMIT_MSG}
+            - Latest: $LATEST_BUILD"
+              fi
+            fi
+            
+            if [ -f "history/history.json" ]; then
+              TESTS=$(jq 'keys | length' history/history.json 2>/dev/null || echo "0")
+              COMMIT_MSG="${COMMIT_MSG}
+            - Individual test histories: $TESTS tests"
+            fi
+            
+            echo "Committing with message:"
+            echo "$COMMIT_MSG"
+            
+            if git commit -m "$COMMIT_MSG"; then
+              echo "✅ History committed successfully"
+              
+              # Push changes
+              echo "Pushing to gh-pages branch..."
+              if git push origin gh-pages; then
+                echo "✅ History successfully preserved in gh-pages branch"
+              else
+                echo "⚠️ Push failed, trying force push..."
+                if git push -f origin gh-pages; then
+                  echo "✅ History force-pushed successfully"
+                else
+                  echo "❌ Both normal and force push failed"
+                fi
+              fi
+            else
+              echo "❌ Commit failed"
+            fi
+          fi
+          
+          # Return to original branch
+          echo "Returning to original state..."
+          if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "gh-pages" ]; then
+            git checkout "$CURRENT_BRANCH" 2>/dev/null || git checkout "$CURRENT_COMMIT" 2>/dev/null || echo "Could not return to original branch"
+          fi_number }}
 
             - Updated history files with latest test results
             - Build: ${{ github.run_number }}
