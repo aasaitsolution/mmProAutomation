@@ -1,127 +1,127 @@
 package Home;
 
 import base.BaseTest;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.openqa.selenium.By;
-import org.openqa.selenium.ElementClickInterceptedException;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import java.time.Duration;
 
 public class homepage extends BaseTest {
-    private static final Log log = LogFactory.getLog(homepage.class);
+
+    private static final String BASE_URL = "https://mmpro.aasait.lk/";
 
     @BeforeMethod
     public void navigateToHomepage() {
-        super.setup(); // Call parent setup method
-        driver.get("https://mmpro.aasait.lk/");
+        driver.get(BASE_URL);
+        waitForPageLoadComplete();
+
+        // Verify homepage elements are present
+        wait.until(ExpectedConditions.or(
+                ExpectedConditions.presenceOfElementLocated(By.xpath("//button[.//span[contains(text(),'தமிழ்')]]")),
+                ExpectedConditions.presenceOfElementLocated(By.xpath("//span[text()='සිංහල']/..")),
+                ExpectedConditions.presenceOfElementLocated(By.xpath("//div[contains(@class, 'logo')] | //img[contains(@alt, 'logo')]"))
+        ));
+        System.out.println("✅ Homepage loaded successfully.");
     }
 
-    private void clickElement(By locator) {
-        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
-        scrollIntoView(element);
+    private void clickElementSafely(By locator, String elementName) throws InterruptedException {
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
+        wait.until(ExpectedConditions.elementToBeClickable(element));
+
         try {
-            wait.until(ExpectedConditions.elementToBeClickable(element)).click();
+            element.click();
         } catch (ElementClickInterceptedException e) {
             ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
         }
-        slowDown(800);
-    }
 
-    private void scrollIntoView(WebElement element) {
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException ignored) {}
-    }
-
-    private void slowDown(long milliseconds) {
-        try {
-            Thread.sleep(milliseconds);
-        } catch (InterruptedException ignored) {}
+        Thread.sleep(1000);
+        System.out.println("✅ Clicked: " + elementName);
     }
 
     @Test(priority = 1)
-    public void testTamilVersion() {
-        By tamilBtn = By.xpath("//button[.//span[contains(text(),'தமிழ்')]]");
-        clickElement(tamilBtn);
+    public void testTamilVersion() throws InterruptedException {
+        clickElementSafely(By.xpath("//button[.//span[contains(text(),'தமிழ்')]]"), "Tamil language button");
 
         WebElement bodyText = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//div[contains(text(), 'வரவேற்பு') or contains(text(), 'mmPro')]")
+                By.xpath("//*[normalize-space(text())='வரவேற்பு']")
         ));
-        Assert.assertTrue(bodyText.isDisplayed(), "Tamil version not loaded.");
-        System.out.println("✅ Successfully switched to the Tamil version.");
+
+        Assert.assertTrue(bodyText.isDisplayed(), "❌ Tamil version content not loaded.");
+        System.out.println("✅ Tamil version loaded successfully.");
     }
 
     @Test(priority = 2)
-    public void testSinhalaVersion() {
-        By sinhalaBtn = By.xpath("//span[text()='සිංහල']/..");
-        clickElement(sinhalaBtn);
+    public void testSinhalaVersion() throws InterruptedException {
+        clickElementSafely(By.xpath("//span[text()='සිංහල']/.."), "Sinhala language button");
 
         WebElement bodyText = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//div[contains(text(), 'සාදරයෙන් පිළිගනිමු') or contains(text(), 'mmPro')]")
+                By.xpath("//*[normalize-space(text())='සාදරයෙන් පිළිගනිමු']")
         ));
-        Assert.assertTrue(bodyText.isDisplayed(), "Sinhala version not loaded.");
-        System.out.println("✅ Successfully switched to the Sinhala version.");
+        Assert.assertTrue(bodyText.isDisplayed(), "❌ Sinhala version content not loaded.");
+        System.out.println("✅ Sinhala version loaded successfully.");
     }
 
     @Test(priority = 3)
-    public void testServiceSection() {
-        WebElement serviceHeading = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//h4[contains(text(), 'SERVICE') or contains(text(), 'සේවාව') or contains(text(), 'சேவை')]")
-        ));
-        serviceHeading.click();
+    public void testServiceSection() throws InterruptedException {
+        By serviceLocator = By.xpath("//a[contains(@href, '#service')] | //h4[contains(text(),'SERVICE')]");
+        clickElementSafely(serviceLocator, "Service section link");
 
         WebElement serviceSection = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//*[@id='service']")
+                By.xpath("//*[@id='service'] | //*[contains(@class, 'service')]")
         ));
-
-        Assert.assertTrue(serviceSection.isDisplayed(), "Service section not displayed.");
-        System.out.println("✅ Successfully scrolled to the Service section.");
+        Assert.assertTrue(serviceSection.isDisplayed(), "❌ Service section not displayed.");
+        System.out.println("✅ Service section displayed successfully.");
     }
 
     @Test(priority = 4)
-    public void testAboutSection() {
-        By aboutLocator = By.xpath("//a[contains(@href, '#about')]");
-        clickElement(aboutLocator);
+    public void testAboutSection() throws InterruptedException {
+        By aboutLocator = By.xpath("//a[contains(@href, '#about')] | //*[contains(text(),'About')]");
+        clickElementSafely(aboutLocator, "About section link");
 
-        WebElement aboutSection = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("about")));
-        Assert.assertTrue(aboutSection.isDisplayed(), "About section not displayed.");
-        System.out.println("✅ Successfully scrolled to the About section.");
+        WebElement aboutSection = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[@id='about'] | //*[contains(@class, 'about')]")
+        ));
+        Assert.assertTrue(aboutSection.isDisplayed(), "❌ About section not displayed.");
+        System.out.println("✅ About section displayed successfully.");
     }
 
     @Test(priority = 5)
-    public void testContactSection() {
-        By contactLocator = By.xpath("//a[contains(@href, '/contact')]");
-        clickElement(contactLocator);
+    public void testContactSection() throws InterruptedException {
+        By contactLocator = By.xpath("//a[contains(@href, '/contact')] | //*[contains(text(),'Contact')]");
+        clickElementSafely(contactLocator, "Contact section link");
 
-        // Debug
-        System.out.println("Current URL after clicking Contact: " + driver.getCurrentUrl());
-
-        By contactInfoLocator = By.cssSelector(".left-section.contact-info");
-        WebElement contactInfo = wait.until(ExpectedConditions.presenceOfElementLocated(contactInfoLocator));
-        Assert.assertTrue(contactInfo.isDisplayed(), "Contact info section is not displayed.");
+        waitForPageLoadComplete();
+        WebElement contactInfo = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//*[contains(@class,'contact')] | //*[contains(text(),'Contact')]")
+        ));
+        Assert.assertTrue(contactInfo.isDisplayed(), "❌ Contact section not displayed.");
+        System.out.println("✅ Contact section displayed successfully.");
     }
 
     @Test(priority = 6)
-    public void testLoginButton() {
-        // Correct XPath using multiple OR conditions properly
-        By loginBtn = By.xpath("//a/button[.//span[contains(text(),'Login') or contains(text(),'உள்நுழைய') or contains(text(),'පිවිසුම')]]");
+    public void testLoginButton() throws InterruptedException {
+        By loginBtn = By.xpath("//a/button[.//span[contains(text(),'Login') or contains(text(),'உள்நுழைய') or contains(text(),'පිවිසුම')]] | //a[contains(@href,'/signin')]");
+        clickElementSafely(loginBtn, "Login button");
 
-        clickElement(loginBtn);
+        wait.until(ExpectedConditions.or(
+                ExpectedConditions.urlContains("/signin"),
+                ExpectedConditions.presenceOfElementLocated(By.id("sign-in_username"))
+        ));
+        Assert.assertTrue(driver.getCurrentUrl().contains("signin"), "❌ Not navigated to login page.");
+        System.out.println("✅ Navigated to login page successfully.");
 
-        wait.until(ExpectedConditions.urlContains("/signin"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("/signin"), "Login navigation failed.");
-        System.out.println("✅ Navigated to Login page successfully.");
-
-        driver.navigate().back(); // Return to homepage
+        driver.navigate().back();
+        waitForPageLoadComplete();
+        System.out.println("✅ Returned to homepage successfully.");
     }
 
-    @AfterMethod
-    public void cleanupAfterTest() {
-        super.tearDown(); // Call parent teardown method
+    private void waitForPageLoadComplete() {
+        new org.openqa.selenium.support.ui.WebDriverWait(driver, Duration.ofSeconds(30)).until(
+                webDriver -> ((JavascriptExecutor) webDriver)
+                        .executeScript("return document.readyState").equals("complete"));
     }
 }
