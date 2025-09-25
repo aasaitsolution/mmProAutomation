@@ -1,4 +1,4 @@
-name: Selenium Tests with Allure History Fix
+name: Selenium Tests with Working Allure Trends
 
 on:
   push:
@@ -9,12 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -22,240 +20,187 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Chrome
+      - name: Install Chrome and jq
         run: |
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+          sudo apt-get install -y google-chrome-stable jq
 
-      # Critical: Get existing history with proper error handling
-      - name: Download previous Allure history
+      - name: Get Allure history
         uses: actions/checkout@v4
         with:
           ref: gh-pages
           path: gh-pages
         continue-on-error: true
 
-      # Critical: Prepare Allure environment with proper history setup
-      - name: Prepare Allure Environment
+      - name: Setup results with existing history
         run: |
-          # Create results directory
           mkdir -p target/allure-results
-          
-          # Copy existing history if it exists
           if [ -d "gh-pages/history" ]; then
-            echo "Found existing history, copying..."
+            echo "Copying existing history..."
             cp -r gh-pages/history target/allure-results/
-            echo "History files copied:"
-            ls -la target/allure-results/history/
-          else
-            echo "No existing history found, creating fresh history directory"
-            mkdir -p target/allure-results/history
           fi
-          
-          # Create executor.json with complete information
-          cat > target/allure-results/executor.json << EOF
-          {
-            "name": "GitHub Actions",
-            "type": "github",
-            "url": "${{ github.server_url }}/${{ github.repository }}",
-            "buildOrder": ${{ github.run_number }},
-            "buildName": "Build #${{ github.run_number }}",
-            "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "reportName": "Allure Report",
-            "reportUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          }
-          EOF
-          
-          # Create environment.properties
-          cat > target/allure-results/environment.properties << EOF
-          Browser=Chrome
-          Environment=GitHub Actions CI/CD
-          Build.Number=${{ github.run_number }}
-          Build.Url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          Branch=${{ github.ref_name }}
-          Commit=${{ github.sha }}
-          Repository=${{ github.repository }}
-          Timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          EOF
 
       - name: Run tests
         run: mvn clean test -Dmaven.test.failure.ignore=true
 
-      # Critical: Validate test results before proceeding
-      - name: Validate Test Results
+      - name: Install Allure
         run: |
-          echo "=== Checking test execution results ==="
-          if [ -d "target/allure-results" ]; then
-            echo "Results directory exists"
-            echo "Contents of allure-results:"
-            ls -la target/allure-results/
-          
-            # Count result files
-            RESULT_COUNT=$(find target/allure-results -name "*-result.json" | wc -l)
-            echo "Number of test result files: $RESULT_COUNT"
-          
-            if [ $RESULT_COUNT -eq 0 ]; then
-              echo "WARNING: No test results found!"
-              echo "Creating dummy test result for demonstration..."
-              cat > target/allure-results/dummy-result.json << EOF
-          {
-            "uuid": "dummy-test-$(date +%s)",
-            "historyId": "dummy.test",
-            "fullName": "DummyTest.testExample",
-            "labels": [
-              {"name": "suite", "value": "DummyTest"},
-              {"name": "testClass", "value": "DummyTest"},
-              {"name": "testMethod", "value": "testExample"}
-            ],
-            "name": "Dummy Test Example",
-            "status": "passed",
-            "stage": "finished",
-            "start": $(( $(date +%s) * 1000 - 5000 )),
-            "stop": $(( $(date +%s) * 1000 )),
-            "description": "This is a dummy test to ensure report generation"
-          }
-          EOF
-            fi
-          else
-            echo "ERROR: Results directory not found!"
-            exit 1
-          fi
-
-      - name: Install Allure CLI
-        run: |
-          echo "Installing Allure CLI..."
           wget -q https://github.com/allure-framework/allure2/releases/download/2.25.0/allure-2.25.0.tgz
           tar -zxf allure-2.25.0.tgz
           sudo mv allure-2.25.0 /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/bin/allure
-          allure --version
 
-      # Critical: Generate report with history preservation
-      - name: Generate Allure Report with History
+      - name: Generate Allure report
         run: |
-          echo "=== Generating Allure Report ==="
-          
-          # Generate the report
           allure generate target/allure-results -o target/allure-report --clean
-          
-          echo "=== Post-generation verification ==="
-          echo "Report directory contents:"
-          ls -la target/allure-report/
-          
-          echo "History directory contents:"
-          if [ -d "target/allure-report/history" ]; then
-            ls -la target/allure-report/history/
-          
-            # Check specific history files
-            for file in history-trend.json duration-trend.json categories-trend.json; do
-              if [ -f "target/allure-report/history/$file" ]; then
-                echo "✓ $file exists"
-                echo "Content preview:"
-                head -n 5 "target/allure-report/history/$file"
-              else
-                echo "✗ $file missing"
-              fi
-            done
-          else
-            echo "WARNING: No history directory in report!"
-          fi
 
-      # Critical: Create trend verification page
-      - name: Create History Debug Page
+      - name: Create Properly Formatted History Files
         run: |
-          cat > target/allure-report/history-debug.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Allure History Debug</title>
-            <meta charset="UTF-8">
-            <style>
-              body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-              .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
-              .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
-              pre { background: #f8f9fa; padding: 15px; overflow-x: auto; border-radius: 4px; }
-              .success { border-left: 4px solid #28a745; }
-              .warning { border-left: 4px solid #ffc107; }
-              .error { border-left: 4px solid #dc3545; }
-              h1 { color: #333; text-align: center; }
-              h2 { color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
-              .status { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-              .status.ok { background: #d4edda; color: #155724; }
-              .status.error { background: #f8d7da; color: #721c24; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>🔍 Allure History Debug Dashboard</h1>
-              <p><strong>Build:</strong> #${{ github.run_number }} | <strong>Time:</strong> $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
+          echo "=== Creating properly formatted history files ==="
           
-              <div class="section success">
-                <h2>📊 History Trend Data</h2>
-                <div id="historyStatus" class="status">Loading...</div>
-                <pre id="historyTrend">Loading history data...</pre>
-              </div>
+          BUILD_ORDER=${{ github.run_number }}
+          REPORT_NAME="Build #${BUILD_ORDER}"
+          REPORT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           
-              <div class="section success">
-                <h2>⏱️ Duration Trend Data</h2>
-                <div id="durationStatus" class="status">Loading...</div>
-                <pre id="durationTrend">Loading duration data...</pre>
-              </div>
+          # Ensure history directory exists
+          mkdir -p target/allure-report/history
+          cd target/allure-report/history
           
-              <div class="section warning">
-                <h2>📈 Categories Trend Data</h2>
-                <div id="categoriesStatus" class="status">Loading...</div>
-                <pre id="categoriesTrend">Loading categories data...</pre>
-              </div>
+          # Count test results from the generated report
+          PASSED=0
+          FAILED=0
+          BROKEN=0
+          SKIPPED=0
+          DURATION=0
           
-              <div class="section">
-                <h2>🔄 Retry Trend Data</h2>
-                <div id="retryStatus" class="status">Loading...</div>
-                <pre id="retryTrend">Loading retry data...</pre>
-              </div>
+          # Read from the generated widgets/summary.json if it exists
+          if [ -f "../widgets/summary.json" ]; then
+            PASSED=$(jq -r '.statistic.passed // 0' ../widgets/summary.json)
+            FAILED=$(jq -r '.statistic.failed // 0' ../widgets/summary.json)
+            BROKEN=$(jq -r '.statistic.broken // 0' ../widgets/summary.json)
+            SKIPPED=$(jq -r '.statistic.skipped // 0' ../widgets/summary.json)
+            DURATION=$(jq -r '.time.duration // 0' ../widgets/summary.json)
+          else
+            # Fallback: extract from existing broken format
+            if [ -f "history-trend.json" ]; then
+              PASSED=$(jq -r '.[0].data.passed // 0' history-trend.json)
+              FAILED=$(jq -r '.[0].data.failed // 0' history-trend.json) 
+              BROKEN=$(jq -r '.[0].data.broken // 0' history-trend.json)
+              SKIPPED=$(jq -r '.[0].data.skipped // 0' history-trend.json)
+            fi
+            if [ -f "duration-trend.json" ]; then
+              DURATION=$(jq -r '.[0].data.duration // 0' duration-trend.json)
+            fi
+          fi
           
-              <div class="section">
-                <h2>🔗 Quick Links</h2>
-                <ul>
-                  <li><a href="./index.html">Main Allure Report</a></li>
-                  <li><a href="./history/history-trend.json" target="_blank">Raw History Data</a></li>
-                  <li><a href="./history/duration-trend.json" target="_blank">Raw Duration Data</a></li>
-                  <li><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" target="_blank">GitHub Actions Run</a></li>
-                </ul>
-              </div>
-            </div>
+          TOTAL=$((PASSED + FAILED + BROKEN + SKIPPED))
+          DURATION_SEC=$((DURATION / 1000))
           
-            <script>
-              function loadAndDisplay(url, elementId, statusId) {
-                fetch(url)
-                  .then(response => {
-                    if (!response.ok) throw new Error('HTTP ' + response.status);
-                    return response.json();
-                  })
-                  .then(data => {
-                    document.getElementById(elementId).textContent = JSON.stringify(data, null, 2);
-                    const statusEl = document.getElementById(statusId);
-                    statusEl.textContent = '✅ Loaded (' + data.length + ' entries)';
-                    statusEl.className = 'status ok';
-                  })
-                  .catch(error => {
-                    document.getElementById(elementId).textContent = 'Error loading data: ' + error.message;
-                    const statusEl = document.getElementById(statusId);
-                    statusEl.textContent = '❌ Failed: ' + error.message;
-                    statusEl.className = 'status error';
-                  });
+          echo "Test Results: P=$PASSED, F=$FAILED, B=$BROKEN, S=$SKIPPED, T=$TOTAL, D=${DURATION_SEC}s"
+          
+          # Create new properly formatted entries
+          NEW_HISTORY=$(jq -n \
+            --argjson buildOrder "$BUILD_ORDER" \
+            --arg reportName "$REPORT_NAME" \
+            --arg reportUrl "$REPORT_URL" \
+            --argjson passed "$PASSED" \
+            --argjson failed "$FAILED" \
+            --argjson broken "$BROKEN" \
+            --argjson skipped "$SKIPPED" \
+            --argjson total "$TOTAL" \
+            '{
+              "buildOrder": $buildOrder,
+              "reportName": $reportName,
+              "reportUrl": $reportUrl,
+              "data": {
+                "passed": $passed,
+                "failed": $failed, 
+                "broken": $broken,
+                "skipped": $skipped,
+                "unknown": 0,
+                "total": $total
               }
+            }')
           
-              // Load all trend data
-              loadAndDisplay('./history/history-trend.json', 'historyTrend', 'historyStatus');
-              loadAndDisplay('./history/duration-trend.json', 'durationTrend', 'durationStatus');
-              loadAndDisplay('./history/categories-trend.json', 'categoriesTrend', 'categoriesStatus');
-              loadAndDisplay('./history/retry-trend.json', 'retryTrend', 'retryStatus');
-            </script>
-          </body>
-          </html>
-          EOF
+          NEW_DURATION=$(jq -n \
+            --argjson buildOrder "$BUILD_ORDER" \
+            --arg reportName "$REPORT_NAME" \
+            --arg reportUrl "$REPORT_URL" \
+            --argjson duration "$DURATION" \
+            '{
+              "buildOrder": $buildOrder,
+              "reportName": $reportName,
+              "reportUrl": $reportUrl,
+              "data": {"duration": $duration}
+            }')
+          
+          NEW_CATEGORIES=$(jq -n \
+            --argjson buildOrder "$BUILD_ORDER" \
+            --arg reportName "$REPORT_NAME" \
+            --arg reportUrl "$REPORT_URL" \
+            --argjson failed "$FAILED" \
+            --argjson broken "$BROKEN" \
+            '{
+              "buildOrder": $buildOrder,
+              "reportName": $reportName,
+              "reportUrl": $reportUrl,
+              "data": {
+                "Product defects": $failed,
+                "Test defects": $broken
+              }
+            }')
+          
+          NEW_RETRY=$(jq -n \
+            --argjson buildOrder "$BUILD_ORDER" \
+            --arg reportName "$REPORT_NAME" \
+            --arg reportUrl "$REPORT_URL" \
+            --argjson total "$TOTAL" \
+            '{
+              "buildOrder": $buildOrder,
+              "reportName": $reportName, 
+              "reportUrl": $reportUrl,
+              "data": {
+                "run": $total,
+                "retry": 0
+              }
+            }')
+          
+          # Load existing history (properly formatted entries only)
+          EXISTING_HISTORY='[]'
+          EXISTING_DURATION='[]'
+          EXISTING_CATEGORIES='[]'
+          EXISTING_RETRY='[]'
+          
+          if [ -f "history-trend.json" ]; then
+            # Filter out entries without buildOrder (improperly formatted)
+            EXISTING_HISTORY=$(jq '[.[] | select(has("buildOrder"))]' history-trend.json 2>/dev/null || echo '[]')
+          fi
+          
+          if [ -f "duration-trend.json" ]; then
+            EXISTING_DURATION=$(jq '[.[] | select(has("buildOrder"))]' duration-trend.json 2>/dev/null || echo '[]')
+          fi
+          
+          if [ -f "categories-trend.json" ]; then
+            EXISTING_CATEGORIES=$(jq '[.[] | select(has("buildOrder"))]' categories-trend.json 2>/dev/null || echo '[]')
+          fi
+          
+          if [ -f "retry-trend.json" ]; then
+            EXISTING_RETRY=$(jq '[.[] | select(has("buildOrder"))]' retry-trend.json 2>/dev/null || echo '[]')
+          fi
+          
+          # Create new history files (keep last 10 entries)
+          echo "$EXISTING_HISTORY" | jq --argjson new "$NEW_HISTORY" '. + [$new] | if length > 10 then .[-10:] else . end' > history-trend.json
+          echo "$EXISTING_DURATION" | jq --argjson new "$NEW_DURATION" '. + [$new] | if length > 10 then .[-10:] else . end' > duration-trend.json  
+          echo "$EXISTING_CATEGORIES" | jq --argjson new "$NEW_CATEGORIES" '. + [$new] | if length > 10 then .[-10:] else . end' > categories-trend.json
+          echo "$EXISTING_RETRY" | jq --argjson new "$NEW_RETRY" '. + [$new] | if length > 10 then .[-10:] else . end' > retry-trend.json
+          
+          echo "=== Final History Files ==="
+          echo "history-trend.json:"
+          cat history-trend.json | jq '.'
+          echo ""
+          echo "duration-trend.json:" 
+          cat duration-trend.json | jq '.'
 
-      # Critical: Deploy with proper history preservation
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: always()
@@ -263,9 +208,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: target/allure-report
           keep_files: true
-          enable_jekyll: false
-          allow_empty_commit: false
-          force_orphan: false
 
       - name: Deploy to SLT Server
         if: always()
@@ -277,34 +219,3 @@ jobs:
           remote_host: ${{ secrets.SLT_HOST }}
           remote_user: ${{ secrets.SLT_USER }}
           remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      # Critical: Provide debugging information
-      - name: Generate Debug Summary
-        if: always()
-        run: |
-          echo "=== FINAL DEBUG SUMMARY ==="
-          echo "1. Build Number: ${{ github.run_number }}"
-          echo "2. Commit: ${{ github.sha }}"
-          echo "3. Report URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          echo "4. Debug URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/history-debug.html"
-          echo "5. Server URL: http://your-server/selenium-report/"
-          echo "6. Server Debug: http://your-server/selenium-report/history-debug.html"
-          
-          echo "=== HISTORY VERIFICATION ==="
-          if [ -d "target/allure-report/history" ]; then
-            echo "✅ History directory exists"
-            echo "History files:"
-            ls -la target/allure-report/history/
-          else
-            echo "❌ History directory missing"
-          fi
-
-      - name: Upload Debug Artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: allure-debug-${{ github.run_number }}
-          path: |
-            target/allure-report/
-            target/allure-results/
-          retention-days: 30
