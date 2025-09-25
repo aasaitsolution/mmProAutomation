@@ -1,35 +1,30 @@
-name: Allure Diagnostic and Fix
+name: Selenium Tests with Allure
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 jobs:
-  test-and-report:
+  test:
     runs-on: ubuntu-latest
-    
+
     steps:
-      # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # 2. Set up Java
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Install Chrome & ChromeDriver
-      - name: Install Chrome & ChromeDriver
+      - name: Install Chrome
         run: |
           sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver
+          sudo apt-get install -y google-chrome-stable
 
-      # 4. Get history from gh-pages
       - name: Get Allure history
         uses: actions/checkout@v4
         with:
@@ -37,302 +32,37 @@ jobs:
           path: gh-pages
         continue-on-error: true
 
-      # 5. Prepare comprehensive setup
-      - name: Prepare Allure with Complete Setup
+      - name: Setup Allure results directory
         run: |
-          mkdir -p target/allure-results/history
-          
-          # Copy existing history
+          mkdir -p target/allure-results
           if [ -d "gh-pages/history" ]; then
-            echo "Copying existing history..."
-            cp -r gh-pages/history/* target/allure-results/history/
+            cp -r gh-pages/history target/allure-results/
           fi
-          
-          # Create executor.json with all required fields
-          cat > target/allure-results/executor.json << EOF
-          {
-            "name": "GitHub Actions",
-            "type": "github", 
-            "url": "${{ github.server_url }}/${{ github.repository }}",
-            "buildOrder": ${{ github.run_number }},
-            "buildName": "Build #${{ github.run_number }}",
-            "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "reportName": "Allure Report #${{ github.run_number }}",
-            "reportUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          }
-          EOF
-          
-          # Create environment.properties
-          cat > target/allure-results/environment.properties << EOF
-          Browser=Chrome
-          Environment=GitHub Actions
-          Build.Number=${{ github.run_number }}
-          Build.Url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          Branch=${{ github.ref_name }}
-          Commit=${{ github.sha }}
-          Timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          EOF
 
-      # 6. Run tests
-      - name: Run Tests
-        run: |
-          mvn clean test -Dmaven.test.failure.ignore=true
+      - name: Run tests
+        run: mvn clean test -Dmaven.test.failure.ignore=true
 
-      # 7. Install tools
-      - name: Install Allure CLI and tools
+      - name: Get Allure CLI
         run: |
-          ALLURE_VERSION=2.25.0
-          wget https://github.com/allure-framework/allure2/releases/download/$ALLURE_VERSION/allure-$ALLURE_VERSION.tgz
-          tar -zxvf allure-$ALLURE_VERSION.tgz -C $HOME/
-          echo "$HOME/allure-$ALLURE_VERSION/bin" >> $GITHUB_PATH
-          sudo apt-get install -y jq
+          wget https://github.com/allure-framework/allure2/releases/download/2.25.0/allure-2.25.0.tgz
+          tar -zxvf allure-2.25.0.tgz
+          sudo mv allure-2.25.0 /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/bin/allure
 
-      # 8. Complete trend data generation and report fix
-      - name: Generate Report with Complete Trend Fix
+      - name: Generate Allure report
         run: |
-          echo "=== STEP 1: Generate Base Report ==="
           allure generate target/allure-results -o target/allure-report --clean
-          
-          echo "=== STEP 2: Analyze Current Test Results ==="
-          # Count test results more accurately
-          PASSED=0
-          FAILED=0
-          BROKEN=0
-          SKIPPED=0
-          
-          # Count from actual result files
-          for file in target/allure-results/*-result.json; do
-            if [ -f "$file" ]; then
-              status=$(jq -r '.status // "unknown"' "$file" 2>/dev/null)
-              case "$status" in
-                "passed") PASSED=$((PASSED + 1)) ;;
-                "failed") FAILED=$((FAILED + 1)) ;;
-                "broken") BROKEN=$((BROKEN + 1)) ;;
-                "skipped") SKIPPED=$((SKIPPED + 1)) ;;
-              esac
-            fi
-          done
-          
-          TOTAL=$((PASSED + FAILED + BROKEN + SKIPPED))
-          echo "Accurate counts: P=$PASSED, F=$FAILED, B=$BROKEN, S=$SKIPPED, T=$TOTAL"
-          
-          # Calculate duration
-          DURATION=0
-          for file in target/allure-results/*-result.json; do
-            if [ -f "$file" ]; then
-              dur=$(jq -r '.stop - .start // 0' "$file" 2>/dev/null)
-              DURATION=$((DURATION + dur))
-            fi
-          done
-          DURATION=$((DURATION / 1000))  # Convert to seconds
-          echo "Total duration: ${DURATION}s"
-          
-          echo "=== STEP 3: Fix All Trend Files ==="
-          BUILD_ORDER=${{ github.run_number }}
-          REPORT_NAME="Build #$BUILD_ORDER"
-          REPORT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
-          # Ensure history directory exists in report
-          mkdir -p target/allure-report/history
-          
-          # Fix history-trend.json
-          NEW_HISTORY_TREND=$(jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson passed "$PASSED" \
-            --argjson failed "$FAILED" \
-            --argjson broken "$BROKEN" \
-            --argjson skipped "$SKIPPED" \
-            --argjson total "$TOTAL" \
-            '{
-              "buildOrder": $buildOrder,
-              "reportName": $reportName,  
-              "reportUrl": $reportUrl,
-              "data": {
-                "passed": $passed,
-                "failed": $failed,
-                "broken": $broken,
-                "skipped": $skipped,
-                "unknown": 0,
-                "total": $total
-              }
-            }')
-          
-          # Merge with existing trends (keep only last 10 entries)
-          if [ -f "target/allure-report/history/history-trend.json" ]; then
-            EXISTING=$(cat target/allure-report/history/history-trend.json)
-            echo "$EXISTING" | jq --argjson new "$NEW_HISTORY_TREND" '. + [$new] | if length > 10 then .[-10:] else . end' > target/allure-report/history/history-trend.json
-          else
-            echo "[$NEW_HISTORY_TREND]" > target/allure-report/history/history-trend.json
-          fi
-          
-          # Fix duration-trend.json
-          NEW_DURATION_TREND=$(jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson duration "$DURATION" \
-            '{
-              "buildOrder": $buildOrder,
-              "reportName": $reportName,
-              "reportUrl": $reportUrl,
-              "data": {"duration": $duration}
-            }')
-          
-          if [ -f "target/allure-report/history/duration-trend.json" ]; then
-            EXISTING_DUR=$(cat target/allure-report/history/duration-trend.json)
-            echo "$EXISTING_DUR" | jq --argjson new "$NEW_DURATION_TREND" '. + [$new] | if length > 10 then .[-10:] else . end' > target/allure-report/history/duration-trend.json
-          else
-            echo "[$NEW_DURATION_TREND]" > target/allure-report/history/duration-trend.json
-          fi
-          
-          # Fix categories-trend.json
-          PRODUCT_DEFECTS=$FAILED
-          TEST_DEFECTS=$BROKEN
-          NEW_CATEGORIES_TREND=$(jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson productDefects "$PRODUCT_DEFECTS" \
-            --argjson testDefects "$TEST_DEFECTS" \
-            '{
-              "buildOrder": $buildOrder,
-              "reportName": $reportName,
-              "reportUrl": $reportUrl,
-              "data": {
-                "Product defects": $productDefects,
-                "Test defects": $testDefects
-              }
-            }')
-          
-          if [ -f "target/allure-report/history/categories-trend.json" ]; then
-            EXISTING_CAT=$(cat target/allure-report/history/categories-trend.json)
-            echo "$EXISTING_CAT" | jq --argjson new "$NEW_CATEGORIES_TREND" '. + [$new] | if length > 10 then .[-10:] else . end' > target/allure-report/history/categories-trend.json
-          else
-            echo "[$NEW_CATEGORIES_TREND]" > target/allure-report/history/categories-trend.json
-          fi
-          
-          # Fix retry-trend.json
-          NEW_RETRY_TREND=$(jq -n \
-            --argjson buildOrder "$BUILD_ORDER" \
-            --arg reportName "$REPORT_NAME" \
-            --arg reportUrl "$REPORT_URL" \
-            --argjson run "$TOTAL" \
-            '{
-              "buildOrder": $buildOrder,
-              "reportName": $reportName,
-              "reportUrl": $reportUrl,
-              "data": {
-                "run": $run,
-                "retry": 0
-              }
-            }')
-          
-          if [ -f "target/allure-report/history/retry-trend.json" ]; then
-            EXISTING_RETRY=$(cat target/allure-report/history/retry-trend.json)
-            echo "$EXISTING_RETRY" | jq --argjson new "$NEW_RETRY_TREND" '. + [$new] | if length > 10 then .[-10:] else . end' > target/allure-report/history/retry-trend.json
-          else
-            echo "[$NEW_RETRY_TREND]" > target/allure-report/history/retry-trend.json
-          fi
-          
-          echo "=== STEP 4: Verify Trend Data ==="
-          echo "History trend entries:"
-          jq length target/allure-report/history/history-trend.json
-          echo "Sample history-trend.json:"
-          jq '.[0:2]' target/allure-report/history/history-trend.json
-          
-          echo "=== STEP 5: Force Report Regeneration ==="
-          # Ensure target directories exist
-          mkdir -p target/allure-results/history
-          
-          # Copy fixed history back to results
-          cp target/allure-report/history/* target/allure-results/history/
-          
-          # Regenerate report with fixed history
-          allure generate target/allure-results -o target/allure-report-final --clean
-          
-          # Replace original report
-          rm -rf target/allure-report
-          mv target/allure-report-final target/allure-report
-          
-          echo "=== FINAL VERIFICATION ==="
-          echo "Report structure:"
-          ls -la target/allure-report/
-          echo "History files:"
-          ls -la target/allure-report/history/
-          echo "Final history-trend.json:"
-          cat target/allure-report/history/history-trend.json
 
-      # 9. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: always()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: target/allure-report
-          keep_files: false
+          keep_files: true
 
-      # 10. Create test report for download
-      - name: Create Standalone Test Report
-        run: |
-          # Create a simple HTML file to test trend visibility
-          cat > target/allure-report/trend-test.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Trend Data Test</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
-              pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
-              .section { margin: 20px 0; padding: 10px; border: 1px solid #ddd; }
-            </style>
-          </head>
-          <body>
-            <h1>Allure Trend Data Debug</h1>
-            
-            <div class="section">
-              <h2>History Trend Data</h2>
-              <pre id="historyTrend">Loading...</pre>
-            </div>
-            
-            <div class="section">
-              <h2>Duration Trend Data</h2>
-              <pre id="durationTrend">Loading...</pre>
-            </div>
-            
-            <script>
-              fetch('./history/history-trend.json')
-                .then(r => r.json())
-                .then(data => {
-                  document.getElementById('historyTrend').textContent = JSON.stringify(data, null, 2);
-                })
-                .catch(e => {
-                  document.getElementById('historyTrend').textContent = 'Error: ' + e.message;
-                });
-                
-              fetch('./history/duration-trend.json')
-                .then(r => r.json())
-                .then(data => {
-                  document.getElementById('durationTrend').textContent = JSON.stringify(data, null, 2);
-                })
-                .catch(e => {
-                  document.getElementById('durationTrend').textContent = 'Error: ' + e.message;
-                });
-            </script>
-          </body>
-          </html>
-          EOF
-
-      # 11. Upload artifact
-      - name: Upload Allure Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report-${{ github.run_number }}
-          path: target/allure-report
-
-      # 12. Deploy to SLT server
-      - name: Deploy Allure Report with rsync
+      - name: Deploy to SLT server
+        if: always()
         uses: burnett01/rsync-deployments@6.0.0
         with:
           switches: -avzr --delete
@@ -340,4 +70,4 @@ jobs:
           remote_path: /var/www/html/selenium-report
           remote_host: ${{ secrets.SLT_HOST }}
           remote_user: ${{ secrets.SLT_USER }}
-          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
