@@ -7,10 +7,9 @@
     body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
     .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
     .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
-    pre { background: #f8f9fa; padding: 15px; overflow-x: auto; border-radius: 4px; }
+    pre { background: #f8f9fa; padding: 15px; overflow-x: auto; border-radius: 4px; font-size: 12px; }
     .success { border-left: 4px solid #28a745; }
     .warning { border-left: 4px solid #ffc107; }
-    .error { border-left: 4px solid #dc3545; }
     h1 { color: #333; text-align: center; }
     h2 { color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
     .status { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
@@ -20,40 +19,27 @@
 </head>
 <body>
   <div class="container">
-    <h1>🔍 Allure History Debug Dashboard</h1>
-    <p><strong>Build:</strong> #112 | <strong>Time:</strong> $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
+    <h1>🔍 Allure History Debug - Build #115</h1>
+    <p><strong>Time:</strong> $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
 
     <div class="section success">
       <h2>📊 History Trend Data</h2>
       <div id="historyStatus" class="status">Loading...</div>
-      <pre id="historyTrend">Loading history data...</pre>
+      <pre id="historyTrend">Loading...</pre>
     </div>
 
     <div class="section success">
-      <h2>⏱️ Duration Trend Data</h2>
+      <h2>⏱ Duration Trend Data</h2>
       <div id="durationStatus" class="status">Loading...</div>
-      <pre id="durationTrend">Loading duration data...</pre>
-    </div>
-
-    <div class="section warning">
-      <h2>📈 Categories Trend Data</h2>
-      <div id="categoriesStatus" class="status">Loading...</div>
-      <pre id="categoriesTrend">Loading categories data...</pre>
+      <pre id="durationTrend">Loading...</pre>
     </div>
 
     <div class="section">
-      <h2>🔄 Retry Trend Data</h2>
-      <div id="retryStatus" class="status">Loading...</div>
-      <pre id="retryTrend">Loading retry data...</pre>
-    </div>
-
-    <div class="section">
-      <h2>🔗 Quick Links</h2>
+      <h2>🔗 Links</h2>
       <ul>
-        <li><a href="./index.html">Main Allure Report</a></li>
-        <li><a href="./history/history-trend.json" target="_blank">Raw History Data</a></li>
-        <li><a href="./history/duration-trend.json" target="_blank">Raw Duration Data</a></li>
-        <li><a href="https://github.com/aasaitsolution/mmProAutomation/actions/runs/18043280852" target="_blank">GitHub Actions Run</a></li>
+        <li><a href="./index.html">📈 Main Allure Report</a></li>
+        <li><a href="./history/history-trend.json" target="_blank">📄 Raw History Data</a></li>
+        <li><a href="https://github.com/aasaitsolution/mmProAutomation/actions" target="_blank">🔄 GitHub Actions</a></li>
       </ul>
     </div>
   </div>
@@ -70,20 +56,24 @@
           const statusEl = document.getElementById(statusId);
           statusEl.textContent = '✅ Loaded (' + data.length + ' entries)';
           statusEl.className = 'status ok';
+          
+          // Check format
+          if (data.length > 0 && data[0].buildOrder) {
+            statusEl.textContent += ' - Format: ✅ Valid';
+          } else {
+            statusEl.textContent += ' - Format: ❌ Invalid';
+          }
         })
         .catch(error => {
-          document.getElementById(elementId).textContent = 'Error loading data: ' + error.message;
+          document.getElementById(elementId).textContent = 'Error: ' + error.message;
           const statusEl = document.getElementById(statusId);
           statusEl.textContent = '❌ Failed: ' + error.message;
           statusEl.className = 'status error';
         });
     }
 
-    // Load all trend data
     loadAndDisplay('./history/history-trend.json', 'historyTrend', 'historyStatus');
     loadAndDisplay('./history/duration-trend.json', 'durationTrend', 'durationStatus');
-    loadAndDisplay('./history/categories-trend.json', 'categoriesTrend', 'categoriesStatus');
-    loadAndDisplay('./history/retry-trend.json', 'retryTrend', 'retryStatus');
   </script>
 </body>
 </html>
