@@ -1,11 +1,1 @@
-[
-  {
-    "buildOrder": 108,
-    "reportName": "Build #108",
-    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/18017572321",
-    "data": {
-      "Product defects": 1,
-      "Test defects": 33
-    }
-  }
-]
+[{"data":{"Product defects":1,"Test defects":23}}]
