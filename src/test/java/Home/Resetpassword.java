@@ -1,15 +1,11 @@
 package Home;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
+import base.BaseTest;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.time.Duration;
 
@@ -25,63 +21,79 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
+public class Resetpassword extends BaseTest {
 
-
-
-public class Resetpassword {
-
-    private WebDriver driver;
-    private WebDriverWait wait;
+    private static final String BASE_URL = "https://mmpro.aasait.lk/";
     private String resetLink;
 
-    @BeforeClass
-    public void setup() {
-        WebDriverManager.chromedriver().setup();
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--start-maximized");
-        driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+    @BeforeMethod
+    public void navigateToHomepage() {
+        driver.get(BASE_URL);
+        waitForPageLoadComplete();
+
+        // Verify homepage elements are present
+        wait.until(ExpectedConditions.or(
+                ExpectedConditions.presenceOfElementLocated(By.xpath("//button[.//span[contains(text(),'தமிழ்')]]")),
+                ExpectedConditions.presenceOfElementLocated(By.xpath("//span[text()='සිංහල']/..")),
+                ExpectedConditions.presenceOfElementLocated(By.xpath("//div[contains(@class, 'logo')] | //img[contains(@alt, 'logo')]"))
+        ));
+        System.out.println("✅ Homepage loaded successfully for reset password tests.");
     }
 
-    @AfterClass
-    public void teardown() {
-        if (driver != null) {
-            driver.quit();
-            System.out.println("👋 Browser closed");
+    private void clickElementSafely(By locator, String elementName) throws InterruptedException {
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
+        wait.until(ExpectedConditions.elementToBeClickable(element));
+
+        try {
+            element.click();
+        } catch (ElementClickInterceptedException e) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
         }
+
+        Thread.sleep(1000);
+        System.out.println("✅ Clicked: " + elementName);
     }
 
     @Test(priority = 1)
-    public void testRequestPasswordReset() {
+    public void testRequestPasswordReset() throws InterruptedException {
         try {
-            driver.get("https://mmpro.aasait.lk/");
             System.out.println("🌐 Opened page: " + driver.getTitle());
 
-            WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("a[href='/signin'] button")));
-            loginButton.click();
-            System.out.println("➡️ Clicked login button");
+            // Navigate to login page
+            By loginBtn = By.xpath("//a/button[.//span[contains(text(),'Login') or contains(text(),'உள்நுழைய') or contains(text(),'පිවිසුම')]] | //a[contains(@href,'/signin')]");
+            clickElementSafely(loginBtn, "Login button");
 
+            wait.until(ExpectedConditions.or(
+                    ExpectedConditions.urlContains("/signin"),
+                    ExpectedConditions.presenceOfElementLocated(By.id("sign-in_username"))
+            ));
+            System.out.println("➡️ Navigated to login page");
+
+            // Click forgot password
             WebElement forgotPasswordBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector(".links")));
-            forgotPasswordBtn.click();
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", forgotPasswordBtn);
             System.out.println("🔑 Clicked 'Forgot Password'");
 
+            // Enter email
             WebElement emailInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector(".fp-modal input[type='text']")));
+            emailInput.clear();
             emailInput.sendKeys("frtestemailuse@gmail.com");
             System.out.println("✉️ Entered email");
 
+            // Submit request
             WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector(".fp-modal .submit-button")));
-            submitButton.click();
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitButton);
             System.out.println("📤 Submitted password reset request");
 
+            // Wait for confirmation
             wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".fp-modal")));
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".confirmation-modal")));
             System.out.println("✅ Confirmation modal displayed");
+
         } catch (Exception e) {
             System.err.println("❌ Failed at requesting password reset: " + e.getMessage());
             throw e;
@@ -103,25 +115,30 @@ public class Resetpassword {
     }
 
     @Test(priority = 3, dependsOnMethods = "testFetchResetLinkFromEmail")
-    public void testResetPasswordWithToken() throws InterruptedException{
+    public void testResetPasswordWithToken() throws InterruptedException {
         try {
             driver.get(resetLink);
+            waitForPageLoadComplete();
             System.out.println("🔗 Navigated to reset password page");
 
             WebElement newPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("newPassword")));
             WebElement confirmPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("confirmPassword")));
 
+            newPasswordInput.clear();
             newPasswordInput.sendKeys("NewPassword123");
+            confirmPasswordInput.clear();
             confirmPasswordInput.sendKeys("NewPassword123");
             System.out.println("🔐 Entered new password");
 
             WebElement resetSubmitButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector(".reset-password-modal .submit-button")));
-            resetSubmitButton.click();
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", resetSubmitButton);
             System.out.println("🚀 Submitted password reset form");
-            Thread.sleep(30000);
+
+            Thread.sleep(5000); // Reduced wait time
 
             wait.until(ExpectedConditions.urlContains("/signin"));
+            Assert.assertTrue(driver.getCurrentUrl().contains("signin"), "❌ Password reset failed - not redirected to login.");
             System.out.println("✅ Password reset successful and redirected to sign-in");
         } catch (Exception e) {
             System.err.println("❌ Failed at resetting password: " + e.getMessage());
@@ -130,157 +147,172 @@ public class Resetpassword {
     }
 
     @Test(priority = 4)
-public void testRequestPasswordResetWithInvalidEmail() {
-    try {
-        driver.get("https://mmpro.aasait.lk/signin");
-        WebElement forgotPasswordBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".links")));
-        forgotPasswordBtn.click();
+    public void testRequestPasswordResetWithInvalidEmail() throws InterruptedException {
+        try {
+            driver.get(BASE_URL + "signin");
+            waitForPageLoadComplete();
 
-        WebElement emailInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".fp-modal input[type='text']")));
-        emailInput.clear();
-        emailInput.sendKeys("invalid-email-format");
-        System.out.println("✉️ Entered invalid email");
+            WebElement forgotPasswordBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".links")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", forgotPasswordBtn);
 
-        WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".fp-modal .submit-button")));
-        submitButton.click();
-        System.out.println("📤 Submitted password reset request with invalid email");
+            WebElement emailInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".fp-modal input[type='text']")));
+            emailInput.clear();
+            emailInput.sendKeys("invalid-email-format");
+            System.out.println("✉️ Entered invalid email");
 
-        // Wait and check for error message (adjust selector based on actual app)
-        WebElement errorMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
-            By.cssSelector("#email_help .ant-form-item-explain-error")
-        ));
-        String errorText = errorMsg.getText();
-        assert errorText.contains("Please enter a valid email!");
-        System.out.println("❗ Proper error message displayed for invalid email");
+            WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".fp-modal .submit-button")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitButton);
+            System.out.println("📤 Submitted password reset request with invalid email");
 
-    } catch (Exception e) {
-        System.err.println("❌ Failed invalid email test: " + e.getMessage());
-        throw e;
-    }
-}
+            // Wait and check for error message
+            WebElement errorMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("#email_help .ant-form-item-explain-error")
+            ));
+            String errorText = errorMsg.getText();
+            Assert.assertTrue(errorText.contains("Please enter a valid email!"), "❌ Invalid email error not displayed properly.");
+            System.out.println("❗ Proper error message displayed for invalid email");
 
-@Test(priority = 5)
-public void testRequestPasswordResetWithUnregisteredEmail() {
-    try {
-        driver.get("https://mmpro.aasait.lk/signin");
-
-        WebElement forgotPasswordBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".links")));
-        forgotPasswordBtn.click();
-
-        WebElement emailInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".fp-modal input[type='text']")));
-        emailInput.clear();
-        emailInput.sendKeys("unregisteredemail@example.com");
-        System.out.println("✉️ Entered unregistered email");
-
-        WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".fp-modal .submit-button")));
-        submitButton.click();
-        System.out.println("📤 Submitted password reset request with unregistered email");
-
-        // ✅ Wait for the AntD error toast message
-        WebElement toastMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
-            By.cssSelector(".ant-message-error span:last-of-type")));
-
-        String msgText = toastMsg.getText().trim().toLowerCase();
-        System.out.println("🔔 Toast message received: " + msgText);
-
-        assert msgText.contains("no user found for this email");
-        System.out.println("❗ Proper toast error displayed for unregistered email");
-
-    } catch (Exception e) {
-        System.err.println("❌ Failed unregistered email test: " + e.getMessage());
-        throw e;
-    }
-}
-
-
-@Test(priority = 6)
-public void testFetchResetLinkTimeout() {
-    try {
-        // Try fetching reset link with very few retries and short wait
-        getResetLinkFromGmailWithRetry(2, 2);
-        throw new AssertionError("Expected exception due to missing reset email, but got none");
-    } catch (Exception e) {
-        System.out.println("⌛ Expected failure occurred while fetching reset link: " + e.getMessage());
-    }
-}
-
-@Test(priority = 7)
-public void testResetPasswordWithInvalidToken() {
-    try {
-        String invalidResetLink = "https://mmpro.aasait.lk/reset-password?token=invalidtoken123456";
-        driver.get(invalidResetLink);
-        System.out.println("🔗 Navigated to reset password page with invalid token");
-
-        // Wait for password fields to appear
-        WebElement newPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("newPassword")));
-        WebElement confirmPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("confirmPassword")));
-
-        // Enter any passwords
-        newPasswordInput.sendKeys("TestPassword123");
-        confirmPasswordInput.sendKeys("TestPassword123");
-        System.out.println("🔐 Entered passwords");
-
-        // Click reset button
-        WebElement resetSubmitButton = wait.until(ExpectedConditions.elementToBeClickable(
-            By.cssSelector(".reset-password-modal .submit-button")));
-        resetSubmitButton.click();
-        System.out.println("🚀 Submitted reset password form with invalid token");
-
-        // ✅ Wait for AntD error message toast
-        WebElement toastMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
-            By.cssSelector(".ant-message-error span:last-of-type")));
-
-        String msgText = toastMsg.getText().trim().toLowerCase();
-        System.out.println("🔔 Toast message received: " + msgText);
-
-        assert msgText.contains("invalid") || msgText.contains("expired");
-        System.out.println("❗ Proper error toast displayed for invalid/expired token");
-
-    } catch (Exception e) {
-        System.err.println("❌ Failed invalid token test: " + e.getMessage());
-        throw e;
-    }
-}
-
-
-
-@Test(priority = 8)
-public void testResetPasswordWithMismatchedPasswords() {
-    try {
-        // Assume resetLink is valid from previous tests or set manually here
-        if (resetLink == null) {
-            System.out.println("⚠️ Skipping mismatched passwords test as resetLink is null");
-            return;
+        } catch (Exception e) {
+            System.err.println("❌ Failed invalid email test: " + e.getMessage());
+            throw e;
         }
-
-        driver.get(resetLink);
-        System.out.println("🔗 Navigated to reset password page for mismatched passwords test");
-
-        WebElement newPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("newPassword")));
-        WebElement confirmPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("confirmPassword")));
-
-        newPasswordInput.sendKeys("Password123");
-        confirmPasswordInput.sendKeys("DifferentPassword123");
-        System.out.println("🔐 Entered mismatched passwords");
-
-        WebElement resetSubmitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".reset-password-modal .submit-button")));
-        resetSubmitButton.click();
-
-        // Wait for validation error message
-        WebElement errorMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
-            By.cssSelector(".ant-form-item-explain-error")
-        ));
-        String errorText = errorMsg.getText().toLowerCase();
-        assert errorText.contains("passwords do not match") || errorText.contains("the two passwords do not match");
-        System.out.println("❗ Proper validation error displayed for mismatched passwords");
-    } catch (Exception e) {
-        System.err.println("❌ Failed mismatched passwords test: " + e.getMessage());
-        throw e;
     }
-}  
 
-    // The email fetching methods remain unchanged
+    @Test(priority = 5)
+    public void testRequestPasswordResetWithUnregisteredEmail() throws InterruptedException {
+        try {
+            driver.get(BASE_URL + "signin");
+            waitForPageLoadComplete();
 
+            WebElement forgotPasswordBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".links")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", forgotPasswordBtn);
+
+            WebElement emailInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".fp-modal input[type='text']")));
+            emailInput.clear();
+            emailInput.sendKeys("unregisteredemail@example.com");
+            System.out.println("✉️ Entered unregistered email");
+
+            WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".fp-modal .submit-button")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitButton);
+            System.out.println("📤 Submitted password reset request with unregistered email");
+
+            // Wait for the AntD error toast message
+            WebElement toastMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(".ant-message-error span:last-of-type")));
+
+            String msgText = toastMsg.getText().trim().toLowerCase();
+            System.out.println("🔔 Toast message received: " + msgText);
+
+            Assert.assertTrue(msgText.contains("no user found for this email"), "❌ Unregistered email error not displayed properly.");
+            System.out.println("❗ Proper toast error displayed for unregistered email");
+
+        } catch (Exception e) {
+            System.err.println("❌ Failed unregistered email test: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Test(priority = 6)
+    public void testFetchResetLinkTimeout() {
+        try {
+            // Try fetching reset link with very few retries and short wait
+            getResetLinkFromGmailWithRetry(2, 2);
+            Assert.fail("Expected exception due to missing reset email, but got none");
+        } catch (Exception e) {
+            System.out.println("⌛ Expected failure occurred while fetching reset link: " + e.getMessage());
+            Assert.assertTrue(e.getMessage().contains("Failed to get reset link"), "❌ Expected timeout error not received.");
+        }
+    }
+
+    @Test(priority = 7)
+    public void testResetPasswordWithInvalidToken() throws InterruptedException {
+        try {
+            String invalidResetLink = BASE_URL + "reset-password?token=invalidtoken123456";
+            driver.get(invalidResetLink);
+            waitForPageLoadComplete();
+            System.out.println("🔗 Navigated to reset password page with invalid token");
+
+            // Wait for password fields to appear
+            WebElement newPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("newPassword")));
+            WebElement confirmPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("confirmPassword")));
+
+            // Enter any passwords
+            newPasswordInput.clear();
+            newPasswordInput.sendKeys("TestPassword123");
+            confirmPasswordInput.clear();
+            confirmPasswordInput.sendKeys("TestPassword123");
+            System.out.println("🔐 Entered passwords");
+
+            // Click reset button
+            WebElement resetSubmitButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector(".reset-password-modal .submit-button")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", resetSubmitButton);
+            System.out.println("🚀 Submitted reset password form with invalid token");
+
+            // Wait for AntD error message toast
+            WebElement toastMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(".ant-message-error span:last-of-type")));
+
+            String msgText = toastMsg.getText().trim().toLowerCase();
+            System.out.println("🔔 Toast message received: " + msgText);
+
+            Assert.assertTrue(msgText.contains("invalid") || msgText.contains("expired"),
+                    "❌ Invalid token error not displayed properly.");
+            System.out.println("❗ Proper error toast displayed for invalid/expired token");
+
+        } catch (Exception e) {
+            System.err.println("❌ Failed invalid token test: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Test(priority = 8)
+    public void testResetPasswordWithMismatchedPasswords() throws InterruptedException {
+        try {
+            // Skip if resetLink is null
+            if (resetLink == null) {
+                System.out.println("⚠️ Skipping mismatched passwords test as resetLink is null");
+                return;
+            }
+
+            driver.get(resetLink);
+            waitForPageLoadComplete();
+            System.out.println("🔗 Navigated to reset password page for mismatched passwords test");
+
+            WebElement newPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("newPassword")));
+            WebElement confirmPasswordInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("confirmPassword")));
+
+            newPasswordInput.clear();
+            newPasswordInput.sendKeys("Password123");
+            confirmPasswordInput.clear();
+            confirmPasswordInput.sendKeys("DifferentPassword123");
+            System.out.println("🔐 Entered mismatched passwords");
+
+            WebElement resetSubmitButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector(".reset-password-modal .submit-button")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", resetSubmitButton);
+
+            // Wait for validation error message
+            WebElement errorMsg = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(".ant-form-item-explain-error")
+            ));
+            String errorText = errorMsg.getText().toLowerCase();
+            Assert.assertTrue(errorText.contains("passwords do not match") || errorText.contains("the two passwords do not match"),
+                    "❌ Mismatched password error not displayed properly.");
+            System.out.println("❗ Proper validation error displayed for mismatched passwords");
+        } catch (Exception e) {
+            System.err.println("❌ Failed mismatched passwords test: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    private void waitForPageLoadComplete() {
+        new org.openqa.selenium.support.ui.WebDriverWait(driver, Duration.ofSeconds(30)).until(
+                webDriver -> ((JavascriptExecutor) webDriver)
+                        .executeScript("return document.readyState").equals("complete"));
+    }
+
+    // Email fetching methods remain the same
     public String getResetLinkFromGmail() throws Exception {
         String host = "imap.gmail.com";
         String username = "frtestemailuse@gmail.com";
@@ -315,7 +347,7 @@ public void testResetPasswordWithMismatchedPasswords() {
                     for (int j = 0; j < multipart.getCount(); j++) {
                         BodyPart bodyPart = multipart.getBodyPart(j);
                         if (bodyPart.getContentType().toLowerCase().contains("text/plain") ||
-                            bodyPart.getContentType().toLowerCase().contains("text/html")) {
+                                bodyPart.getContentType().toLowerCase().contains("text/html")) {
                             content = bodyPart.getContent().toString();
                             break;
                         }
