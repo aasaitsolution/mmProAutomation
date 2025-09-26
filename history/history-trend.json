@@ -1,1 +1,28 @@
-[{"data":{"failed":1,"broken":22,"skipped":7,"passed":170,"unknown":0,"total":200}}]
+[
+  {
+    "buildOrder": 111,
+    "reportName": "Build #111",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/previous",
+    "data": {
+      "passed": 164,
+      "failed": 2,
+      "broken": 25,
+      "skipped": 6,
+      "unknown": 0,
+      "total": 197
+    }
+  },
+  {
+    "buildOrder": 112,
+    "reportName": "Build #112",
+    "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/18043280852",
+    "data": {
+      "failed": 1,
+      "broken": 23,
+      "skipped": 7,
+      "passed": 169,
+      "unknown": 0,
+      "total": 200
+    }
+  }
+]

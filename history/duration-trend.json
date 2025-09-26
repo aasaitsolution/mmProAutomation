@@ -1,1 +1,15 @@
-[{"data":{"duration":3065396}}]
+[{
+  "buildOrder": 111,
+  "reportName": "Build #111",
+  "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/previous",
+  "data": {
+    "duration": 3070791
+  }
+}, {
+  "buildOrder": 112,
+  "reportName": "Build #112",
+  "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/18043280852",
+  "data": {
+    "duration": 3060791
+  }
+}]
