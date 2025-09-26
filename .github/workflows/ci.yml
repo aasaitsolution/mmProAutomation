@@ -308,3 +308,97 @@ jobs:
             target/allure-report/
             target/allure-results/
           retention-days: 30
+
+      - name: Debug History Storage Locations
+        run: |
+          echo "=== COMPLETE HISTORY DEBUG ==="
+          echo "Build Number: ${{ github.run_number }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Current Time: $(date)"
+
+          echo ""
+          echo "=== 1. CHECKING ALL POSSIBLE HISTORY LOCATIONS ==="
+
+          # Check allure-results history
+          echo "📁 target/allure-results/history:"
+          if [ -d "target/allure-results/history" ]; then
+            ls -la target/allure-results/history/
+            echo "Files found in results/history:"
+            find target/allure-results/history -name "*.json" -exec echo "  {}: $(wc -c < {})" \;
+          else
+            echo "❌ No history directory in allure-results"
+          fi
+
+          echo ""
+
+          # Check allure-report history  
+          echo "📁 target/allure-report/history:"
+          if [ -d "target/allure-report/history" ]; then
+            ls -la target/allure-report/history/
+            echo "Files found in report/history:"
+            find target/allure-report/history -name "*.json" -exec echo "  {}: $(wc -c < {})" \;
+          else
+            echo "❌ No history directory in allure-report"
+          fi
+
+          echo ""
+
+          # Check gh-pages history (what was downloaded)
+          echo "📁 gh-pages/history (from previous runs):"
+          if [ -d "gh-pages/history" ]; then
+            ls -la gh-pages/history/
+            echo "Files found in gh-pages/history:"
+            find gh-pages/history -name "*.json" -exec echo "  {}: $(wc -c < {})" \;
+          else
+            echo "❌ No gh-pages/history directory found"
+          fi
+
+          echo ""
+          echo "=== 2. EXAMINING HISTORY FILE CONTENTS ==="
+
+          # Check the most critical file - history-trend.json
+          for location in "target/allure-report/history" "target/allure-results/history" "gh-pages/history"; do
+            if [ -f "$location/history-trend.json" ]; then
+              echo ""
+              echo "🔍 FOUND history-trend.json in $location:"
+              echo "File size: $(wc -c < $location/history-trend.json) bytes"
+              echo "Content:"
+              cat "$location/history-trend.json" | jq '.' 2>/dev/null || cat "$location/history-trend.json"
+              echo ""
+
+              # Check if it has required fields
+              if cat "$location/history-trend.json" | jq -e '.[0] | has("buildOrder")' >/dev/null 2>&1; then
+                echo "✅ Has buildOrder field"
+              else
+                echo "❌ Missing buildOrder field"
+              fi
+
+              if cat "$location/history-trend.json" | jq -e '.[0] | has("reportName")' >/dev/null 2>&1; then
+                echo "✅ Has reportName field"
+              else
+                echo "❌ Missing reportName field"
+              fi
+
+              # Check number of entries
+              ENTRY_COUNT=$(cat "$location/history-trend.json" | jq '. | length' 2>/dev/null || echo "0")
+              echo "📊 Number of history entries: $ENTRY_COUNT"
+
+              if [ "$ENTRY_COUNT" -lt 2 ]; then
+                echo "⚠️  Need at least 2 entries for trend graphs (current: $ENTRY_COUNT)"
+              fi
+            fi
+          done
+
+          echo ""
+          echo "=== 3. CHECKING GITHUB PAGES DEPLOYMENT ==="
+          echo "Expected GitHub Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "History URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/history/history-trend.json"
+
+          echo ""
+          echo "=== 4. SUMMARY ==="
+          echo "If graphs still don't show after this run, check:"
+          echo "1. Visit your GitHub Pages URL and manually check /history/history-trend.json"
+          echo "2. Ensure you have at least 2 entries with buildOrder, reportName, and reportUrl"
+          echo "3. Check browser console for JavaScript errors"
+          echo "4. Verify the Allure report version supports trend graphs"    
+          
