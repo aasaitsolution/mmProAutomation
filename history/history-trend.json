@@ -1,12 +1,12 @@
 [{
-  "buildOrder": 115,
-  "reportName": "Build #115",
-  "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/18046913579",
+  "buildOrder": 116,
+  "reportName": "Build #116",
+  "reportUrl": "https://github.com/aasaitsolution/mmProAutomation/actions/runs/18054243923",
   "data": {
-    "failed": 1,
-    "broken": 32,
+    "failed": 0,
+    "broken": 15,
     "skipped": 7,
-    "passed": 160,
+    "passed": 178,
     "unknown": 0,
     "total": 200
   }
