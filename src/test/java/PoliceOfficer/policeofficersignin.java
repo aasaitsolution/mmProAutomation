@@ -104,7 +104,7 @@ public class policeofficersignin extends BaseTest {
             // Enter vehicle number and click check button
             WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("input[type='text']")));
-            inputField.sendKeys("ABX1234");
+            inputField.sendKeys("LAQ1234");
 
             WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector("button.po-check-button")));

@@ -48,8 +48,8 @@ public class GeneralPublicDashboard extends BaseTest {
     public void enterAndSubmitVehicleNumber() {
         WebElement inputField = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.cssSelector("input[type='text']")));
-        inputField.sendKeys("ABX1234");
-        System.out.println("✍️ Entered vehicle number: ACC1234");
+        inputField.sendKeys("LAQ1234");
+        System.out.println("✍️ Entered vehicle number: LAQ1234");
 
         WebElement checkButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("button.check-button")));

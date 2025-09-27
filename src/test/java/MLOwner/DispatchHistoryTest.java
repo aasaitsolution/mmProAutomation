@@ -20,7 +20,7 @@ public class DispatchHistoryTest extends BaseTest {
         WebElement password = driver.findElement(By.id("sign-in_password"));
 
         username.sendKeys("pasindu");
-        password.sendKeys("1234567");
+        password.sendKeys("12345678");
 
         WebElement signIn = driver.findElement(By.cssSelector("button[type='submit']"));
         signIn.click();
@@ -40,7 +40,7 @@ public class DispatchHistoryTest extends BaseTest {
         WebElement password = driver.findElement(By.id("sign-in_password"));
 
         username.sendKeys("pasindu");
-        password.sendKeys("1234567");
+        password.sendKeys("12345678");
 
         WebElement signIn = driver.findElement(By.cssSelector("button[type='submit']"));
         signIn.click();
