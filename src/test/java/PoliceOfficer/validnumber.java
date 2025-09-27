@@ -88,7 +88,7 @@ public class validnumber {
             wait.until(ExpectedConditions.elementToBeClickable(inputField));
 
             inputField.clear();
-            inputField.sendKeys("ABX1234");
+            inputField.sendKeys("LAQ1234");
             System.out.println("✅ Entered vehicle number.");
 
             // Click the check button
